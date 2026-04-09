@@ -34,11 +34,18 @@ var log = logging.Logger("fuse/writable")
 type Config struct {
 	StoreMtime bool            // persist mtime on create and open-for-write
 	StoreMode  bool            // persist mode on chmod
-	DAG        ipld.DAGService // for read-only opens that bypass MFS locking
+	DAG        ipld.DAGService // required: read-only opens use it to bypass MFS desclock
 }
 
 // NewDir creates a Dir node backed by the given MFS directory.
+// cfg.DAG is required: read-only file opens build a DagReader directly
+// from it to avoid MFS's desclock (see FileInode.Open). Passing a nil
+// DAG would silently re-introduce the rsync --inplace deadlock, so we
+// fail loudly at construction time instead.
 func NewDir(d *mfs.Directory, cfg *Config) *Dir {
+	if cfg == nil || cfg.DAG == nil {
+		panic("fuse/writable: Config.DAG is required")
+	}
 	return &Dir{MFSDir: d, Cfg: cfg}
 }
 
@@ -181,6 +188,12 @@ func (d *Dir) Rmdir(ctx context.Context, name string) syscall.Errno {
 	return fs.ToErrno(d.MFSDir.Flush())
 }
 
+// Rename moves an entry across MFS directories.
+//
+// TODO: this is not atomic. The source is unlinked before the
+// destination is added, so any failure between the two steps loses
+// the source entry. Making it atomic requires changes to MFS rename
+// semantics (boxo/mfs does not currently expose an atomic rename).
 func (d *Dir) Rename(_ context.Context, oldName string, newParent fs.InodeEmbedder, newName string, _ uint32) syscall.Errno {
 	child, err := d.MFSDir.Child(oldName)
 	if err != nil {
@@ -355,8 +368,8 @@ func (fi *FileInode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uin
 	// writing simultaneously, deadlocking on MFS's lock. Creating
 	// a DagReader here avoids the lock entirely: the reader gets a
 	// snapshot of the file at open time, and writers proceed through
-	// MFS independently.
-	if accessMode == syscall.O_RDONLY && fi.Cfg.DAG != nil {
+	// MFS independently. Cfg.DAG is required by NewDir.
+	if accessMode == syscall.O_RDONLY {
 		nd, err := fi.MFSFile.GetNode()
 		if err != nil {
 			return nil, 0, fs.ToErrno(err)

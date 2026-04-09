@@ -1965,7 +1965,7 @@ Type: `flag`
 
 When `true`, writable mounts (`/ipns` and `/mfs`) accept `chmod` requests on both files and directories and persist POSIX permission bits in [UnixFS](https://specs.ipfs.tech/unixfs/) metadata. This changes the resulting CID because mode is stored in the [root block of the UnixFS DAG](https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata).
 
-Most data on IPFS does not include mode. When mode is present in the UnixFS metadata, it is always shown in stat responses on all mounts, regardless of this flag. When absent, a default mode is used (files: `0644` or `0666`, directories: `0755` or `0555`).
+Most data on IPFS does not include mode. When mode is present in the UnixFS metadata, it is always shown in stat responses on all mounts, regardless of this flag. When absent, a default mode is used (files: `0644` on writable mounts, `0444` on `/ipfs`; directories: `0755` on writable mounts, `0555` on `/ipfs`).
 
 Default: `false`
 
