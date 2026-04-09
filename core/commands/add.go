@@ -677,6 +677,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			// first), so a separate root provide is not needed.
 			cmdenv.ExecuteFastProvideDAG(
 				req.Context,
+				ipfsNode.Context(),
 				[]cid.Cid{lastRootCid.RootCid()},
 				ipfsNode.ProvidingStrategy,
 				ipfsNode.Blockstore,

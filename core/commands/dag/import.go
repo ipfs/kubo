@@ -222,6 +222,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		})
 		cmdenv.ExecuteFastProvideDAG(
 			req.Context,
+			node.Context(),
 			rootCIDs,
 			node.ProvidingStrategy,
 			node.Blockstore,

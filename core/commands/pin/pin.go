@@ -293,6 +293,7 @@ func fastProvideAfterPin(req *cmds.Request, nd *core.IpfsNode, fpRoot, fpDAG, fp
 		// Single call with all roots shares one bloom tracker.
 		cmdenv.ExecuteFastProvideDAG(
 			req.Context,
+			nd.Context(),
 			cidList,
 			nd.ProvidingStrategy,
 			nd.Blockstore,

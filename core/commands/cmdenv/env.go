@@ -178,11 +178,14 @@ func ExecuteFastProvideRoot(
 		return nil
 	}
 
-	// Asynchronous mode (default): fire-and-forget, don't block, always return nil
+	// Asynchronous mode (default): fire-and-forget, don't block, always return nil.
+	// Parent off the node's lifetime context (not context.Background) so the
+	// goroutine cancels on daemon shutdown instead of potentially outliving
+	// the node and touching a closed DHT client. The timeout still bounds
+	// stuck DHT operations.
 	log.Debugw("fast-provide-root: providing asynchronously", "cid", rootCid)
 	go func() {
-		// Use detached context with timeout to prevent hanging on network issues
-		ctx, cancel := context.WithTimeout(context.Background(), config.DefaultFastProvideTimeout)
+		ctx, cancel := context.WithTimeout(ipfsNode.Context(), config.DefaultFastProvideTimeout)
 		defer cancel()
 		if err := provideCIDSync(ctx, ipfsNode.DHTClient, rootCid); err != nil {
 			log.Warnw("fast-provide-root: async provide failed", "cid", rootCid, "error", err)
@@ -198,14 +201,22 @@ func ExecuteFastProvideRoot(
 // tracker is shared across all roots so shared sub-DAGs are
 // deduplicated. Uses an unbuffered channel for backpressure.
 //
-// When wait is true, blocks until all walks complete. When false,
-// runs in a background goroutine (best-effort, errors logged).
+// Context handling:
+//   - wait=true: the walk runs inline under cmdCtx (the request
+//     context), so a user Ctrl+C on the command cancels the walk.
+//   - wait=false: the walk runs in a background goroutine under
+//     nodeCtx (the IpfsNode lifetime context). This lets the walk
+//     survive the command handler returning (go-ipfs-cmds cancels
+//     req.Context on handler exit) while still being cancelled on
+//     daemon shutdown, so the goroutine does not outlive the node
+//     and keep the blockstore/provider pinned open.
 //
 // fpRate is the bloom filter target false-positive rate (1/N), normally
 // resolved from cfg.Provide.BloomFPRate by the caller.
 // blockCount sizes the bloom filter (pass 0 if unknown).
 func ExecuteFastProvideDAG(
-	ctx context.Context,
+	cmdCtx context.Context,
+	nodeCtx context.Context,
 	roots []cid.Cid,
 	strategy config.ProvideStrategy,
 	bs blockstore.Blockstore,
@@ -222,7 +233,7 @@ func ExecuteFastProvideDAG(
 		return
 	}
 
-	do := func() {
+	do := func(ctx context.Context) {
 		expectedItems := max(uint(walker.DefaultBloomInitialCapacity), blockCount)
 		tracker, err := walker.NewBloomTracker(expectedItems, fpRate)
 		if err != nil {
@@ -279,8 +290,11 @@ func ExecuteFastProvideDAG(
 	}
 
 	if wait {
-		do()
+		do(cmdCtx)
 	} else {
-		go do()
+		// Use the node's lifetime context so the walk survives
+		// the command handler returning (which cancels req.Context)
+		// but still cancels on daemon shutdown.
+		go do(nodeCtx)
 	}
 }
