@@ -10,12 +10,15 @@
 package fuse
 
 import (
+	"bytes"
+	"crypto/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/ipfs/kubo/config"
@@ -301,6 +304,81 @@ func TestFUSE(t *testing.T) {
 
 		// Publish should work again
 		node.IPFS("name", "publish", hash)
+
+		node.StopDaemon()
+	})
+
+	// Exercises both ftruncate(fd, size) and truncate(path, size).
+	// ftruncate uses the open file handle in Setattr; truncate opens
+	// a temporary write descriptor. Both must leave the file with
+	// correct content visible via the FUSE mount and via ipfs files.
+	t.Run("truncation via FUSE", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init()
+		node.StartDaemon()
+
+		_, _, mfsMount := mountAll(t, node)
+
+		original := make([]byte, 2000)
+		_, err := rand.Read(original)
+		require.NoError(t, err)
+
+		path := filepath.Join(mfsMount, "trunctest")
+		require.NoError(t, os.WriteFile(path, original, 0644))
+
+		// ftruncate(fd, 500): open, truncate via fd, close.
+		t.Run("ftruncate via fd", func(t *testing.T) {
+			f, err := os.OpenFile(path, os.O_WRONLY, 0644)
+			require.NoError(t, err)
+			require.NoError(t, f.Truncate(500))
+			require.NoError(t, f.Close())
+
+			info, err := os.Stat(path)
+			require.NoError(t, err)
+			require.Equal(t, int64(500), info.Size())
+
+			got, err := os.ReadFile(path)
+			require.NoError(t, err)
+			require.True(t, bytes.Equal(original[:500], got),
+				"ftruncated content should match first 500 bytes of original")
+
+			// Verify via ipfs files stat
+			stat := node.IPFS("files", "stat", "/trunctest", "--format=<size>")
+			require.Equal(t, "500", strings.TrimSpace(stat.Stdout.String()))
+		})
+
+		// truncate(path, 200): no open fd, Setattr opens a temporary
+		// write descriptor.
+		t.Run("truncate via path", func(t *testing.T) {
+			require.NoError(t, syscall.Truncate(path, 200))
+
+			info, err := os.Stat(path)
+			require.NoError(t, err)
+			require.Equal(t, int64(200), info.Size())
+
+			got, err := os.ReadFile(path)
+			require.NoError(t, err)
+			require.True(t, bytes.Equal(original[:200], got),
+				"path-truncated content should match first 200 bytes of original")
+
+			stat := node.IPFS("files", "stat", "/trunctest", "--format=<size>")
+			require.Equal(t, "200", strings.TrimSpace(stat.Stdout.String()))
+		})
+
+		// Truncate to zero and rewrite: the common open(O_TRUNC) pattern.
+		t.Run("truncate to zero and rewrite", func(t *testing.T) {
+			newContent := []byte("brand new content")
+			f, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0644)
+			require.NoError(t, err)
+			_, err = f.Write(newContent)
+			require.NoError(t, err)
+			require.NoError(t, f.Close())
+
+			got, err := os.ReadFile(path)
+			require.NoError(t, err)
+			require.Equal(t, newContent, got)
+		})
 
 		node.StopDaemon()
 	})

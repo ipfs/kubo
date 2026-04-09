@@ -412,7 +412,9 @@ func (fi *FileInode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uin
 //
 // With hanwen/go-fuse, the kernel passes the open file handle (fh) when
 // the caller uses ftruncate(fd, size). This lets us truncate through
-// the existing write descriptor without opening a second one.
+// the existing write descriptor without opening a second one. For
+// truncate(path, size) without a handle, a temporary descriptor is
+// opened; this may block if another writer holds MFS's desclock.
 func (fi *FileInode) Setattr(_ context.Context, fh fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
 	if sz, ok := in.GetSize(); ok {
 		if f, ok := fh.(*FileHandle); ok {
@@ -424,18 +426,24 @@ func (fi *FileInode) Setattr(_ context.Context, fh fs.FileHandle, in *fuse.SetAt
 				return fs.ToErrno(err)
 			}
 		} else {
-			// truncate(path, size) without an open handle. MFS only
-			// allows one write descriptor at a time, so we can't open
-			// a second one here. We advertise CAP_ATOMIC_O_TRUNC so
-			// the kernel sends O_TRUNC in Open (handled there) instead
-			// of doing SETATTR first. This path handles the rare
-			// truncate(2) syscall (not open+O_TRUNC).
-			cursize, err := fi.MFSFile.Size()
+			// truncate(path, size) without an open file descriptor.
+			// Open a temporary write descriptor, truncate, flush, and
+			// close. This may block if another writer holds MFS's
+			// desclock; the FUSE kernel timeout (30s) bounds the wait.
+			fd, err := fi.MFSFile.Open(mfs.Flags{Write: true, Sync: true})
 			if err != nil {
 				return fs.ToErrno(err)
 			}
-			if cursize != int64(sz) {
-				return syscall.ENOTSUP
+			if err := fd.Truncate(int64(sz)); err != nil {
+				fd.Close()
+				return fs.ToErrno(err)
+			}
+			if err := fd.Flush(); err != nil {
+				fd.Close()
+				return fs.ToErrno(err)
+			}
+			if err := fd.Close(); err != nil {
+				return fs.ToErrno(err)
 			}
 		}
 	}

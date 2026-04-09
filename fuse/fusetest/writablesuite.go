@@ -191,6 +191,21 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		require.Equal(t, int64(500), info.Size())
 	})
 
+	// truncate(path, size) without an open fd: uses a temporary
+	// write descriptor inside Setattr instead of ftruncate on an
+	// existing handle.
+	t.Run("TruncatePath", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		path := filepath.Join(dir, "pathtrunc")
+
+		WriteFileOrFail(t, 1000, path)
+		require.NoError(t, syscall.Truncate(path, 500))
+
+		info, err := os.Stat(path)
+		require.NoError(t, err)
+		require.Equal(t, int64(500), info.Size())
+	})
+
 	t.Run("LargeFile", func(t *testing.T) {
 		dir := mount(t, writable.Config{})
 		path := filepath.Join(dir, "largefile")
