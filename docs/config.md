@@ -119,6 +119,8 @@ config file at runtime.
     - [`Mounts.IPNS`](#mountsipns)
     - [`Mounts.MFS`](#mountsmfs)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
+    - [`Mounts.StoreMtime`](#mountsstoremtime)
+    - [`Mounts.StoreMode`](#mountsstoremode)
   - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
       - [`Pinning.RemoteServices: API`](#pinningremoteservices-api)
