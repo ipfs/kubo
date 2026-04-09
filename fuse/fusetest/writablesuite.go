@@ -180,6 +180,23 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		VerifyFile(t, filepath.Join(dir, "dst", "file"), data)
 	})
 
+	// Renaming a directory (not just a file inside it). The contained
+	// file must still be readable under the new path.
+	t.Run("DirRename", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		oldDir := filepath.Join(dir, "olddir")
+		newDir := filepath.Join(dir, "newdir")
+
+		require.NoError(t, os.Mkdir(oldDir, 0o755))
+		data := WriteFileOrFail(t, 200, filepath.Join(oldDir, "child"))
+
+		require.NoError(t, os.Rename(oldDir, newDir))
+
+		_, err := os.Stat(oldDir)
+		require.True(t, os.IsNotExist(err))
+		VerifyFile(t, filepath.Join(newDir, "child"), data)
+	})
+
 	t.Run("RemoveFile", func(t *testing.T) {
 		dir := mount(t, writable.Config{})
 		path := filepath.Join(dir, "removeme")
@@ -231,6 +248,30 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		require.NoError(t, err)
 		require.NoError(t, f.Sync())
 		require.NoError(t, f.Close())
+	})
+
+	// After fsync on the writer handle, a fresh reader on a different
+	// fd must see the synced data. This is the "vim wrote and called
+	// fsync; my other process should see it immediately" scenario.
+	t.Run("FsyncCrossHandle", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		path := filepath.Join(dir, "fsynccross")
+
+		want := RandBytes(500)
+		w, err := os.Create(path)
+		require.NoError(t, err)
+		_, err = w.Write(want)
+		require.NoError(t, err)
+		require.NoError(t, w.Sync())
+		// w is intentionally still open: the cross-handle reader must
+		// see the data after fsync, not just after close.
+
+		got, err := os.ReadFile(path)
+		require.NoError(t, err)
+		require.True(t, bytes.Equal(want, got),
+			"reader on a fresh handle should see data flushed by fsync")
+
+		require.NoError(t, w.Close())
 	})
 
 	t.Run("Ftruncate", func(t *testing.T) {
@@ -314,6 +355,50 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 
 		copy(data[10:], patch)
 		VerifyFile(t, path, data)
+	})
+
+	// Writing past the end of an empty file. UnixFS may not store true
+	// sparse holes, but the visible read must report the requested
+	// offset and the data we wrote, with zero bytes filling the gap.
+	t.Run("SparseWrite", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		path := filepath.Join(dir, "sparse")
+
+		f, err := os.Create(path)
+		require.NoError(t, err)
+		payload := RandBytes(100)
+		_, err = f.WriteAt(payload, 1000)
+		require.NoError(t, err)
+		require.NoError(t, f.Close())
+
+		got, err := os.ReadFile(path)
+		require.NoError(t, err)
+		require.Equal(t, 1100, len(got), "size should include the gap before the written bytes")
+		require.True(t, bytes.Equal(payload, got[1000:]), "tail bytes should match the written payload")
+		// Bytes [0:1000] should read as zero. Don't assert byte-for-byte
+		// equality with a zero slice (would catch the same thing twice);
+		// require.NotContains over a sample is enough.
+		for _, b := range got[:1000] {
+			if b != 0 {
+				t.Fatalf("expected zero gap fill, got byte %d", b)
+			}
+		}
+	})
+
+	// O_EXCL: the second create on the same path must fail with an
+	// error that satisfies os.IsExist. Lock files, ssh-agent, and
+	// atomic file creation patterns rely on this.
+	t.Run("OExcl", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		path := filepath.Join(dir, "exclfile")
+
+		f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
+		require.NoError(t, err)
+		require.NoError(t, f.Close())
+
+		_, err = os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o644)
+		require.Error(t, err)
+		require.True(t, os.IsExist(err), "second O_EXCL create should fail with EEXIST, got %v", err)
 	})
 
 	t.Run("OverwriteExisting", func(t *testing.T) {
