@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"sync"
 	"syscall"
 	"time"
 
@@ -152,8 +153,12 @@ func (n *Node) Open(ctx context.Context, _ uint32) (fs.FileHandle, uint32, sysca
 }
 
 // roFileHandle holds a DagReader for the lifetime of an open file.
+// All methods are serialized by mu because the FUSE server dispatches
+// each request in its own goroutine and the underlying DagReader is
+// not safe for concurrent use.
 type roFileHandle struct {
-	r uio.DagReader
+	r  uio.DagReader
+	mu sync.Mutex
 }
 
 // fillAttr populates a fuse.Attr from this node's UnixFS metadata.
@@ -318,6 +323,9 @@ func (n *Node) Readlink(_ context.Context) ([]byte, syscall.Errno) {
 }
 
 func (fh *roFileHandle) Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+	fh.mu.Lock()
+	defer fh.mu.Unlock()
+
 	if _, err := fh.r.Seek(off, io.SeekStart); err != nil {
 		return nil, fs.ToErrno(err)
 	}
@@ -331,6 +339,9 @@ func (fh *roFileHandle) Read(ctx context.Context, dest []byte, off int64) (fuse.
 }
 
 func (fh *roFileHandle) Release(_ context.Context) syscall.Errno {
+	fh.mu.Lock()
+	defer fh.mu.Unlock()
+
 	return fs.ToErrno(fh.r.Close())
 }
 

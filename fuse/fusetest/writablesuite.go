@@ -558,6 +558,33 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		wg.Wait()
 	})
 
+	// Large file concurrent reads: the kernel sends multiple Read
+	// requests via readahead on files bigger than max_read (128 KB).
+	// Without proper mutex serialization on the file handle, concurrent
+	// reads corrupt the DagReader's internal state.
+	t.Run("LargeFileConcurrentRead", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		path := filepath.Join(dir, "largeconcurrent")
+
+		size := 1024*1024 + 1 // 1 MiB + 1 byte
+		data := WriteFileOrFail(t, size, path)
+
+		var wg sync.WaitGroup
+		for range 8 {
+			wg.Go(func() {
+				got, err := os.ReadFile(path)
+				if err != nil {
+					t.Errorf("ReadFile: %v", err)
+					return
+				}
+				if !bytes.Equal(got, data) {
+					t.Errorf("data mismatch: got %d bytes, want %d", len(got), len(data))
+				}
+			})
+		}
+		wg.Wait()
+	})
+
 	t.Run("FSThrash", func(t *testing.T) {
 		dir := mount(t, writable.Config{})
 		dirs := []string{dir}

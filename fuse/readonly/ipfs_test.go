@@ -658,6 +658,37 @@ func TestSeekRead(t *testing.T) {
 	}
 }
 
+// Test that concurrent reads of the same large file produce correct data.
+// The kernel sends multiple Read requests concurrently via readahead;
+// without a mutex on roFileHandle the DagReader's internal state
+// corrupts, causing data mismatches or panics.
+func TestConcurrentLargeFileRead(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	// 1 MiB + 1 byte: large enough to span multiple DAG nodes and
+	// trigger concurrent kernel readahead requests.
+	fi, data := randObj(t, nd, 1024*1024+1)
+	fpath := gopath.Join(mntDir, fi.Cid().String())
+
+	// Multiple goroutines opening and reading the same file exercises
+	// both per-handle serialization (Seek+Read within one handle) and
+	// independent handle isolation (separate DagReaders).
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Go(func() {
+			got, err := os.ReadFile(fpath)
+			if err != nil {
+				t.Errorf("ReadFile: %v", err)
+				return
+			}
+			if !bytes.Equal(got, data) {
+				t.Errorf("data mismatch: got %d bytes, want %d", len(got), len(data))
+			}
+		})
+	}
+	wg.Wait()
+}
+
 // Test that getxattr on an unknown attribute returns ENODATA (Linux) / ENOATTR.
 func TestUnknownXattr(t *testing.T) {
 	nd, _ := setupIpfsTest(t, nil)
