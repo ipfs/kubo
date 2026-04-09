@@ -1,6 +1,6 @@
 module github.com/ipfs/kubo
 
-go 1.25.7
+go 1.26.2
 
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
