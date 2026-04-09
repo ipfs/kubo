@@ -303,7 +303,10 @@ func (n *Node) StartDaemonWithAuthorization(secret string, ipfsArgs ...string) *
 func (n *Node) signalAndWait(watch <-chan struct{}, signal os.Signal, t time.Duration) bool {
 	err := n.Daemon.Cmd.Process.Signal(signal)
 	if err != nil {
-		if errors.Is(err, os.ErrProcessDone) {
+		// On Windows, Process.Wait() sets the handle state to "released"
+		// rather than "done", so a subsequent Signal() returns EINVAL
+		// instead of ErrProcessDone. Treat both as "already exited".
+		if errors.Is(err, os.ErrProcessDone) || errors.Is(err, syscall.EINVAL) {
 			log.Debugf("process for node %d has already finished", n.ID)
 			return true
 		}

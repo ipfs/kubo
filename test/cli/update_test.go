@@ -352,20 +352,43 @@ func TestUpdateRevert(t *testing.T) {
 	res := node.RunIPFS("update", "revert")
 	require.NoError(t, res.Err, "revert failed; stderr:\n%s", res.Stderr.String())
 
-	// Verify the revert message.
-	assert.Contains(t, res.Stderr.String(), "Reverted to Kubo 0.30.0",
-		"should confirm which version was restored")
+	stderr := res.Stderr.String()
 
-	// Verify the stash file was cleaned up after successful revert.
-	_, err := os.Stat(stashPath)
-	assert.True(t, os.IsNotExist(err),
-		"stash file should be removed after revert, but still exists at %s", stashPath)
+	// On Windows the OS locks the running binary, so the revert falls
+	// back to saving to a temp path with manual move instructions.
+	if runtime.GOOS == "windows" && strings.Contains(stderr, "Move it manually") {
+		assert.Contains(t, stderr, "Could not replace",
+			"should explain why in-place replacement failed")
+		assert.Contains(t, stderr, "Reverted binary saved to:",
+			"should print where the reverted binary was saved")
 
-	// Verify the binary was replaced with the stash content.
-	got, err := os.ReadFile(tmpBinPath)
-	require.NoError(t, err)
-	assert.Equal(t, stashContent, got,
-		"binary at %s should contain the stash content after revert", tmpBinPath)
+		// Verify the saved binary has the stash content.
+		for line := range strings.SplitSeq(stderr, "\n") {
+			if savedPath, ok := strings.CutPrefix(line, "Reverted binary saved to: "); ok {
+				savedPath = strings.TrimSpace(savedPath)
+				got, err := os.ReadFile(savedPath)
+				require.NoError(t, err, "reverted binary should exist at %s", savedPath)
+				assert.Equal(t, stashContent, got,
+					"binary at %s should contain the stash content", savedPath)
+				break
+			}
+		}
+	} else {
+		// Non-Windows: binary was replaced in place.
+		assert.Contains(t, stderr, "Reverted to Kubo 0.30.0",
+			"should confirm which version was restored")
+
+		// Verify the stash file was cleaned up after successful revert.
+		_, err := os.Stat(stashPath)
+		assert.True(t, os.IsNotExist(err),
+			"stash file should be removed after revert, but still exists at %s", stashPath)
+
+		// Verify the binary was replaced with the stash content.
+		got, err := os.ReadFile(tmpBinPath)
+		require.NoError(t, err)
+		assert.Equal(t, stashContent, got,
+			"binary at %s should contain the stash content after revert", tmpBinPath)
+	}
 }
 
 // --- test helpers ---
