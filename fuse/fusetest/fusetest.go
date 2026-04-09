@@ -1,10 +1,13 @@
-//go:build !nofuse
+//go:build (linux || darwin || freebsd) && !nofuse
 
 // Package fusetest provides test helpers shared across FUSE test packages.
 package fusetest
 
 import (
+	"os"
 	"testing"
+
+	"github.com/hanwen/go-fuse/v2/fs"
 )
 
 // SkipUnlessFUSE skips the test when FUSE is not available.
@@ -25,6 +28,29 @@ func SkipUnlessFUSE(t *testing.T) {
 	}
 
 	fuseAvailable(t) // skips with a helpful message if not available
+}
+
+// TestMount mounts root at a temp directory with the given options and
+// registers an unmount cleanup. Returns the mount directory path.
+// Callers set mount-specific options (timeouts, MaxReadAhead, etc.)
+// before calling; this helper adds NullPermissions, UID, and GID.
+func TestMount(t *testing.T, root fs.InodeEmbedder, opts *fs.Options) string {
+	t.Helper()
+	SkipUnlessFUSE(t)
+	mntDir := t.TempDir()
+	if opts == nil {
+		opts = &fs.Options{}
+	}
+	opts.NullPermissions = true
+	opts.UID = uint32(os.Getuid())
+	opts.GID = uint32(os.Getgid())
+	if opts.MountOptions.FsName == "" {
+		opts.MountOptions.FsName = "kubo-test"
+	}
+	server, err := fs.Mount(mntDir, root, opts)
+	MountError(t, err)
+	t.Cleanup(func() { _ = server.Unmount() })
+	return mntDir
 }
 
 // MountError handles a FUSE mount error. When TEST_FUSE=1 (CI), a mount

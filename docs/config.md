@@ -119,6 +119,8 @@ config file at runtime.
     - [`Mounts.IPNS`](#mountsipns)
     - [`Mounts.MFS`](#mountsmfs)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
+    - [`Mounts.StoreMtime`](#mountsstoremtime)
+    - [`Mounts.StoreMode`](#mountsstoremode)
   - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
       - [`Pinning.RemoteServices: API`](#pinningremoteservices-api)
@@ -1900,11 +1902,19 @@ Default: `"cache"`
 
 > [!CAUTION]
 > **EXPERIMENTAL:**
-> This feature is disabled by default, requires an explicit opt-in with  `ipfs mount` or `ipfs daemon --mount`.
+> This feature is disabled by default, requires an explicit opt-in with `ipfs mount` or `ipfs daemon --mount`.
 >
-> Read about current limitations at [fuse.md](./fuse.md).
+> See [fuse.md](./fuse.md) for setup instructions and platform-specific notes.
 
 FUSE mount point configuration options.
+
+All mounts expose the `ipfs.cid` extended attribute on files and directories, returning the CID of the underlying DAG node:
+
+```console
+$ getfattr -n ipfs.cid /ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Cat
+# file: ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Cat
+ipfs.cid="bafybeihxislsmn7b2drh6m3vqz3ctcfae46al7ax3543umeso4f5jgij5e"
+```
 
 ### `Mounts.IPFS`
 
@@ -1937,7 +1947,31 @@ Type: `string` (filesystem path)
 
 ### `Mounts.FuseAllowOther`
 
-Sets the 'FUSE allow-other' option on the mount point.
+Sets the FUSE `allow_other` mount option, letting users other than the mounter access the mounted filesystem.
+
+Default: `false`
+
+Type: `flag`
+
+### `Mounts.StoreMtime`
+
+When `true`, writable mounts (`/ipns` and `/mfs`) store the current time as mtime in [UnixFS](https://specs.ipfs.tech/unixfs/) metadata when creating a file or opening it for writing. Setting mtime explicitly via `touch` works on both files and directories. This changes the resulting CID even when the file content is identical, because mtime is stored in the [root block of the UnixFS DAG](https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata).
+
+Most data on IPFS does not include mtime. When mtime is present in the UnixFS metadata, it is always shown in stat responses on all mounts, regardless of this flag. When absent, mtime is reported as zero (epoch).
+
+Default: `false`
+
+Type: `flag`
+
+### `Mounts.StoreMode`
+
+When `true`, writable mounts (`/ipns` and `/mfs`) accept `chmod` requests on both files and directories and persist POSIX permission bits in [UnixFS](https://specs.ipfs.tech/unixfs/) metadata. This changes the resulting CID because mode is stored in the [root block of the UnixFS DAG](https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata).
+
+Most data on IPFS does not include mode. When mode is present in the UnixFS metadata, it is always shown in stat responses on all mounts, regardless of this flag. When absent, a default mode is used (files: `0644` on writable mounts, `0444` on `/ipfs`; directories: `0755` on writable mounts, `0555` on `/ipfs`).
+
+Default: `false`
+
+Type: `flag`
 
 ## `Pinning`
 

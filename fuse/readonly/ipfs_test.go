@@ -1,4 +1,9 @@
-//go:build !nofuse && !openbsd && !netbsd && !plan9
+//go:build (linux || darwin || freebsd) && !nofuse
+
+// Unit tests for the read-only /ipfs FUSE mount.
+// These test the filesystem implementation directly without a daemon.
+// End-to-end tests that exercise mount/unmount through a real daemon
+// live in test/cli/fuse/.
 
 package readonly
 
@@ -13,16 +18,21 @@ import (
 	gopath "path"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
+	"time"
+
+	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
 
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
 	coremock "github.com/ipfs/kubo/core/mock"
 
-	fstest "bazil.org/fuse/fs/fstestutil"
 	chunker "github.com/ipfs/boxo/chunker"
 	"github.com/ipfs/boxo/files"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
+	ft "github.com/ipfs/boxo/ipld/unixfs"
 	importer "github.com/ipfs/boxo/ipld/unixfs/importer"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/path"
@@ -30,7 +40,20 @@ import (
 	"github.com/ipfs/go-test/random"
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/fuse/fusetest"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
+	"github.com/stretchr/testify/require"
 )
+
+func testMount(t *testing.T, root fs.InodeEmbedder) string {
+	t.Helper()
+	return fusetest.TestMount(t, root, &fs.Options{
+		AttrTimeout:  &immutableAttrCacheTime,
+		EntryTimeout: &immutableAttrCacheTime,
+		MountOptions: fuse.MountOptions{
+			MaxReadAhead: fusemnt.MaxReadAhead,
+		},
+	})
+}
 
 func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	buf := make([]byte, size)
@@ -47,9 +70,8 @@ func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	return obj, buf
 }
 
-func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.Mount) {
+func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, string) {
 	t.Helper()
-	fusetest.SkipUnlessFUSE(t)
 
 	var err error
 	if node == nil {
@@ -59,17 +81,15 @@ func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 		}
 	}
 
-	fs := NewFileSystem(node)
-	mnt, err := fstest.MountedT(t, fs, nil)
-	fusetest.MountError(t, err)
+	root := NewRoot(node)
+	mntDir := testMount(t, root)
 
-	return node, mnt
+	return node, mntDir
 }
 
 // Test that an empty directory can be listed without errors.
 func TestEmptyDirListing(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	// Create an empty UnixFS directory and add it to the DAG.
 	db, err := uio.NewDirectory(nd.DAG)
@@ -85,7 +105,7 @@ func TestEmptyDirListing(t *testing.T) {
 	}
 
 	// List it via FUSE.
-	dirPath := gopath.Join(mnt.Dir, emptyDir.Cid().String())
+	dirPath := gopath.Join(mntDir, emptyDir.Cid().String())
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
 		t.Fatal(err)
@@ -97,8 +117,7 @@ func TestEmptyDirListing(t *testing.T) {
 
 // Test that a bare file CID can be read at the /ipfs mount root.
 func TestBareFileCID(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	api, err := coreapi.NewCoreAPI(nd)
 	if err != nil {
@@ -116,7 +135,7 @@ func TestBareFileCID(t *testing.T) {
 			t.Fatal(err)
 		}
 		cidStr := resolved.RootCid().String()
-		got, err := os.ReadFile(gopath.Join(mnt.Dir, cidStr))
+		got, err := os.ReadFile(gopath.Join(mntDir, cidStr))
 		if err != nil {
 			t.Fatalf("read %s via FUSE: %v", cidStr, err)
 		}
@@ -134,7 +153,7 @@ func TestBareFileCID(t *testing.T) {
 			t.Fatal(err)
 		}
 		cidStr := resolved.RootCid().String()
-		got, err := os.ReadFile(gopath.Join(mnt.Dir, cidStr))
+		got, err := os.ReadFile(gopath.Join(mntDir, cidStr))
 		if err != nil {
 			t.Fatalf("read %s via FUSE: %v", cidStr, err)
 		}
@@ -148,8 +167,7 @@ func TestBareFileCID(t *testing.T) {
 // This is the typical layout produced by `ipfs add --raw-leaves`: the
 // directory node is dag-pb, while file leaves are raw blocks.
 func TestMixedDAGDirectory(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	api, err := coreapi.NewCoreAPI(nd)
 	if err != nil {
@@ -172,7 +190,7 @@ func TestMixedDAGDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dirPath := gopath.Join(mnt.Dir, resolved.RootCid().String())
+	dirPath := gopath.Join(mntDir, resolved.RootCid().String())
 
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
@@ -201,12 +219,11 @@ func TestMixedDAGDirectory(t *testing.T) {
 
 // Test writing an object and reading it back through fuse.
 func TestIpfsBasicRead(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	fi, data := randObj(t, nd, 10000)
 	k := fi.Cid()
-	fname := gopath.Join(mnt.Dir, k.String())
+	fname := gopath.Join(mntDir, k.String())
 	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
@@ -241,8 +258,7 @@ func getPaths(t *testing.T, ipfs *core.IpfsNode, name string, n *dag.ProtoNode) 
 
 // Perform a large number of concurrent reads to stress the system.
 func TestIpfsStressRead(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	api, err := coreapi.NewCoreAPI(nd)
 	if err != nil {
@@ -306,11 +322,12 @@ func TestIpfsStressRead(t *testing.T) {
 				}
 
 				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
-				fname := gopath.Join(mnt.Dir, relpath)
+				fname := gopath.Join(mntDir, relpath)
 
 				rbuf, err := os.ReadFile(fname)
 				if err != nil {
 					errs <- err
+					continue
 				}
 
 				// nd.Context() is never closed which leads to
@@ -319,12 +336,16 @@ func TestIpfsStressRead(t *testing.T) {
 
 				read, err := api.Unixfs().Get(ctx, item)
 				if err != nil {
+					cancelFunc()
 					errs <- err
+					continue
 				}
 
 				data, err := io.ReadAll(read.(files.File))
 				if err != nil {
+					cancelFunc()
 					errs <- err
+					continue
 				}
 
 				cancelFunc()
@@ -350,8 +371,7 @@ func TestIpfsStressRead(t *testing.T) {
 
 // Test writing a file and reading it back.
 func TestIpfsBasicDirRead(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	// Make a 'file'
 	fi, data := randObj(t, nd, 10000)
@@ -376,7 +396,7 @@ func TestIpfsBasicDirRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dirname := gopath.Join(mnt.Dir, d1nd.Cid().String())
+	dirname := gopath.Join(mntDir, d1nd.Cid().String())
 	fname := gopath.Join(dirname, "actual")
 	rbuf, err := os.ReadFile(fname)
 	if err != nil {
@@ -401,13 +421,12 @@ func TestIpfsBasicDirRead(t *testing.T) {
 
 // Test to make sure the filesystem reports file sizes correctly.
 func TestFileSizeReporting(t *testing.T) {
-	nd, mnt := setupIpfsTest(t, nil)
-	defer mnt.Close()
+	nd, mntDir := setupIpfsTest(t, nil)
 
 	fi, data := randObj(t, nd, 10000)
 	k := fi.Cid()
 
-	fname := gopath.Join(mnt.Dir, k.String())
+	fname := gopath.Join(mntDir, k.String())
 
 	finfo, err := os.Stat(fname)
 	if err != nil {
@@ -416,5 +435,340 @@ func TestFileSizeReporting(t *testing.T) {
 
 	if finfo.Size() != int64(len(data)) {
 		t.Fatal("Read incorrect size from stat!")
+	}
+}
+
+// Test that mode and mtime stored in UnixFS metadata are reported in stat.
+func TestUnixFSMetadataInStat(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	storedMode := os.FileMode(0o755)
+	storedMtime := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
+	content := []byte("file with metadata")
+
+	// Create a UnixFS node with explicit mode and mtime.
+	pbdata := ft.FilePBDataWithStat(content, uint64(len(content)), storedMode, storedMtime)
+	node := dag.NodeWithData(pbdata)
+	if err := nd.DAG.Add(nd.Context(), node); err != nil {
+		t.Fatal(err)
+	}
+
+	fpath := gopath.Join(mntDir, node.Cid().String())
+	fi, err := os.Stat(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fi.Mode().Perm() != storedMode.Perm() {
+		t.Fatalf("expected mode %04o, got %04o", storedMode.Perm(), fi.Mode().Perm())
+	}
+	if !fi.ModTime().Equal(storedMtime) {
+		t.Fatalf("expected mtime %v, got %v", storedMtime, fi.ModTime())
+	}
+}
+
+// Test that files without UnixFS metadata get the read-only defaults.
+func TestDefaultModeReadonly(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	// Create a plain UnixFS file (no mode/mtime metadata).
+	fi, _ := randObj(t, nd, 100)
+	fpath := gopath.Join(mntDir, fi.Cid().String())
+
+	finfo, err := os.Stat(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if finfo.Mode().Perm() != fusemnt.DefaultFileModeRO.Perm() {
+		t.Fatalf("expected default mode %04o, got %04o", fusemnt.DefaultFileModeRO.Perm(), finfo.Mode().Perm())
+	}
+}
+
+// Test that ipfs.cid xattr returns the correct CID for files and directories.
+func TestXattrCID(t *testing.T) {
+	nd, _ := setupIpfsTest(t, nil)
+
+	t.Run("file", func(t *testing.T) {
+		obj, _ := randObj(t, nd, 100)
+		node := &Node{ipfs: nd, nd: obj}
+
+		dest := make([]byte, 256)
+		sz, errno := node.Listxattr(t.Context(), dest)
+		if errno != 0 {
+			t.Fatalf("Listxattr: %v", errno)
+		}
+		if !bytes.Contains(dest[:sz], []byte(fusemnt.XattrCID)) {
+			t.Fatal("ipfs.cid not listed")
+		}
+
+		sz, errno = node.Getxattr(t.Context(), fusemnt.XattrCID, dest)
+		if errno != 0 {
+			t.Fatalf("Getxattr: %v", errno)
+		}
+		if string(dest[:sz]) != obj.Cid().String() {
+			t.Fatalf("expected CID %s, got %s", obj.Cid().String(), string(dest[:sz]))
+		}
+	})
+
+	t.Run("directory", func(t *testing.T) {
+		db, err := uio.NewDirectory(nd.DAG)
+		if err != nil {
+			t.Fatal(err)
+		}
+		dirNode, err := db.GetNode()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := nd.DAG.Add(nd.Context(), dirNode); err != nil {
+			t.Fatal(err)
+		}
+		node := &Node{ipfs: nd, nd: dirNode}
+
+		dest := make([]byte, 256)
+		sz, errno := node.Listxattr(t.Context(), dest)
+		if errno != 0 {
+			t.Fatalf("Listxattr: %v", errno)
+		}
+		if !bytes.Contains(dest[:sz], []byte(fusemnt.XattrCID)) {
+			t.Fatal("ipfs.cid not listed")
+		}
+
+		sz, errno = node.Getxattr(t.Context(), fusemnt.XattrCID, dest)
+		if errno != 0 {
+			t.Fatalf("Getxattr: %v", errno)
+		}
+		if string(dest[:sz]) != dirNode.Cid().String() {
+			t.Fatalf("expected CID %s, got %s", dirNode.Cid().String(), string(dest[:sz]))
+		}
+	})
+
+}
+
+// Test that symlinks in UnixFS are rendered via Readlink.
+func TestReadlink(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	// Build a directory containing a symlink.
+	db, err := uio.NewDirectory(nd.DAG)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	target := "hello.txt"
+	slData, err := ft.SymlinkData(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	symlinkNode := dag.NodeWithData(slData)
+	if err := nd.DAG.Add(nd.Context(), symlinkNode); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.AddChild(nd.Context(), "link", symlinkNode); err != nil {
+		t.Fatal(err)
+	}
+
+	dirNode, err := db.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := nd.DAG.Add(nd.Context(), dirNode); err != nil {
+		t.Fatal(err)
+	}
+
+	linkPath := gopath.Join(mntDir, dirNode.Cid().String(), "link")
+	got, err := os.Readlink(linkPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != target {
+		t.Fatalf("expected readlink %q, got %q", target, got)
+	}
+}
+
+// Test that readdir reports symlinks with ModeSymlink so that
+// tools like ls -l and find -type l see the correct file type.
+func TestReaddirSymlink(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	db, err := uio.NewDirectory(nd.DAG)
+	require.NoError(t, err)
+
+	// Regular file child.
+	fileData := []byte("hello")
+	fileNode := dag.NodeWithData(ft.FilePBData(fileData, uint64(len(fileData))))
+	require.NoError(t, nd.DAG.Add(nd.Context(), fileNode))
+	require.NoError(t, db.AddChild(nd.Context(), "regular", fileNode))
+
+	// Symlink child.
+	slData, err := ft.SymlinkData("hello")
+	require.NoError(t, err)
+	symlinkNode := dag.NodeWithData(slData)
+	require.NoError(t, nd.DAG.Add(nd.Context(), symlinkNode))
+	require.NoError(t, db.AddChild(nd.Context(), "link", symlinkNode))
+
+	dirNode, err := db.GetNode()
+	require.NoError(t, err)
+	require.NoError(t, nd.DAG.Add(nd.Context(), dirNode))
+
+	entries, err := os.ReadDir(gopath.Join(mntDir, dirNode.Cid().String()))
+	require.NoError(t, err)
+
+	found := false
+	for _, e := range entries {
+		if e.Name() == "link" {
+			require.NotZero(t, e.Type()&os.ModeSymlink, "readdir should report symlink type")
+			found = true
+		}
+		if e.Name() == "regular" {
+			require.Zero(t, e.Type()&os.ModeSymlink, "regular file should not have symlink type")
+		}
+	}
+	require.True(t, found, "symlink entry not found in readdir")
+}
+
+// Test reading a slice from the middle of a file, skipping both
+// the beginning and the end.
+func TestSeekRead(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	obj, data := randObj(t, nd, 10000)
+	fpath := gopath.Join(mntDir, obj.Cid().String())
+
+	f, err := os.Open(fpath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	off := int64(3000)
+	readLen := 2000
+	if _, err := f.Seek(off, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+
+	buf := make([]byte, readLen)
+	n, err := io.ReadFull(f, buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != readLen {
+		t.Fatalf("short read: got %d, want %d", n, readLen)
+	}
+	if !bytes.Equal(buf, data[off:off+int64(readLen)]) {
+		t.Fatal("content mismatch for middle slice")
+	}
+}
+
+// Test that concurrent reads of the same large file produce correct data.
+// The kernel sends multiple Read requests concurrently via readahead;
+// without a mutex on roFileHandle the DagReader's internal state
+// corrupts, causing data mismatches or panics.
+func TestConcurrentLargeFileRead(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	// 1 MiB + 1 byte: large enough to span multiple DAG nodes and
+	// trigger concurrent kernel readahead requests.
+	fi, data := randObj(t, nd, 1024*1024+1)
+	fpath := gopath.Join(mntDir, fi.Cid().String())
+
+	// Multiple goroutines opening and reading the same file exercises
+	// both per-handle serialization (Seek+Read within one handle) and
+	// independent handle isolation (separate DagReaders).
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Go(func() {
+			got, err := os.ReadFile(fpath)
+			if err != nil {
+				t.Errorf("ReadFile: %v", err)
+				return
+			}
+			if !bytes.Equal(got, data) {
+				t.Errorf("data mismatch: got %d bytes, want %d", len(got), len(data))
+			}
+		})
+	}
+	wg.Wait()
+}
+
+// blockingDagReader is a uio.DagReader that blocks in CtxReadFull until
+// the supplied context is cancelled. Used to verify that roFileHandle
+// propagates cancellation from FUSE down to the underlying reader.
+type blockingDagReader struct {
+	entered chan struct{} // closed when CtxReadFull begins blocking
+}
+
+func (b *blockingDagReader) CtxReadFull(ctx context.Context, _ []byte) (int, error) {
+	close(b.entered)
+	<-ctx.Done()
+	return 0, ctx.Err()
+}
+
+// Stub uio.DagReader methods that the test does not exercise. Returning
+// zero values keeps roFileHandle.Read on the CtxReadFull path.
+func (*blockingDagReader) Seek(int64, int) (int64, error)   { return 0, nil }
+func (*blockingDagReader) Read([]byte) (int, error)         { return 0, io.EOF }
+func (*blockingDagReader) Close() error                     { return nil }
+func (*blockingDagReader) WriteTo(io.Writer) (int64, error) { return 0, nil }
+func (*blockingDagReader) Size() uint64                     { return 0 }
+func (*blockingDagReader) Mode() os.FileMode                { return 0 }
+func (*blockingDagReader) ModTime() time.Time               { return time.Time{} }
+
+var _ uio.DagReader = (*blockingDagReader)(nil)
+
+// TestReadCancellationUnblocks confirms that cancelling the context
+// passed to roFileHandle.Read returns promptly with EINTR. This guards
+// the "killing a stuck cat works" fix: the kernel sends FUSE_INTERRUPT
+// when a userspace process is killed mid-read, go-fuse cancels the
+// per-request context, and the read handler must propagate cancellation
+// down to the DagReader instead of blocking forever on a stuck fetch.
+func TestReadCancellationUnblocks(t *testing.T) {
+	fake := &blockingDagReader{entered: make(chan struct{})}
+	fh := &roFileHandle{r: fake}
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	type result struct {
+		errno syscall.Errno
+	}
+	done := make(chan result, 1)
+	go func() {
+		buf := make([]byte, 4096)
+		_, errno := fh.Read(ctx, buf, 0)
+		done <- result{errno}
+	}()
+
+	// Wait for the fake reader to actually block on ctx.Done() before
+	// cancelling, so the test exercises mid-read cancellation rather
+	// than racing the goroutine start.
+	select {
+	case <-fake.entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("CtxReadFull never entered; cancellation path unreachable")
+	}
+
+	cancel() // simulates FUSE_INTERRUPT from the kernel
+
+	select {
+	case r := <-done:
+		if r.errno != syscall.EINTR {
+			t.Fatalf("expected EINTR after cancel, got errno %v", r.errno)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("roFileHandle.Read did not return after ctx cancel; cancellation is not propagated")
+	}
+}
+
+// Test that getxattr on an unknown attribute returns ENODATA (Linux) / ENOATTR.
+func TestUnknownXattr(t *testing.T) {
+	nd, _ := setupIpfsTest(t, nil)
+
+	obj, _ := randObj(t, nd, 100)
+	node := &Node{ipfs: nd, nd: obj}
+
+	dest := make([]byte, 256)
+	_, errno := node.Getxattr(t.Context(), "user.bogus", dest)
+	if errno == 0 {
+		t.Fatal("expected error for unknown xattr, got success")
 	}
 }

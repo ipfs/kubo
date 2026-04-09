@@ -1,3 +1,5 @@
+// Stub when built with "go build -tags nofuse". Excludes windows
+// which never has FUSE support regardless of build tags.
 //go:build !windows && nofuse
 
 package node

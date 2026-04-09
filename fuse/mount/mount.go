@@ -66,6 +66,9 @@ func UnmountCmd(point string) (*exec.Cmd, error) {
 	case "darwin":
 		return exec.Command("diskutil", "umount", "force", point), nil
 	case "linux":
+		if _, err := exec.LookPath("fusermount3"); err == nil {
+			return exec.Command("fusermount3", "-u", point), nil
+		}
 		return exec.Command("fusermount", "-u", point), nil
 	default:
 		return nil, fmt.Errorf("unmount: unimplemented")
