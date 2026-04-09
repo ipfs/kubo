@@ -12,6 +12,22 @@ const (
 	DefaultProvideEnabled  = true
 	DefaultProvideStrategy = "all"
 
+	// DefaultProvideBloomFPRate is the target false positive rate for the
+	// bloom filter used by +unique and +entities reprovide cycles and
+	// fast-provide-dag walks. Expressed as 1/N (one false positive per N
+	// lookups). At ~1 in 4.75M (~0.00002%) each CID costs ~4 bytes before
+	// ipfs/bbloom's power-of-two rounding.
+	//
+	// Kubo owns this default independently of boxo/dag/walker; the two
+	// values may diverge over time without coordination.
+	DefaultProvideBloomFPRate = 4_750_000
+
+	// MinProvideBloomFPRate is the smallest accepted Provide.BloomFPRate.
+	// Below 1 in 1M the bloom filter becomes lossy enough to drop a
+	// meaningful fraction of CIDs from each reprovide cycle (e.g. at
+	// rate=10_000 a 100M-CID repo skips ~10K CIDs per cycle).
+	MinProvideBloomFPRate = 1_000_000
+
 	// DHT provider defaults
 	DefaultProvideDHTInterval                 = 22 * time.Hour // https://github.com/ipfs/kubo/pull/9326
 	DefaultProvideDHTMaxWorkers               = 16             // Unified default for both sweep and legacy providers
@@ -51,6 +67,16 @@ type Provide struct {
 	// Strategy determines which CIDs are announced to the routing system.
 	// Default: DefaultProvideStrategy
 	Strategy *OptionalString `json:",omitempty"`
+
+	// BloomFPRate sets the target false positive rate of the bloom filter
+	// used by Provide.Strategy modifiers +unique and +entities (and the
+	// matching fast-provide-dag walk). Expressed as 1/N (one false
+	// positive per N lookups), so higher N means lower FP rate but more
+	// memory per CID. Only takes effect when Provide.Strategy includes
+	// +unique or +entities.
+	//
+	// Default: DefaultProvideBloomFPRate
+	BloomFPRate *OptionalInteger `json:",omitempty"`
 
 	// DHT configures DHT-specific provide and reprovide settings.
 	DHT ProvideDHT
@@ -164,6 +190,14 @@ func ValidateProvideConfig(cfg *Provide) error {
 	strategy := cfg.Strategy.WithDefault(DefaultProvideStrategy)
 	if _, err := ParseProvideStrategy(strategy); err != nil {
 		return fmt.Errorf("Provide.Strategy: %w", err)
+	}
+
+	// Validate Provide.BloomFPRate
+	if !cfg.BloomFPRate.IsDefault() {
+		rate := cfg.BloomFPRate.WithDefault(DefaultProvideBloomFPRate)
+		if rate < MinProvideBloomFPRate {
+			return fmt.Errorf("Provide.BloomFPRate must be >= %d (1 in 1M), got %d", MinProvideBloomFPRate, rate)
+		}
 	}
 
 	// Validate Provide.DHT.Interval

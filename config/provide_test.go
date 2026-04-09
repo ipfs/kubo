@@ -189,6 +189,49 @@ func TestValidateProvideConfig_Interval(t *testing.T) {
 	}
 }
 
+func TestValidateProvideConfig_BloomFPRate(t *testing.T) {
+	tests := []struct {
+		name    string
+		fpRate  int64
+		wantErr bool
+		errMsg  string
+	}{
+		{"valid default value", DefaultProvideBloomFPRate, false, ""},
+		{"valid minimum (1M)", MinProvideBloomFPRate, false, ""},
+		{"valid high (10M)", 10_000_000, false, ""},
+		{"valid very high (100M)", 100_000_000, false, ""},
+		{"invalid below minimum (999_999)", 999_999, true, "must be >="},
+		{"invalid small (10_000)", 10_000, true, "must be >="},
+		{"invalid one", 1, true, "must be >="},
+		{"invalid zero", 0, true, "must be >="},
+		{"invalid negative", -1, true, "must be >="},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Provide{
+				BloomFPRate: NewOptionalInteger(tt.fpRate),
+			}
+
+			err := ValidateProvideConfig(cfg)
+
+			if tt.wantErr {
+				require.Error(t, err, "expected error for fpRate=%d", tt.fpRate)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg, "error message mismatch")
+				}
+			} else {
+				require.NoError(t, err, "unexpected error for fpRate=%d", tt.fpRate)
+			}
+		})
+	}
+
+	t.Run("default (nil) BloomFPRate is valid", func(t *testing.T) {
+		cfg := &Provide{}
+		require.NoError(t, ValidateProvideConfig(cfg))
+	})
+}
+
 func TestValidateProvideConfig_MaxWorkers(t *testing.T) {
 	tests := []struct {
 		name       string

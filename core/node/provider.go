@@ -1105,8 +1105,10 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 		return fx.Error(fmt.Errorf("provider: %w", err))
 	}
 
+	bloomFPRate := uint(cfg.Provide.BloomFPRate.WithDefault(config.DefaultProvideBloomFPRate))
+
 	opts := []fx.Option{
-		fx.Provide(setReproviderKeyProvider(providerStrategy)),
+		fx.Provide(setReproviderKeyProvider(providerStrategy, bloomFPRate)),
 	}
 
 	sweepEnabled := cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled)
@@ -1247,7 +1249,9 @@ func mfsWalkProvider(mfsRoot *mfs.Root, bs blockstore.Blockstore, tracker walker
 }
 
 // createKeyProvider creates the appropriate KeyChanFunc based on strategy.
-func createKeyProvider(strategyFlag config.ProvideStrategy, in provStrategyIn) provider.KeyChanFunc {
+// fpRate is the bloom filter target false-positive rate (1/N) used by
+// +unique and +entities cycles. Ignored by other strategies.
+func createKeyProvider(strategyFlag config.ProvideStrategy, fpRate uint, in provStrategyIn) provider.KeyChanFunc {
 	// +unique modifier: use bloom filter cross-DAG dedup
 	useUnique := strategyFlag&config.ProvideStrategyUnique != 0
 	if useUnique {
@@ -1273,7 +1277,7 @@ func createKeyProvider(strategyFlag config.ProvideStrategy, in provStrategyIn) p
 			// version differs by a small delta). when a CID is already
 			// in the bloom, its entire subtree is skipped, reducing
 			// traversal from O(pins * total_blocks) to O(unique_blocks).
-			tracker, err := walker.NewBloomTracker(uint(expectedItems), walker.DefaultBloomFPRate)
+			tracker, err := walker.NewBloomTracker(uint(expectedItems), fpRate)
 			if err != nil {
 				return nil, fmt.Errorf("bloom tracker: %w", err)
 			}
@@ -1418,12 +1422,12 @@ func handleStrategyChange(strategy string, provider DHTProvider, ds datastore.Da
 	}
 }
 
-func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrategyOut {
+func setReproviderKeyProvider(strategy string, fpRate uint) func(in provStrategyIn) provStrategyOut {
 	strategyFlag := config.MustParseProvideStrategy(strategy)
 
 	return func(in provStrategyIn) provStrategyOut {
 		// Create the appropriate key provider based on strategy
-		kcf := createKeyProvider(strategyFlag, in)
+		kcf := createKeyProvider(strategyFlag, fpRate, in)
 		return provStrategyOut{
 			ProvidingStrategy:    strategyFlag,
 			ProvidingKeyChanFunc: kcf,

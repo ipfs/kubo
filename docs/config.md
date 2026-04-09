@@ -142,6 +142,7 @@ config file at runtime.
       - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
       - [`Provide.DHT.KeystoreBatchSize`](#providedhtkeystorebatchsize)
       - [`Provide.DHT.OfflineDelay`](#providedhtofflinedelay)
+    - [`Provide.BloomFPRate`](#providebloomfprate)
   - [`Provider`](#provider)
     - [`Provider.Enabled`](#providerenabled)
     - [`Provider.Strategy`](#providerstrategy)
@@ -2481,6 +2482,42 @@ keys to its state, so keys will eventually be provided in the
 Default: `2h`
 
 Type: `optionalDuration`
+
+### `Provide.BloomFPRate`
+
+Target false positive rate for the bloom filter used by the [`+unique` and
+`+entities` strategy modifiers](#strategy-modifiers-unique-and-entities) and
+the matching `--fast-provide-dag` walk. Expressed as `1/N` (one false positive
+per `N` lookups), so a higher value means a lower FP rate but more memory per
+CID. Has no effect when `Provide.Strategy` does not include `+unique` or
+`+entities`.
+
+The bloom filter sizes itself from the previous reprovide cycle's CID count
+and the configured FP rate. The auto-scaling described in
+[Memory during reprovide](#memory-during-reprovide) is unaffected; this
+setting only changes the bits-per-CID ratio of each bloom in the chain.
+
+Memory tradeoff (approximate, before `ipfs/bbloom`'s power-of-two rounding):
+
+| `Provide.BloomFPRate` | Approx. FP rate | Bytes per CID |
+|-----------------------|-----------------|---------------|
+| `1000000`             | 1 in 1M         | ~3            |
+| (default)             | ~1 in 4.75M     | ~4            |
+| `10000000`            | 1 in 10M        | ~5            |
+| `100000000`           | 1 in 100M       | ~6            |
+
+A false positive causes the walker to skip a CID it has already been told
+about; the skipped CID is provided in the next reprovide cycle (see
+[`Provide.DHT.Interval`](#providedhtinterval)). At the default rate, fewer
+than ~21 CIDs per 100M are skipped per cycle.
+
+The minimum accepted value is `1000000` (1 in 1M). Below that the bloom
+filter becomes lossy enough to drop a meaningful fraction of CIDs from each
+reprovide cycle.
+
+Default: `4750000` (~1 false positive per 4.75M lookups, cost at ~4 bytes per CID)
+
+Type: `optionalInteger`
 
 ## `Provider`
 

@@ -298,6 +298,7 @@ func fastProvideAfterPin(req *cmds.Request, nd *core.IpfsNode, fpRoot, fpDAG, fp
 			nd.Blockstore,
 			nd.Provider,
 			fpWait,
+			uint(cfg.Provide.BloomFPRate.WithDefault(config.DefaultProvideBloomFPRate)),
 			0, // block count unknown; bloom chain auto-grows
 		)
 	} else if fpRoot {

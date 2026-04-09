@@ -201,6 +201,8 @@ func ExecuteFastProvideRoot(
 // When wait is true, blocks until all walks complete. When false,
 // runs in a background goroutine (best-effort, errors logged).
 //
+// fpRate is the bloom filter target false-positive rate (1/N), normally
+// resolved from cfg.Provide.BloomFPRate by the caller.
 // blockCount sizes the bloom filter (pass 0 if unknown).
 func ExecuteFastProvideDAG(
 	ctx context.Context,
@@ -209,6 +211,7 @@ func ExecuteFastProvideDAG(
 	bs blockstore.Blockstore,
 	prov node.DHTProvider,
 	wait bool,
+	fpRate uint,
 	blockCount uint,
 ) {
 	if len(roots) == 0 {
@@ -221,7 +224,7 @@ func ExecuteFastProvideDAG(
 
 	do := func() {
 		expectedItems := max(uint(walker.DefaultBloomInitialCapacity), blockCount)
-		tracker, err := walker.NewBloomTracker(expectedItems, walker.DefaultBloomFPRate)
+		tracker, err := walker.NewBloomTracker(expectedItems, fpRate)
 		if err != nil {
 			log.Errorf("fast-provide-dag: bloom tracker: %s", err)
 			return

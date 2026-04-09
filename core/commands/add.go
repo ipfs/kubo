@@ -682,6 +682,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 				ipfsNode.Blockstore,
 				ipfsNode.Provider,
 				fastProvideWait,
+				uint(cfg.Provide.BloomFPRate.WithDefault(config.DefaultProvideBloomFPRate)),
 				0, // block count unknown here; bloom chain auto-grows
 			)
 		} else if fastProvideRoot && hasRoot {

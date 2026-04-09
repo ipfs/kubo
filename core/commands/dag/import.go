@@ -227,6 +227,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			node.Blockstore,
 			node.Provider,
 			fastProvideWait,
+			uint(cfg.Provide.BloomFPRate.WithDefault(config.DefaultProvideBloomFPRate)),
 			0, // block count unknown; bloom chain auto-grows
 		)
 	} else if fastProvideRoot {
