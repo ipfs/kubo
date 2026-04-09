@@ -96,6 +96,64 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		require.True(t, info.IsDir())
 	})
 
+	// Both fstat (on the open handle) and path-based stat must return
+	// the correct mode and size for a freshly created file. The kernel
+	// caches attrs from the Create response for AttrTimeout: if
+	// Dir.Create returns an empty EntryOut.Attr, fstat sees the cached
+	// zero values. A path-based stat does a fresh Lookup, which has its
+	// own attr-fill path; covering both shapes guards against future
+	// regressions on either side.
+	t.Run("CreateAttrsImmediate", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		path := filepath.Join(dir, "freshfile")
+
+		f, err := os.Create(path)
+		require.NoError(t, err)
+		defer f.Close()
+
+		// fstat on the open handle: exercises the Create response cache.
+		fstatInfo, err := f.Stat()
+		require.NoError(t, err)
+		require.Equal(t, int64(0), fstatInfo.Size())
+		require.Equal(t, os.FileMode(0o644), fstatInfo.Mode().Perm(),
+			"fstat on new file should report default mode, not cached zero")
+
+		// Path-based stat: exercises Dir.Lookup → FileInode.fillAttr.
+		statInfo, err := os.Stat(path)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), statInfo.Size())
+		require.Equal(t, os.FileMode(0o644), statInfo.Mode().Perm(),
+			"stat on new file should report default mode, not cached zero")
+	})
+
+	// Same as CreateAttrsImmediate, but for mkdir. Mkdir does not return
+	// a file handle, so we open the directory afterwards and fstat its
+	// fd to exercise the inode-level path. Path-based stat exercises
+	// Lookup. Both must report the directory mode.
+	t.Run("MkdirAttrsImmediate", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		path := filepath.Join(dir, "freshdir")
+
+		require.NoError(t, os.Mkdir(path, 0o755))
+
+		// Path-based stat: exercises Dir.Lookup → Dir.fillAttr.
+		statInfo, err := os.Stat(path)
+		require.NoError(t, err)
+		require.True(t, statInfo.IsDir())
+		require.Equal(t, os.FileMode(0o755), statInfo.Mode().Perm(),
+			"stat on new directory should report default mode, not cached zero")
+
+		// fstat on an open directory fd: exercises Dir.Getattr.
+		f, err := os.Open(path)
+		require.NoError(t, err)
+		defer f.Close()
+		fstatInfo, err := f.Stat()
+		require.NoError(t, err)
+		require.True(t, fstatInfo.IsDir())
+		require.Equal(t, os.FileMode(0o755), fstatInfo.Mode().Perm(),
+			"fstat on new directory should report default mode, not cached zero")
+	})
+
 	t.Run("RenameFile", func(t *testing.T) {
 		dir := mount(t, writable.Config{})
 		src := filepath.Join(dir, "oldname")

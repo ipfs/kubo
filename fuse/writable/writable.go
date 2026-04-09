@@ -147,13 +147,22 @@ func (d *Dir) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	return fs.NewListDirStream(entries), 0
 }
 
+// Mkdir creates a new directory under d.
+//
+// TODO: boxo's mfs.Directory.Mkdir(name string) accepts no mode
+// argument, so the caller's mode is silently dropped here. Tools
+// that mkdir then chown without a follow-up chmod (some tar/rsync
+// flows) see the default 0755 instead of the requested mode.
+// Fixing this requires a boxo MFS API change.
 func (d *Dir) Mkdir(ctx context.Context, name string, _ uint32, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	mfsDir, err := d.MFSDir.Mkdir(name)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
-	out.Attr.Mode = uint32(fusemnt.DefaultDirModeRW.Perm())
 	child := &Dir{MFSDir: mfsDir, Cfg: d.Cfg}
+	// Fill the response attrs so the kernel doesn't cache zero values
+	// until AttrTimeout expires. Matches Dir.Create and FileInode.Setattr.
+	child.fillAttr(&out.Attr)
 	return d.NewInode(ctx, child, fs.StableAttr{Mode: syscall.S_IFDIR}), 0
 }
 
@@ -266,6 +275,13 @@ func (d *Dir) Create(ctx context.Context, name string, flags uint32, _ uint32, o
 	if err != nil {
 		return nil, nil, 0, fs.ToErrno(err)
 	}
+
+	// Fill the response attrs so the kernel doesn't cache zero values
+	// (mode 0, size 0) for the new inode until AttrTimeout expires.
+	// fstat on the open file handle returned to the caller hits this
+	// cache, so leaving it empty makes f.Stat() report mode 0 right
+	// after open. Matches FileInode.Setattr and Dir.Mkdir.
+	fileInode.fillAttr(&out.Attr)
 
 	inode := d.NewInode(ctx, fileInode, fs.StableAttr{})
 	return inode, &FileHandle{inode: inode, fd: fd}, 0, 0
