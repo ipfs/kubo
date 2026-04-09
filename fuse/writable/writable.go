@@ -457,6 +457,9 @@ func (fi *FileInode) Setattr(_ context.Context, fh fs.FileHandle, in *fuse.SetAt
 			return fs.ToErrno(err)
 		}
 	}
+	// Fill the response attrs so the kernel doesn't cache stale zero
+	// values until AttrTimeout expires. Matches Dir.Setattr behavior.
+	fi.fillAttr(&out.Attr)
 	return 0
 }
 
