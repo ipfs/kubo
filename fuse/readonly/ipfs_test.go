@@ -18,6 +18,7 @@ import (
 	gopath "path"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -687,6 +688,75 @@ func TestConcurrentLargeFileRead(t *testing.T) {
 		})
 	}
 	wg.Wait()
+}
+
+// blockingDagReader is a uio.DagReader that blocks in CtxReadFull until
+// the supplied context is cancelled. Used to verify that roFileHandle
+// propagates cancellation from FUSE down to the underlying reader.
+type blockingDagReader struct {
+	entered chan struct{} // closed when CtxReadFull begins blocking
+}
+
+func (b *blockingDagReader) CtxReadFull(ctx context.Context, _ []byte) (int, error) {
+	close(b.entered)
+	<-ctx.Done()
+	return 0, ctx.Err()
+}
+
+// Stub uio.DagReader methods that the test does not exercise. Returning
+// zero values keeps roFileHandle.Read on the CtxReadFull path.
+func (*blockingDagReader) Seek(int64, int) (int64, error)   { return 0, nil }
+func (*blockingDagReader) Read([]byte) (int, error)         { return 0, io.EOF }
+func (*blockingDagReader) Close() error                     { return nil }
+func (*blockingDagReader) WriteTo(io.Writer) (int64, error) { return 0, nil }
+func (*blockingDagReader) Size() uint64                     { return 0 }
+func (*blockingDagReader) Mode() os.FileMode                { return 0 }
+func (*blockingDagReader) ModTime() time.Time               { return time.Time{} }
+
+var _ uio.DagReader = (*blockingDagReader)(nil)
+
+// TestReadCancellationUnblocks confirms that cancelling the context
+// passed to roFileHandle.Read returns promptly with EINTR. This guards
+// the "killing a stuck cat works" fix: the kernel sends FUSE_INTERRUPT
+// when a userspace process is killed mid-read, go-fuse cancels the
+// per-request context, and the read handler must propagate cancellation
+// down to the DagReader instead of blocking forever on a stuck fetch.
+func TestReadCancellationUnblocks(t *testing.T) {
+	fake := &blockingDagReader{entered: make(chan struct{})}
+	fh := &roFileHandle{r: fake}
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	type result struct {
+		errno syscall.Errno
+	}
+	done := make(chan result, 1)
+	go func() {
+		buf := make([]byte, 4096)
+		_, errno := fh.Read(ctx, buf, 0)
+		done <- result{errno}
+	}()
+
+	// Wait for the fake reader to actually block on ctx.Done() before
+	// cancelling, so the test exercises mid-read cancellation rather
+	// than racing the goroutine start.
+	select {
+	case <-fake.entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("CtxReadFull never entered; cancellation path unreachable")
+	}
+
+	cancel() // simulates FUSE_INTERRUPT from the kernel
+
+	select {
+	case r := <-done:
+		if r.errno != syscall.EINTR {
+			t.Fatalf("expected EINTR after cancel, got errno %v", r.errno)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("roFileHandle.Read did not return after ctx cancel; cancellation is not propagated")
+	}
 }
 
 // Test that getxattr on an unknown attribute returns ENODATA (Linux) / ENOATTR.

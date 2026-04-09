@@ -147,7 +147,7 @@ func (n *Node) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) sy
 func (n *Node) Open(ctx context.Context, _ uint32) (fs.FileHandle, uint32, syscall.Errno) {
 	r, err := uio.NewDagReader(ctx, n.nd, n.ipfs.DAG)
 	if err != nil {
-		return nil, 0, fs.ToErrno(err)
+		return nil, 0, fusemnt.ReadErrno(err)
 	}
 	return &roFileHandle{r: r}, fuse.FOPEN_KEEP_CACHE, 0
 }
@@ -238,7 +238,7 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	log.Debug("Node ReadDir")
 	dir, err := uio.NewDirectoryFromNode(n.ipfs.DAG, n.nd)
 	if err != nil {
-		return nil, fs.ToErrno(err)
+		return nil, fusemnt.ReadErrno(err)
 	}
 
 	var entries []fuse.DirEntry
@@ -279,7 +279,7 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 		return nil
 	})
 	if err != nil {
-		return nil, fs.ToErrno(err)
+		return nil, fusemnt.ReadErrno(err)
 	}
 
 	return fs.NewListDirStream(entries), 0
@@ -327,13 +327,13 @@ func (fh *roFileHandle) Read(ctx context.Context, dest []byte, off int64) (fuse.
 	defer fh.mu.Unlock()
 
 	if _, err := fh.r.Seek(off, io.SeekStart); err != nil {
-		return nil, fs.ToErrno(err)
+		return nil, fusemnt.ReadErrno(err)
 	}
 	n, err := fh.r.CtxReadFull(ctx, dest)
 	switch err {
 	case nil, io.EOF, io.ErrUnexpectedEOF:
 	default:
-		return nil, fs.ToErrno(err)
+		return nil, fusemnt.ReadErrno(err)
 	}
 	return fuse.ReadResultData(dest[:n]), 0
 }

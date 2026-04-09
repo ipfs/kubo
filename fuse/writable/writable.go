@@ -392,7 +392,7 @@ func (fi *FileInode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uin
 		}
 		r, err := uio.NewDagReader(ctx, nd, fi.Cfg.DAG)
 		if err != nil {
-			return nil, 0, fs.ToErrno(err)
+			return nil, 0, fusemnt.ReadErrno(err)
 		}
 		return &roFileHandle{r: r}, fuse.FOPEN_KEEP_CACHE, 0
 	}
@@ -555,7 +555,7 @@ func (fh *FileHandle) Read(ctx context.Context, dest []byte, off int64) (fuse.Re
 	}
 	got, err := fh.fd.CtxReadFull(ctx, dest[:n])
 	if err != nil {
-		return nil, fs.ToErrno(err)
+		return nil, fusemnt.ReadErrno(err)
 	}
 	return fuse.ReadResultData(dest[:got]), 0
 }
@@ -697,7 +697,7 @@ func (fh *roFileHandle) Read(ctx context.Context, dest []byte, off int64) (fuse.
 	switch err {
 	case nil, io.EOF, io.ErrUnexpectedEOF:
 	default:
-		return nil, fs.ToErrno(err)
+		return nil, fusemnt.ReadErrno(err)
 	}
 	return fuse.ReadResultData(dest[:n]), 0
 }
