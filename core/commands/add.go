@@ -515,10 +515,6 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		// SizeEstimationMode is always set from config
 		opts = append(opts, options.Unixfs.SizeEstimationMode(sizeEstimationMode))
 
-		if fastProvideDAG {
-			opts = append(opts, options.Unixfs.FastProvideDAG(true))
-		}
-
 		if trickle {
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
 		}

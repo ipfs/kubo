@@ -428,6 +428,49 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 		expectNoProviders(t, cidChunk, peers...)
 	})
 
+	t.Run("ipfs add --fast-provide-dag honors +entities (no chunk providing)", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Strategy", "pinned+entities")
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+		})
+		defer nodes.StopDaemons()
+		publisher, peers := nodes[0], nodes[1:]
+
+		// Regression test for the providingDagService double-providing
+		// path. Before the fix, ipfs add --pin --fast-provide-dag wrapped
+		// the DAGService with providingDagService, which announced every
+		// block as it was written -- including chunks -- regardless of
+		// the +entities modifier. The post-add ExecuteFastProvideDAG
+		// walk then ran in parallel, so chunks ended up in the DHT
+		// despite +entities saying they should be skipped.
+		//
+		// After the fix, ExecuteFastProvideDAG is the single mechanism
+		// for --fast-provide-dag and respects the active strategy.
+		largeData := random.Bytes(2 * 1024 * 1024) // 2 MiB = 2 chunks
+		cidFile := publisher.IPFSAdd(bytes.NewReader(largeData),
+			"--fast-provide-dag", "--fast-provide-wait")
+
+		// Get a chunk CID from the file's DAG links
+		dagOut := publisher.IPFS("dag", "get", cidFile)
+		var dagNode struct {
+			Links []struct {
+				Hash map[string]string `json:"Hash"`
+			} `json:"Links"`
+		}
+		require.NoError(t, json.Unmarshal(dagOut.Stdout.Bytes(), &dagNode))
+		require.Greater(t, len(dagNode.Links), 1, "file should have multiple chunks")
+		cidChunk := dagNode.Links[0].Hash["/"]
+		require.NotEmpty(t, cidChunk)
+
+		pid := publisher.PeerID().String()
+		// File root (entity) should be provided
+		expectProviders(t, cidFile, pid, peers...)
+		// Chunk should NOT be provided (+entities skips chunks)
+		expectNoProviders(t, cidChunk, peers...)
+	})
+
 	t.Run("Provide with 'roots' strategy", func(t *testing.T) {
 		t.Parallel()
 
