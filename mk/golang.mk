@@ -71,7 +71,9 @@ test_cli: cmd/ipfs/ipfs test/bin/gotestsum $$(DEPS_GO)
 
 # FUSE tests (requires /dev/fuse and fusermount in PATH)
 # TEST_FUSE=1 makes mount failures fatal instead of skipping
-TEST_FUSE_TIMEOUT ?= 5m
+# Keep this shorter than the CI job timeout so a hang trips Go's panic
+# (and prints stack traces) instead of getting silently killed by CI.
+TEST_FUSE_TIMEOUT ?= 4m
 
 # FUSE unit tests (./fuse/...)
 test_fuse_unit: test/bin/gotestsum $$(DEPS_GO)
