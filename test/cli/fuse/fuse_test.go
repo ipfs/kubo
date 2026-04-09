@@ -452,9 +452,11 @@ func mountAll(t *testing.T, node *harness.Node) (ipfsMount, ipnsMount, mfsMount 
 
 	result := node.IPFS("mount", "-f", ipfsMount, "-n", ipnsMount, "-m", mfsMount)
 
+	// Extra space after "MFS" matches the column-aligned output produced
+	// by MountCmd in core/commands/mount_unix.go.
 	expectedOutput := "IPFS mounted at: " + ipfsMount + "\n" +
 		"IPNS mounted at: " + ipnsMount + "\n" +
-		"MFS mounted at: " + mfsMount + "\n"
+		"MFS  mounted at: " + mfsMount + "\n"
 	require.Equal(t, expectedOutput, result.Stdout.String())
 
 	return

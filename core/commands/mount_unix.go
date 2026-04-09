@@ -131,9 +131,11 @@ baz
 	Type: config.Mounts{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, mounts *config.Mounts) error {
+			// Extra space after "MFS" so "mounted at:" lines up with
+			// IPFS and IPNS in the column above. Matches LongDescription.
 			fmt.Fprintf(w, "IPFS mounted at: %s\n", cmdenv.EscNonPrint(mounts.IPFS))
 			fmt.Fprintf(w, "IPNS mounted at: %s\n", cmdenv.EscNonPrint(mounts.IPNS))
-			fmt.Fprintf(w, "MFS mounted at: %s\n", cmdenv.EscNonPrint(mounts.MFS))
+			fmt.Fprintf(w, "MFS  mounted at: %s\n", cmdenv.EscNonPrint(mounts.MFS))
 
 			return nil
 		}),
