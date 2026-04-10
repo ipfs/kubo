@@ -89,4 +89,3 @@ func TestReadLastUniqueCount_corruptLengthReturnsZero(t *testing.T) {
 		})
 	}
 }
-
