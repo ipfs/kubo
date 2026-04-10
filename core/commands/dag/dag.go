@@ -301,13 +301,6 @@ type DagStat struct {
 	NumBlocks int64  `json:",omitempty"`
 }
 
-func (s *DagStat) String() string {
-	cidStr := s.Cid
-	if len(cidStr) > 20 {
-		cidStr = cidStr[:20]
-	}
-	return fmt.Sprintf("%s  %d  %d", cidStr, s.Size, s.NumBlocks)
-}
 
 type DagStatSummary struct {
 	redundantSize uint64     `json:"-"`
