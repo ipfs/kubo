@@ -22,6 +22,7 @@ const (
 	silentOptionName          = "silent"
 	statsOptionName           = "stats"
 	fastProvideRootOptionName = "fast-provide-root"
+	fastProvideDAGOptionName  = "fast-provide-dag"
 	fastProvideWaitOptionName = "fast-provide-wait"
 )
 
@@ -216,6 +217,7 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
 		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CIDs to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideDAGOptionName, "Walk and provide the full DAG according to Provide.Strategy after import. Default: Import.FastProvideDAG"),
 		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes before returning. Default: Import.FastProvideWait"),
 		cmdutils.AllowBigBlockOption,
 	},

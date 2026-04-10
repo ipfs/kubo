@@ -51,9 +51,11 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	doPinRoots, _ := req.Options[pinRootsOptionName].(bool)
 
 	fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
+	fastProvideDAG, fastProvideDAGSet := req.Options[fastProvideDAGOptionName].(bool)
 	fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
 
 	fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
+	fastProvideDAG = config.ResolveBoolFromConfig(fastProvideDAG, fastProvideDAGSet, cfg.Import.FastProvideDAG, config.DefaultFastProvideDAG)
 	fastProvideWait = config.ResolveBoolFromConfig(fastProvideWait, fastProvideWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
 
 	// grab a pinlock ( which doubles as a GC lock ) so that regardless of the
@@ -210,20 +212,34 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
-	// Fast-provide roots for faster discovery
-	if fastProvideRoot {
+	// Provide imported content for faster discovery.
+	// DAG walk supersedes root-only (root is included in the walk).
+	if fastProvideDAG {
+		var rootCIDs []cid.Cid
+		_ = roots.ForEach(func(c cid.Cid) error {
+			rootCIDs = append(rootCIDs, c)
+			return nil
+		})
+		cmdenv.ExecuteFastProvideDAG(
+			req.Context,
+			node.Context(),
+			rootCIDs,
+			node.ProvidingStrategy,
+			node.Blockstore,
+			node.Provider,
+			fastProvideWait,
+			uint(cfg.Provide.BloomFPRate.WithDefault(config.DefaultProvideBloomFPRate)),
+			0, // block count unknown; bloom chain auto-grows
+		)
+	} else if fastProvideRoot {
 		err = roots.ForEach(func(c cid.Cid) error {
-			return cmdenv.ExecuteFastProvide(req.Context, node, cfg, c, fastProvideWait, doPinRoots, doPinRoots, false)
+			return cmdenv.ExecuteFastProvideRoot(req.Context, node, cfg, c, fastProvideWait, doPinRoots, doPinRoots, false)
 		})
 		if err != nil {
 			return err
 		}
 	} else {
-		if fastProvideWait {
-			log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config", "wait-flag-ignored", true)
-		} else {
-			log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
-		}
+		log.Debugw("fast-provide-root: skipped", "reason", "disabled by flag or config")
 	}
 
 	return nil
