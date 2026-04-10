@@ -216,6 +216,7 @@ func TestCommands(t *testing.T) {
 		"/swarm/resources",
 		"/update",
 		"/update/check",
+		"/update/clean",
 		"/update/install",
 		"/update/revert",
 		"/update/versions",

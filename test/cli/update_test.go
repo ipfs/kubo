@@ -391,6 +391,68 @@ func TestUpdateRevert(t *testing.T) {
 	}
 }
 
+// TestUpdateClean exercises the cleanup command that drops every backed-up
+// Kubo binary from $IPFS_PATH/old-bin/. The test stages a stash directory
+// directly so it doesn't need network access or a real install.
+func TestUpdateClean(t *testing.T) {
+	t.Parallel()
+	h := harness.NewT(t)
+	node := h.NewNode()
+
+	stashDir := filepath.Join(node.Dir, "old-bin")
+	require.NoError(t, os.MkdirAll(stashDir, 0o755))
+
+	binSuffix := ""
+	if runtime.GOOS == "windows" {
+		binSuffix = ".exe"
+	}
+	stashFiles := []string{
+		"ipfs-0.30.0" + binSuffix,
+		"ipfs-0.31.0" + binSuffix,
+		"ipfs-0.32.0" + binSuffix,
+	}
+	for _, name := range stashFiles {
+		require.NoError(t, os.WriteFile(filepath.Join(stashDir, name), []byte("fake"), 0o755))
+	}
+	// A file that does not match ipfs-<version> must be left alone so users
+	// can store unrelated notes or scripts in old-bin/ without losing them.
+	unrelated := filepath.Join(stashDir, "notes.txt")
+	require.NoError(t, os.WriteFile(unrelated, []byte("keep me"), 0o644))
+
+	t.Run("removes all stashed binaries", func(t *testing.T) {
+		res := node.IPFS("update", "clean")
+		out := res.Stdout.String()
+		for _, name := range stashFiles {
+			assert.Contains(t, out, name, "should report removing %s", name)
+			_, err := os.Stat(filepath.Join(stashDir, name))
+			assert.True(t, os.IsNotExist(err), "%s should be removed from disk", name)
+		}
+		_, err := os.Stat(unrelated)
+		require.NoError(t, err, "unrelated files in old-bin/ must not be touched")
+	})
+
+	t.Run("reports nothing on empty stash", func(t *testing.T) {
+		res := node.IPFS("update", "clean")
+		assert.Contains(t, res.Stdout.String(), "No stashed binaries to remove")
+	})
+
+	t.Run("json output lists removed files and bytes freed", func(t *testing.T) {
+		// Re-create one stash file to verify the JSON encoder.
+		name := "ipfs-0.33.0" + binSuffix
+		require.NoError(t, os.WriteFile(filepath.Join(stashDir, name), []byte("data"), 0o755))
+
+		res := node.IPFS("update", "clean", "--enc=json")
+		var result struct {
+			Removed    []string
+			BytesFreed int64
+		}
+		err := json.Unmarshal(res.Stdout.Bytes(), &result)
+		require.NoError(t, err, "invalid JSON: %s", res.Stdout.String())
+		assert.Equal(t, []string{name}, result.Removed)
+		assert.Equal(t, int64(4), result.BytesFreed)
+	})
+}
+
 // --- test helpers ---
 
 // copyBuiltBinary copies the built ipfs binary (cmd/ipfs/ipfs) to dst.

@@ -37,6 +37,11 @@ const (
 	// bombs. Current kubo binary is ~120 MB uncompressed; 1 GB leaves
 	// room for growth while catching decompression attacks.
 	maxBinarySize = 1 << 30
+
+	// stashDirName is the directory under $IPFS_PATH where backups of
+	// previously installed Kubo binaries are kept so 'update revert' can
+	// restore them and 'update clean' can free the space.
+	stashDirName = "old-bin"
 )
 
 // UpdateCmd is the "ipfs update" command tree.
@@ -82,6 +87,7 @@ ENVIRONMENT VARIABLES
 		"versions": updateVersionsCmd,
 		"install":  updateInstallCmd,
 		"revert":   updateRevertCmd,
+		"clean":    updateCleanCmd,
 	},
 }
 
@@ -451,6 +457,77 @@ The backup is created automatically by 'ipfs update install'.
 	},
 }
 
+// -- clean --
+
+// UpdateCleanOutput is the output of "ipfs update clean".
+type UpdateCleanOutput struct {
+	Removed    []string
+	BytesFreed int64
+}
+
+var updateCleanCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Remove backups of previous Kubo versions",
+		ShortDescription: `
+Deletes every backed-up Kubo binary from $IPFS_PATH/old-bin/ to free
+disk space. After running this, 'ipfs update revert' will have nothing
+to roll back to.
+
+Files in $IPFS_PATH/old-bin/ that do not match the 'ipfs-<version>'
+naming convention are left untouched.
+
+Safe to run while the daemon is up: only the backup directory is
+touched, never the running binary.
+`,
+	},
+	NoRemote: true,
+	Extra:    CreateCmdExtras(SetDoesNotUseRepo(true), SetDoesNotUseConfigAsInput(true)),
+	Type:     UpdateCleanOutput{},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		repoPath, err := fsrepo.BestKnownPath()
+		if err != nil {
+			return fmt.Errorf("determining IPFS path: %w", err)
+		}
+		dir := filepath.Join(repoPath, stashDirName)
+
+		stashes, err := listStashes(dir)
+		if err != nil {
+			// A missing stash directory just means there is nothing to clean.
+			if errors.Is(err, os.ErrNotExist) {
+				return cmds.EmitOnce(res, &UpdateCleanOutput{})
+			}
+			return fmt.Errorf("reading stash directory: %w", err)
+		}
+
+		out := &UpdateCleanOutput{
+			Removed: make([]string, 0, len(stashes)),
+		}
+		for _, s := range stashes {
+			if err := os.Remove(s.path); err != nil {
+				return fmt.Errorf("removing %s: %w", s.path, err)
+			}
+			out.Removed = append(out.Removed, s.name)
+			out.BytesFreed += s.size
+		}
+		return cmds.EmitOnce(res, out)
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *UpdateCleanOutput) error {
+			if len(out.Removed) == 0 {
+				fmt.Fprintln(w, "No stashed binaries to remove.")
+				return nil
+			}
+			for _, name := range out.Removed {
+				fmt.Fprintf(w, "Removed %s\n", name)
+			}
+			fmt.Fprintf(w, "Freed %.1f MiB across %d files.\n",
+				float64(out.BytesFreed)/(1<<20), len(out.Removed))
+			return nil
+		}),
+	},
+}
+
 // -- helpers --
 
 // updateContext returns a context for update operations. If the user
@@ -495,13 +572,13 @@ func checkDaemonNotRunning() error {
 	return nil
 }
 
-// getStashDir returns the path to the old-bin stash directory, creating it if needed.
+// getStashDir returns the path to the stash directory, creating it if needed.
 func getStashDir() (string, error) {
 	repoPath, err := fsrepo.BestKnownPath()
 	if err != nil {
 		return "", fmt.Errorf("determining IPFS path: %w", err)
 	}
-	dir := filepath.Join(repoPath, "old-bin")
+	dir := filepath.Join(repoPath, stashDirName)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", fmt.Errorf("creating stash directory: %w", err)
 	}
@@ -543,21 +620,29 @@ func stashBinary(binPath, ver string) (stashPath string, err error) {
 	return stashPath, nil
 }
 
-// findLatestStash finds the most recently versioned stash file.
-func findLatestStash(dir string) (path, ver string, err error) {
+// stashEntry describes a single backed-up Kubo binary in the stash directory.
+type stashEntry struct {
+	path   string
+	name   string
+	ver    string
+	parsed *goversion.Version
+	size   int64
+}
+
+// listStashes returns every stashed binary in dir, newest first. Files that
+// do not match the "ipfs-<semver>" naming convention are skipped so the
+// directory can hold unrelated user files without breaking revert/clean.
+func listStashes(dir string) ([]stashEntry, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return "", "", fmt.Errorf("reading stash directory: %w", err)
+		return nil, err
 	}
 
-	type stash struct {
-		path   string
-		ver    string
-		parsed *goversion.Version
-	}
-
-	var stashes []stash
+	var stashes []stashEntry
 	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
 		name := e.Name()
 		// Expected format: ipfs-<version> or ipfs-<version>.exe
 		trimmed := strings.TrimPrefix(name, "ipfs-")
@@ -569,18 +654,20 @@ func findLatestStash(dir string) (path, ver string, err error) {
 		if parseErr != nil {
 			continue
 		}
-		stashes = append(stashes, stash{
+		var size int64
+		if info, err := e.Info(); err == nil {
+			size = info.Size()
+		}
+		stashes = append(stashes, stashEntry{
 			path:   filepath.Join(dir, name),
+			name:   name,
 			ver:    trimmed,
 			parsed: parsed,
+			size:   size,
 		})
 	}
 
-	if len(stashes) == 0 {
-		return "", "", fmt.Errorf("no stashed binaries found in %s", dir)
-	}
-
-	slices.SortFunc(stashes, func(a, b stash) int {
+	slices.SortFunc(stashes, func(a, b stashEntry) int {
 		// Sort newest first: if a > b return -1.
 		if a.parsed.GreaterThan(b.parsed) {
 			return -1
@@ -591,6 +678,18 @@ func findLatestStash(dir string) (path, ver string, err error) {
 		return 0
 	})
 
+	return stashes, nil
+}
+
+// findLatestStash finds the most recently versioned stash file.
+func findLatestStash(dir string) (path, ver string, err error) {
+	stashes, err := listStashes(dir)
+	if err != nil {
+		return "", "", fmt.Errorf("reading stash directory: %w", err)
+	}
+	if len(stashes) == 0 {
+		return "", "", fmt.Errorf("no stashed binaries found in %s", dir)
+	}
 	return stashes[0].path, stashes[0].ver, nil
 }
 
