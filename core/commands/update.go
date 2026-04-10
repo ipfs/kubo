@@ -338,11 +338,11 @@ restored with 'ipfs update revert'.
 		fmt.Fprintf(os.Stderr, "Backed up current binary to %s\n", stashedTo)
 
 		if err := replaceBinary(binPath, binData); err != nil {
-			// Permission error fallback: save to temp dir.
+			// Permission error fallback: save to a unique temp file.
 			if errors.Is(err, os.ErrPermission) {
-				tmpPath := filepath.Join(os.TempDir(), migrations.ExeName(fmt.Sprintf("ipfs-%s", target)))
-				if writeErr := os.WriteFile(tmpPath, binData, 0o755); writeErr != nil {
-					return fmt.Errorf("cannot write to %s either: %w (original error: %v)", tmpPath, writeErr, err)
+				tmpPath, writeErr := writeBinaryToTempFile(binData, target)
+				if writeErr != nil {
+					return fmt.Errorf("cannot write fallback binary: %w (original error: %v)", writeErr, err)
 				}
 				fmt.Fprintf(os.Stderr, "Could not replace %s (permission denied).\n", binPath)
 				fmt.Fprintf(os.Stderr, "New binary saved to: %s\n", tmpPath)
@@ -425,9 +425,9 @@ The backup is created automatically by 'ipfs update install'.
 
 		if err := replaceBinary(binPath, stashData); err != nil {
 			if errors.Is(err, os.ErrPermission) {
-				tmpPath := filepath.Join(os.TempDir(), migrations.ExeName(fmt.Sprintf("ipfs-%s", stashVer)))
-				if writeErr := os.WriteFile(tmpPath, stashData, 0o755); writeErr != nil {
-					return fmt.Errorf("cannot write to %s either: %w (original error: %v)", tmpPath, writeErr, err)
+				tmpPath, writeErr := writeBinaryToTempFile(stashData, stashVer)
+				if writeErr != nil {
+					return fmt.Errorf("cannot write fallback binary: %w (original error: %v)", writeErr, err)
 				}
 				fmt.Fprintf(os.Stderr, "Could not replace %s (permission denied).\n", binPath)
 				fmt.Fprintf(os.Stderr, "Reverted binary saved to: %s\n", tmpPath)
@@ -709,6 +709,35 @@ func replaceBinary(targetPath string, data []byte) error {
 	}
 
 	return af.Close()
+}
+
+// writeBinaryToTempFile writes data to a uniquely named executable file
+// in the system temp directory and returns its path.
+func writeBinaryToTempFile(data []byte, ver string) (path string, err error) {
+	pattern := migrations.ExeName(fmt.Sprintf("ipfs-%s-*", ver))
+	f, err := os.CreateTemp("", pattern)
+	if err != nil {
+		return "", fmt.Errorf("creating temp file: %w", err)
+	}
+	defer func() {
+		if cerr := f.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("closing temp file: %w", cerr)
+		}
+		if err != nil {
+			os.Remove(f.Name())
+		}
+	}()
+
+	if _, err = f.Write(data); err != nil {
+		return "", fmt.Errorf("writing temp file: %w", err)
+	}
+	if err = f.Sync(); err != nil {
+		return "", fmt.Errorf("syncing temp file: %w", err)
+	}
+	if err = f.Chmod(0o755); err != nil {
+		return "", fmt.Errorf("chmod temp file: %w", err)
+	}
+	return f.Name(), nil
 }
 
 // extractBinaryFromArchive extracts the kubo/ipfs binary from a tar.gz or zip archive.
