@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -28,6 +29,47 @@ func TestCidBase(t *testing.T) {
 		t.Cleanup(func() { node.StopDaemon() })
 		return node
 	}
+
+	t.Run("add respects --cid-base", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+
+		// ipfs add -q
+		cid := node.IPFSAddStr("test-add", cidBaseFlag)
+		require.True(t, strings.HasPrefix(cid, cidV1Prefix), "expected base16 CIDv1 from add, got %s", cid)
+
+		// ipfs add -Q (quiet, only final CID)
+		cid = node.PipeStrToIPFS("test-add-Q", "add", "-Q", cidBaseFlag).Stdout.Trimmed()
+		require.True(t, strings.HasPrefix(cid, cidV1Prefix), "expected base16 CIDv1 from add -Q, got %s", cid)
+	})
+
+	t.Run("pin ls respects --cid-base", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+
+		node.IPFSAddStr("pin-ls-test")
+
+		lines := node.IPFS("pin", "ls", "-t", "recursive", cidBaseFlag).Stdout.Lines()
+		for _, line := range lines {
+			if line == "" {
+				continue
+			}
+			require.True(t, strings.HasPrefix(line, cidV1Prefix), "expected base16 CID in pin ls, got %s", line)
+		}
+	})
+
+	t.Run("dag import respects --cid-base", func(t *testing.T) {
+		t.Parallel()
+		node := makeDaemon(t)
+
+		// Add content and export as CAR
+		cid := node.IPFSAddStr("dag-import-test", "--pin=false")
+		carData := node.IPFS("dag", "export", cid).Stdout.Bytes()
+
+		// Import the CAR with --cid-base
+		out := node.PipeToIPFS(bytes.NewReader(carData), "dag", "import", cidBaseFlag).Stdout.Trimmed()
+		require.Contains(t, out, cidV1Prefix, "expected base16 CID in dag import output, got %s", out)
+	})
 
 	t.Run("block put returns base16 CIDv1", func(t *testing.T) {
 		t.Parallel()
@@ -104,7 +146,9 @@ func TestCidBase(t *testing.T) {
 		t.Parallel()
 		node := makeDaemon(t)
 
-		parent := node.IPFSAddStr("parent", "--pin=false")
+		// Parent must be a directory for add-link to work
+		node.IPFS("files", "mkdir", "/patch-add")
+		parent := node.IPFS("files", "stat", "--hash", "/patch-add").Stdout.Trimmed()
 		child := node.IPFSAddStr("child", "--pin=false")
 
 		// Without --cid-base: CIDv0
@@ -120,7 +164,8 @@ func TestCidBase(t *testing.T) {
 		t.Parallel()
 		node := makeDaemon(t)
 
-		parent := node.IPFSAddStr("parent", "--pin=false")
+		node.IPFS("files", "mkdir", "/patch-rm")
+		parent := node.IPFS("files", "stat", "--hash", "/patch-rm").Stdout.Trimmed()
 		child := node.IPFSAddStr("child", "--pin=false")
 
 		linked := node.IPFS("object", "patch", "add-link", parent, "link", child).Stdout.Trimmed()

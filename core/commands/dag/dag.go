@@ -303,7 +303,6 @@ type DagStat struct {
 	NumBlocks int64  `json:",omitempty"`
 }
 
-
 type DagStatSummary struct {
 	redundantSize uint64     `json:"-"`
 	UniqueBlocks  int        `json:",omitempty"`
