@@ -35,11 +35,6 @@ func New(path string, mode os.FileMode) (*File, error) {
 
 // Close atomically replaces the target file with the temporary file
 func (f *File) Close() error {
-	if syncErr := f.File.Sync(); syncErr != nil {
-		_ = f.File.Close()
-		_ = os.Remove(f.File.Name())
-		return syncErr
-	}
 	closeErr := f.File.Close()
 	if closeErr != nil {
 		// Try to cleanup temp file, but prioritize close error
