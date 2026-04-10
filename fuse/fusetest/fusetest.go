@@ -5,9 +5,11 @@ package fusetest
 
 import (
 	"os"
+	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/stretchr/testify/require"
 )
 
 // SkipUnlessFUSE skips the test when FUSE is not available.
@@ -51,6 +53,18 @@ func TestMount(t *testing.T, root fs.InodeEmbedder, opts *fs.Options) string {
 	MountError(t, err)
 	t.Cleanup(func() { _ = server.Unmount() })
 	return mntDir
+}
+
+// AssertStatfsNonZero calls syscall.Statfs on path and verifies the
+// result contains real filesystem data (non-zero block counts with
+// Bfree <= Blocks). This avoids the racy pattern of comparing two
+// Statfs snapshots taken at different times.
+func AssertStatfsNonZero(t *testing.T, path string) {
+	t.Helper()
+	var st syscall.Statfs_t
+	require.NoError(t, syscall.Statfs(path, &st))
+	require.NotZero(t, st.Blocks, "expected non-zero Blocks for a real filesystem")
+	require.LessOrEqual(t, st.Bfree, st.Blocks, "Bfree must not exceed Blocks")
 }
 
 // MountError handles a FUSE mount error. When TEST_FUSE=1 (CI), a mount

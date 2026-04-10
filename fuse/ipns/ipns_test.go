@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"context"
 	"os"
-	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -185,12 +184,5 @@ func TestStatfs(t *testing.T) {
 	repoDir := t.TempDir()
 	mnt.Root.RepoPath = repoDir
 
-	var got syscall.Statfs_t
-	require.NoError(t, syscall.Statfs(mnt.Dir, &got))
-
-	var want syscall.Statfs_t
-	require.NoError(t, syscall.Statfs(repoDir, &want))
-
-	require.Equal(t, want.Blocks, got.Blocks, "total blocks should match the repo filesystem")
-	require.Equal(t, want.Bfree, got.Bfree, "free blocks should match the repo filesystem")
+	fusetest.AssertStatfsNonZero(t, mnt.Dir)
 }

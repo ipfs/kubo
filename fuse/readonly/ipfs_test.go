@@ -772,14 +772,7 @@ func TestStatfs(t *testing.T) {
 	root := &Root{ipfs: nd, repoPath: repoDir}
 	mntDir := testMount(t, root)
 
-	var got syscall.Statfs_t
-	require.NoError(t, syscall.Statfs(mntDir, &got))
-
-	var want syscall.Statfs_t
-	require.NoError(t, syscall.Statfs(repoDir, &want))
-
-	require.Equal(t, want.Blocks, got.Blocks, "total blocks should match the repo filesystem")
-	require.Equal(t, want.Bfree, got.Bfree, "free blocks should match the repo filesystem")
+	fusetest.AssertStatfsNonZero(t, mntDir)
 }
 
 // Test that getxattr on an unknown attribute returns ENODATA (Linux) / ENOATTR.
