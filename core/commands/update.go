@@ -543,11 +543,11 @@ func updateContext(req *cmds.Request) (context.Context, context.CancelFunc) {
 }
 
 // currentVersion returns the version string used by update commands.
-// It defaults to version.CurrentVersionNumber but can be overridden by
-// setting IPFS_VERSION_FAKE, which is useful for testing update
-// detection without rebuilding the binary.
+// TEST_KUBO_VERSION overrides the reported version; the TEST_ prefix
+// signals it is a test-only escape hatch used by integration tests in
+// test/cli/update_test.go and should never be set in production.
 func currentVersion() string {
-	if v := os.Getenv("IPFS_VERSION_FAKE"); v != "" {
+	if v := os.Getenv("TEST_KUBO_VERSION"); v != "" {
 		return v
 	}
 	return version.CurrentVersionNumber

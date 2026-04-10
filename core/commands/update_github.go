@@ -37,11 +37,17 @@ const (
 // It is a var (not const) so unit tests can point API calls at a mock server.
 var githubReleaseFmt = githubAPIBase + "/repos/" + githubOwner + "/" + githubRepo + "/releases"
 
-// githubReleaseBaseURL returns the Releases API base URL.
-// It checks KUBO_UPDATE_GITHUB_URL first (used by CLI integration tests),
-// then falls back to githubReleaseFmt (overridable by unit tests).
+// githubReleaseBaseURL returns the Releases API base URL. It normally
+// returns githubReleaseFmt.
+//
+// If TEST_KUBO_UPDATE_GITHUB_URL is set, that value is used instead.
+// This is a test-only escape hatch -- the TEST_ prefix is the gate,
+// signaling that production users should never set it. The integration
+// tests in test/cli/update_test.go use it to redirect API calls to a
+// local httptest mock server so the install pipeline can be exercised
+// without hitting real GitHub.
 func githubReleaseBaseURL() string {
-	if u := os.Getenv("KUBO_UPDATE_GITHUB_URL"); u != "" {
+	if u := os.Getenv("TEST_KUBO_UPDATE_GITHUB_URL"); u != "" {
 		return u
 	}
 	return githubReleaseFmt

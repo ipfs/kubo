@@ -162,9 +162,9 @@ func TestUpdateWhileDaemonRuns(t *testing.T) {
 // and deterministic. The built ipfs binary is copied to a temp directory
 // so the install replaces the copy, not the real build artifact.
 //
-// The env var KUBO_UPDATE_GITHUB_URL redirects the binary's GitHub API
-// calls to the mock server. IPFS_VERSION_FAKE makes the binary report
-// an older version so the "upgrade" to v0.99.0 is accepted.
+// The env var TEST_KUBO_UPDATE_GITHUB_URL redirects the binary's GitHub
+// API calls to the mock server. TEST_KUBO_VERSION makes the binary
+// report a specific version so the "upgrade" to v0.99.0 is deterministic.
 func TestUpdateInstall(t *testing.T) {
 	// Not t.Parallel(): this test writes a copy of the ipfs binary and
 	// then exec's it. Running in parallel with other tests exposes the
@@ -207,9 +207,9 @@ func TestUpdateInstall(t *testing.T) {
 	// browser_download_url values pointing back to itself.
 	var srvURL string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
+		switch r.URL.Path {
 		// githubReleaseByTag: GET /tags/v0.99.0
-		case r.URL.Path == "/tags/v0.99.0":
+		case "/tags/v0.99.0":
 			rel := map[string]any{
 				"tag_name":   "v0.99.0",
 				"prerelease": false,
@@ -222,11 +222,11 @@ func TestUpdateInstall(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(rel)
 
 		// downloadAsset: GET /download/<asset>.tar.gz
-		case r.URL.Path == "/download/"+assetName:
+		case "/download/" + assetName:
 			_, _ = w.Write(archive)
 
 		// downloadAndVerifySHA512: GET /download/<asset>.tar.gz.sha512
-		case r.URL.Path == "/download/"+assetName+".sha512":
+		case "/download/" + assetName + ".sha512":
 			_, _ = w.Write([]byte(checksumBody))
 
 		default:
@@ -249,10 +249,10 @@ func TestUpdateInstall(t *testing.T) {
 	})
 	node := h.NewNode()
 
-	// Make the binary think it's running v0.30.0 so the "upgrade" to v0.99.0
-	// is accepted. Point API calls at the mock server.
-	node.Runner.Env["IPFS_VERSION_FAKE"] = "0.30.0"
-	node.Runner.Env["KUBO_UPDATE_GITHUB_URL"] = srvURL
+	// Make the binary report v0.30.0 so the "upgrade" to v0.99.0 has a
+	// deterministic from-version. Point API calls at the mock server.
+	node.Runner.Env["TEST_KUBO_VERSION"] = "0.30.0"
+	node.Runner.Env["TEST_KUBO_UPDATE_GITHUB_URL"] = srvURL
 
 	// Run: ipfs update install v0.99.0
 	res := node.RunIPFS("update", "install", "v0.99.0")
