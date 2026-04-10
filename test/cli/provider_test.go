@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -1188,6 +1189,108 @@ func TestProviderUniqueDedupLogging(t *testing.T) {
 		require.Contains(t, daemonLog, `"providedCIDs": 6`)
 		require.Contains(t, daemonLog, `"skippedBranches": 1`)
 	})
+}
+
+// TestProviderFastProvideDAGAsyncSurvives verifies that
+// --fast-provide-dag without --fast-provide-wait runs a background
+// DAG walk that outlives the command handler and publishes every
+// block of the newly added DAG to the routing system.
+//
+// The async walk runs in a goroutine parented on the IpfsNode
+// lifetime context (not req.Context), so it keeps running after
+// `ipfs add` returns and is only cancelled on daemon shutdown.
+//
+// Provide.DHT.Interval is set high so the scheduled reprovide
+// cycle cannot fire during the test window. That makes the async
+// walk the only path that can publish non-root block CIDs.
+func TestProviderFastProvideDAGAsyncSurvives(t *testing.T) {
+	t.Parallel()
+
+	h := harness.NewT(t)
+	nodes := h.NewNodes(2).Init()
+	for _, n := range nodes {
+		n.SetIPFSConfig("Provide.Strategy", "pinned")
+		n.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+		// Small chunks so a modest file produces many leaf blocks.
+		n.SetIPFSConfig("Import.UnixFSChunker", "size-1024")
+	}
+	publisher, peers := nodes[0], nodes[1:]
+	publisher.SetIPFSConfig("Provide.DHT.Interval", "1h")
+	h.BootstrapWithStubDHT(nodes)
+
+	publisher.StartDaemonWithReq(harness.RunRequest{
+		CmdOpts: []harness.CmdOpt{
+			harness.RunWithEnv(map[string]string{
+				"GOLOG_LOG_LEVEL": "error,core/commands/cmdenv=info",
+			}),
+		},
+	}, "")
+	nodes[1].StartDaemon()
+	defer nodes.StopDaemons()
+	nodes.Connect()
+
+	// 16 KiB + 1 KiB chunks yields a file root plus many leaf
+	// blocks, so the providedCIDs count after the walk is
+	// unambiguous.
+	data := random.Bytes(16 * 1024)
+	cidFile := publisher.IPFSAdd(bytes.NewReader(data), "-Q",
+		"--pin=true",
+		"--fast-provide-dag=true",
+		// --fast-provide-wait deliberately omitted: the walk
+		// runs in the background after `ipfs add` returns.
+	)
+
+	// Pull a chunk CID out of the file DAG. Chunks are not pin
+	// roots, so fast-provide-root does not touch them; only the
+	// DAG walk can announce them.
+	dagOut := publisher.IPFS("dag", "get", cidFile)
+	var dagNode struct {
+		Links []struct {
+			Hash map[string]string `json:"Hash"`
+		} `json:"Links"`
+	}
+	require.NoError(t, json.Unmarshal(dagOut.Stdout.Bytes(), &dagNode))
+	require.Greater(t, len(dagNode.Links), 1, "file should have multiple chunks")
+	cidChunk := dagNode.Links[0].Hash["/"]
+	require.NotEmpty(t, cidChunk)
+
+	// The async walk logs "fast-provide-dag: finished" with a
+	// providedCIDs count on completion. A full walk of this file
+	// visits the root plus every leaf chunk, so the count is much
+	// larger than 2.
+	providedRe := regexp.MustCompile(`"providedCIDs": (\d+)`)
+	var providedCount int
+	require.Eventually(t, func() bool {
+		m := providedRe.FindStringSubmatch(publisher.Daemon.Stderr.String())
+		if len(m) != 2 {
+			return false
+		}
+		n, err := strconv.Atoi(m[1])
+		if err != nil {
+			return false
+		}
+		providedCount = n
+		return true
+	}, 30*time.Second, 200*time.Millisecond, "async fast-provide-dag walk did not log 'finished'")
+
+	require.Greater(t, providedCount, 2,
+		"providedCIDs=%d is too small for a full walk of the file DAG", providedCount)
+
+	// End-to-end: the peer can find the publisher as a provider
+	// for a chunk CID, which only the async walk could have
+	// announced within the test window.
+	pid := publisher.PeerID().String()
+	var found bool
+	for _, peer := range peers {
+		for i := time.Duration(0); i*timeStep < timeout; i++ {
+			res := peer.IPFS("routing", "findprovs", "-n=1", cidChunk)
+			if res.Stdout.Trimmed() == pid {
+				found = true
+				break
+			}
+		}
+	}
+	require.True(t, found, "chunk %s not announced by the async walk", cidChunk)
 }
 
 // TestHTTPOnlyProviderWithSweepEnabled tests that provider records are correctly
