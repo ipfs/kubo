@@ -1239,9 +1239,11 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 	if err != nil {
 		return err
 	}
+	// Extra space after "MFS" so "mounted at:" lines up with IPFS and
+	// IPNS in the column above. Matches MountCmd's output formatter.
 	fmt.Printf("IPFS mounted at: %s\n", fsdir)
 	fmt.Printf("IPNS mounted at: %s\n", nsdir)
-	fmt.Printf("MFS mounted at: %s\n", mfsdir)
+	fmt.Printf("MFS  mounted at: %s\n", mfsdir)
 	return nil
 }
 

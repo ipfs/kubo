@@ -52,10 +52,7 @@ func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blocks
 
 // Pinning creates new pinner which tells GC which blocks should be kept
 func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov DHTProvider) (pin.Pinner, error) {
-	// Parse strategy at function creation time (not inside the returned function)
-	// This happens before the provider is created, which is why we pass the strategy
-	// string and parse it here, rather than using fx-provided ProvidingStrategy.
-	strategyFlag := config.ParseProvideStrategy(strategy)
+	strategyFlag := config.MustParseProvideStrategy(strategy)
 
 	return func(bstore blockstore.Blockstore,
 		ds format.DAGService,
@@ -238,7 +235,7 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 		// strategy - it ensures all MFS content gets announced as it's added or
 		// modified. For non-mfs strategies, we set provider to nil to avoid
 		// unnecessary providing.
-		strategyFlag := config.ParseProvideStrategy(strategy)
+		strategyFlag := config.MustParseProvideStrategy(strategy)
 		if strategyFlag&config.ProvideStrategyMFS == 0 {
 			prov = nil
 		}
@@ -248,19 +245,12 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 		if err != nil {
 			return nil, fmt.Errorf("failed to get config: %w", err)
 		}
-		chunkerGen := cfg.Import.UnixFSSplitterFunc()
-		maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
-		maxHAMTFanout := int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
-		hamtShardingSize := int(cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold))
-		sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
+		mfsOpts, err := cfg.Import.MFSRootOptions()
+		if err != nil {
+			return nil, fmt.Errorf("failed to build MFS options from Import config: %w", err)
+		}
 
-		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov,
-			mfs.WithChunker(chunkerGen),
-			mfs.WithMaxLinks(maxDirLinks),
-			mfs.WithMaxHAMTFanout(maxHAMTFanout),
-			mfs.WithHAMTShardingSize(hamtShardingSize),
-			mfs.WithSizeEstimationMode(sizeEstimationMode),
-		)
+		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov, mfsOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize MFS root from %s stored at %s: %w. "+
 				"If corrupted, use 'ipfs files chroot' to reset (see --help)", nd.Cid(), FilesRootDatastoreKey, err)

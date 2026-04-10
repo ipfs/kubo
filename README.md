@@ -34,6 +34,7 @@ Kubo was the first [IPFS](https://docs.ipfs.tech/concepts/what-is-ipfs/) impleme
 - [HTTP Gateway](https://specs.ipfs.tech/http-gateways/) for trusted and [trustless](https://docs.ipfs.tech/reference/http/gateway/#trustless-verifiable-retrieval) content retrieval
 - [HTTP RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) to control the daemon
 - [HTTP Routing V1](https://specs.ipfs.tech/routing/http-routing-v1/) client and server for [delegated routing](./docs/delegated-routing.md)
+- [FUSE mounts](./docs/fuse.md) for mounting `/ipfs`, `/ipns`, and `/mfs` as local filesystems (experimental)
 - [Content blocking](./docs/content-blocking.md) for public node operators
 
 **Other IPFS implementations:** [Helia](https://github.com/ipfs/helia) (JavaScript), [more...](https://docs.ipfs.tech/concepts/ipfs-implementations/)
@@ -178,6 +179,7 @@ Kubo is available in community-maintained packages across many operating systems
 | [HTTP RPC clients](docs/http-rpc-clients.md) | Client libraries for Go, JS |
 | [Delegated routing](docs/delegated-routing.md) | Multi-router and HTTP routing |
 | [Metrics & monitoring](docs/metrics.md) | Prometheus metrics |
+| [FUSE mounts](docs/fuse.md) | Mount `/ipfs`, `/ipns`, `/mfs` as local filesystems |
 | [Content blocking](docs/content-blocking.md) | Denylist for public nodes |
 | [Customizing](docs/customizing.md) | Unsure if use Plugins, Boxo, or fork? |
 | [Debug guide](docs/debug-guide.md) | CPU profiles, memory analysis, tracing |

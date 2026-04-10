@@ -260,16 +260,30 @@ func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
 		wanOptions := []dht.Option{
 			dht.BootstrapPeers(args.BootstrapPeers...),
 		}
+		// In stub mode, allow loopback peers in the WAN routing
+		// table so Provide/PutValue work with ephemeral test peers.
+		if os.Getenv("TEST_DHT_STUB") != "" {
+			wanOptions = append(wanOptions,
+				dht.AddressFilter(nil),
+				dht.QueryFilter(func(_ any, _ peer.AddrInfo) bool { return true }),
+				dht.RoutingTableFilter(func(_ any, _ peer.ID) bool { return true }),
+				dht.RoutingTablePeerDiversityFilter(nil),
+			)
+		}
 		lanOptions := []dht.Option{}
 		if args.LoopbackAddressesOnLanDHT {
 			lanOptions = append(lanOptions, dht.AddressFilter(nil))
 		}
-		return dual.New(
+		d, err := dual.New(
 			args.Ctx, args.Host,
 			dual.DHTOption(dhtOpts...),
 			dual.WanDHTOption(wanOptions...),
 			dual.LanDHTOption(lanOptions...),
 		)
+		if err != nil {
+			return nil, err
+		}
+		return d, nil
 	}
 }
 
