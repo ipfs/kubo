@@ -112,9 +112,9 @@ Warning: Enabling tracing will likely affect performance.
 
 ## `IPFS_FUSE_DEBUG`
 
-If SET, enables fuse debug logging.
+When set to any non-empty value, enables verbose FUSE debug logging. Every FUSE operation (open, read, write, lookup, getattr, etc.) is logged to stderr with its arguments and return values. Useful for diagnosing mount issues or understanding what the kernel is requesting.
 
-Default: false
+Default: not set (no debug logging)
 
 ## `YAMUX_DEBUG`
 
@@ -266,6 +266,28 @@ This variable controls the number of concurrent outbound dials (except dials to 
 Reducing it slows down connection ballooning but might affect performance negatively.
 
 Default: [160](https://github.com/libp2p/go-libp2p/blob/master/p2p/net/swarm/swarm_dial.go#L91) (not set)
+
+## `TEST_DHT_STUB`
+
+Lifts WAN DHT filters so kubo can operate against DHT peers on
+loopback, enabling full end-to-end provide/findprovs/IPNS testing
+without public internet access. All DHT code paths are exercised:
+dial, protocol negotiation, message serialization, routing table
+management.
+
+Filters removed on the WAN DHT when this variable is set:
+
+- `AddressFilter`: accepts loopback addresses (default rejects non-public)
+- `QueryFilter`: accepts all peers (default rejects non-public)
+- `RoutingTableFilter`: accepts all peers (default rejects non-public)
+- `RoutingTablePeerDiversityFilter`: disabled (default caps same-IP peers to 3)
+
+In the CLI test harness, `h.BootstrapWithStubDHT(nodes)` spawns a
+mini-DHT on the loopback interface and sets this variable on each
+node automatically, allowing the loopback DHT to serve as a WAN
+replacement. Tests do not need to set this variable externally.
+
+Default: disabled (not set)
 
 # Tracing
 

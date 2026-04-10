@@ -70,8 +70,7 @@ type CoreAPI struct {
 	ipldPathResolver   pathresolver.Resolver
 	unixFSPathResolver pathresolver.Resolver
 
-	provider          node.DHTProvider
-	providingStrategy config.ProvideStrategy
+	provider node.DHTProvider
 
 	pubSub *pubsub.PubSub
 
@@ -186,8 +185,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		ipldPathResolver:   n.IPLDPathResolver,
 		unixFSPathResolver: n.UnixFSPathResolver,
 
-		provider:          n.Provider,
-		providingStrategy: n.ProvidingStrategy,
+		provider: n.Provider,
 
 		pubSub: n.PubSub,
 

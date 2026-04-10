@@ -9,27 +9,146 @@ import (
 )
 
 func TestParseProvideStrategy(t *testing.T) {
-	tests := []struct {
-		input  string
-		expect ProvideStrategy
-	}{
-		{"all", ProvideStrategyAll},
-		{"pinned", ProvideStrategyPinned},
-		{"mfs", ProvideStrategyMFS},
-		{"pinned+mfs", ProvideStrategyPinned | ProvideStrategyMFS},
-		{"invalid", 0},
-		{"all+invalid", ProvideStrategyAll},
-		{"", ProvideStrategyAll},
-		{"flat", ProvideStrategyAll}, // deprecated, maps to "all"
-		{"flat+all", ProvideStrategyAll},
-	}
-
-	for _, tt := range tests {
-		result := ParseProvideStrategy(tt.input)
-		if result != tt.expect {
-			t.Errorf("ParseProvideStrategy(%q) = %d, want %d", tt.input, result, tt.expect)
+	t.Run("valid strategies", func(t *testing.T) {
+		tests := []struct {
+			input  string
+			expect ProvideStrategy
+		}{
+			{"all", ProvideStrategyAll},
+			{"pinned", ProvideStrategyPinned},
+			{"roots", ProvideStrategyRoots},
+			{"mfs", ProvideStrategyMFS},
+			{"pinned+mfs", ProvideStrategyPinned | ProvideStrategyMFS},
+			{"pinned+roots", ProvideStrategyPinned | ProvideStrategyRoots},
+			{"pinned+mfs+roots", ProvideStrategyPinned | ProvideStrategyMFS | ProvideStrategyRoots},
+			{"", ProvideStrategyAll},                                   // empty string = default = all
+			{"flat", ProvideStrategyAll},                               // deprecated, maps to "all"
+			{"flat+all", ProvideStrategyAll},                           // redundant but valid
+			{"all+all", ProvideStrategyAll},                            // redundant but valid
+			{"mfs+pinned", ProvideStrategyMFS | ProvideStrategyPinned}, // order doesn't matter
+			// +unique and +entities modifiers
+			{"pinned+unique", ProvideStrategyPinned | ProvideStrategyUnique},
+			{"pinned+entities", ProvideStrategyPinned | ProvideStrategyEntities | ProvideStrategyUnique},
+			{"pinned+unique+entities", ProvideStrategyPinned | ProvideStrategyUnique | ProvideStrategyEntities},
+			{"mfs+unique", ProvideStrategyMFS | ProvideStrategyUnique},
+			{"mfs+entities", ProvideStrategyMFS | ProvideStrategyEntities | ProvideStrategyUnique},
+			{"pinned+mfs+unique", ProvideStrategyPinned | ProvideStrategyMFS | ProvideStrategyUnique},
+			{"pinned+mfs+entities", ProvideStrategyPinned | ProvideStrategyMFS | ProvideStrategyEntities | ProvideStrategyUnique},
 		}
-	}
+
+		for _, tt := range tests {
+			result, err := ParseProvideStrategy(tt.input)
+			require.NoError(t, err, "ParseProvideStrategy(%q)", tt.input)
+			assert.Equal(t, tt.expect, result, "ParseProvideStrategy(%q)", tt.input)
+		}
+	})
+
+	t.Run("unknown token (including typos)", func(t *testing.T) {
+		tests := []struct {
+			input string
+			err   string
+		}{
+			{"invalid", `unknown provide strategy token: "invalid"`},
+			{"uniuqe", `unknown provide strategy token: "uniuqe"`},        // typo of "unique"
+			{"entites", `unknown provide strategy token: "entites"`},      // cspell:disable-line -- intentional typo of "entities"
+			{"pinned+uniuqe", `unknown provide strategy token: "uniuqe"`}, // typo in combo
+		}
+
+		for _, tt := range tests {
+			_, err := ParseProvideStrategy(tt.input)
+			require.Error(t, err, "ParseProvideStrategy(%q) should fail", tt.input)
+			assert.Contains(t, err.Error(), tt.err)
+		}
+	})
+
+	t.Run("empty token from delimiter", func(t *testing.T) {
+		tests := []string{
+			"pinned+",     // trailing +
+			"+pinned",     // leading +
+			"pinned++mfs", // double +
+		}
+
+		for _, input := range tests {
+			_, err := ParseProvideStrategy(input)
+			require.Error(t, err, "ParseProvideStrategy(%q) should fail", input)
+			assert.Contains(t, err.Error(), "empty token")
+		}
+	})
+
+	t.Run("all cannot be combined with other strategies", func(t *testing.T) {
+		tests := []string{
+			"all+pinned",
+			"all+mfs",
+			"all+roots",
+			"flat+pinned",
+			"all+pinned+mfs",
+		}
+
+		for _, input := range tests {
+			_, err := ParseProvideStrategy(input)
+			require.Error(t, err, "ParseProvideStrategy(%q) should fail", input)
+			assert.Contains(t, err.Error(), "cannot be combined")
+		}
+	})
+
+	t.Run("+unique/+entities require base strategy", func(t *testing.T) {
+		tests := []string{
+			"unique",              // modifier alone
+			"entities",            // modifier alone
+			"unique+entities",     // modifiers without base
+			"roots+unique",        // roots is incompatible
+			"roots+entities",      // roots is incompatible
+			"roots+pinned+unique", // roots mixed with pinned+unique
+		}
+
+		for _, input := range tests {
+			_, err := ParseProvideStrategy(input)
+			require.Error(t, err, "ParseProvideStrategy(%q) should fail", input)
+		}
+	})
+}
+
+func TestMustParseProvideStrategy(t *testing.T) {
+	t.Run("valid input returns strategy", func(t *testing.T) {
+		assert.Equal(t, ProvideStrategyAll, MustParseProvideStrategy("all"))
+		assert.Equal(t, ProvideStrategyPinned|ProvideStrategyMFS, MustParseProvideStrategy("pinned+mfs"))
+	})
+
+	t.Run("invalid input panics", func(t *testing.T) {
+		assert.Panics(t, func() { MustParseProvideStrategy("bogus") })
+		assert.Panics(t, func() { MustParseProvideStrategy("all+pinned") })
+	})
+}
+
+func TestValidateProvideConfig_Strategy(t *testing.T) {
+	t.Run("valid strategies", func(t *testing.T) {
+		for _, s := range []string{
+			"all", "pinned", "roots", "mfs", "pinned+mfs",
+			"pinned+unique", "pinned+entities", "pinned+mfs+entities",
+		} {
+			cfg := &Provide{Strategy: NewOptionalString(s)}
+			require.NoError(t, ValidateProvideConfig(cfg), "strategy=%q", s)
+		}
+	})
+
+	t.Run("default (nil) strategy is valid", func(t *testing.T) {
+		cfg := &Provide{}
+		require.NoError(t, ValidateProvideConfig(cfg))
+	})
+
+	t.Run("invalid strategy", func(t *testing.T) {
+		cfg := &Provide{Strategy: NewOptionalString("bogus")}
+		err := ValidateProvideConfig(cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Provide.Strategy")
+	})
+
+	t.Run("all combined with others", func(t *testing.T) {
+		cfg := &Provide{Strategy: NewOptionalString("all+pinned")}
+		err := ValidateProvideConfig(cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot be combined")
+	})
 }
 
 func TestValidateProvideConfig_Interval(t *testing.T) {
@@ -68,6 +187,49 @@ func TestValidateProvideConfig_Interval(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateProvideConfig_BloomFPRate(t *testing.T) {
+	tests := []struct {
+		name    string
+		fpRate  int64
+		wantErr bool
+		errMsg  string
+	}{
+		{"valid default value", DefaultProvideBloomFPRate, false, ""},
+		{"valid minimum (1M)", MinProvideBloomFPRate, false, ""},
+		{"valid high (10M)", 10_000_000, false, ""},
+		{"valid very high (100M)", 100_000_000, false, ""},
+		{"invalid below minimum (999_999)", 999_999, true, "must be >="},
+		{"invalid small (10_000)", 10_000, true, "must be >="},
+		{"invalid one", 1, true, "must be >="},
+		{"invalid zero", 0, true, "must be >="},
+		{"invalid negative", -1, true, "must be >="},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Provide{
+				BloomFPRate: NewOptionalInteger(tt.fpRate),
+			}
+
+			err := ValidateProvideConfig(cfg)
+
+			if tt.wantErr {
+				require.Error(t, err, "expected error for fpRate=%d", tt.fpRate)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg, "error message mismatch")
+				}
+			} else {
+				require.NoError(t, err, "unexpected error for fpRate=%d", tt.fpRate)
+			}
+		})
+	}
+
+	t.Run("default (nil) BloomFPRate is valid", func(t *testing.T) {
+		cfg := &Provide{}
+		require.NoError(t, ValidateProvideConfig(cfg))
+	})
 }
 
 func TestValidateProvideConfig_MaxWorkers(t *testing.T) {

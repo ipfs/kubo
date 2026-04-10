@@ -23,6 +23,7 @@ const (
 	DefaultHashFunction    = "sha2-256"
 	DefaultFastProvideRoot = true
 	DefaultFastProvideWait = false
+	DefaultFastProvideDAG  = false
 
 	DefaultUnixFSHAMTDirectorySizeThreshold = 262144 // 256KiB - https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L26
 
@@ -71,6 +72,7 @@ type Import struct {
 	BatchMaxNodes                     OptionalInteger
 	BatchMaxSize                      OptionalInteger
 	FastProvideRoot                   Flag
+	FastProvideDAG                    Flag
 	FastProvideWait                   Flag
 }
 

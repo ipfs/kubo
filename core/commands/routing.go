@@ -269,11 +269,16 @@ var provideRefRoutingCmd = &cmds.Command{
 }
 
 var reprovideRoutingCmd = &cmds.Command{
-	Status: cmds.Experimental,
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
-		Tagline: "Trigger reprovider.",
+		Tagline: "Trigger reprovider (legacy provider only).",
 		ShortDescription: `
 Trigger reprovider to announce our data to network.
+
+Only available with the legacy provider (Provide.DHT.SweepEnabled=false).
+Returns an error when Provide.DHT.SweepEnabled=true (the default).
+The sweep provider reprovides automatically on schedule.
+Use 'ipfs provide stat -a' to monitor reprovide progress.
 `,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -286,7 +291,6 @@ Trigger reprovider to announce our data to network.
 			return ErrNotOnline
 		}
 
-		// respect global config
 		cfg, err := nd.Repo.Config()
 		if err != nil {
 			return err
@@ -299,7 +303,9 @@ Trigger reprovider to announce our data to network.
 		}
 		provideSys, ok := nd.Provider.(provider.Reprovider)
 		if !ok {
-			return errors.New("manual reprovide only available with legacy provider (Provide.DHT.SweepEnabled=false)")
+			err := errors.New("invalid configuration: manual reprovide not available with sweep provider (Provide.DHT.SweepEnabled=true), use 'ipfs provide stat -a' to monitor automatic reprovide progress")
+			log.Error(err)
+			return err
 		}
 
 		err = provideSys.Reprovide(req.Context)

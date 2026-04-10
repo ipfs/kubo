@@ -124,10 +124,10 @@ If you see "version (N) is lower than repos (M)", the `ipfs` binary in `PATH` is
 
 ### Running FUSE Tests
 
-FUSE tests require `/dev/fuse` and `fusermount` in `PATH`. On systems with only fuse3, create a symlink:
+FUSE tests require `/dev/fuse` and `fusermount` in `PATH`. On systems with only fuse3, create a symlink in a temp directory (never use `sudo` to install system-wide):
 
 ```bash
-ln -s /usr/bin/fusermount3 /tmp/fusermount && PATH="/tmp:$PATH" make test_fuse
+FUSE_BIN="$(mktemp -d)" && ln -s /usr/bin/fusermount3 "$FUSE_BIN/fusermount" && PATH="$FUSE_BIN:$PATH" make test_fuse
 ```
 
 Set `TEST_FUSE=1` to make mount failures fatal (CI does this). Without it, tests auto-detect and skip when FUSE is unavailable.
