@@ -472,6 +472,103 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 		expectNoProviders(t, cidChunk, peers...)
 	})
 
+	// addLargeFilestoreFile writes a 2 MiB file to the publisher's
+	// node directory and adds it via --nocopy, returning the root CID
+	// and a chunk CID from the file's DAG links. With the configured
+	// 1 MiB chunker the file produces multiple leaf blocks so we can
+	// distinguish root-level from chunk-level provide behavior.
+	addLargeFilestoreFile := func(t *testing.T, publisher *harness.Node, addArgs ...string) (cidRoot, cidChunk string) {
+		t.Helper()
+		filePath := filepath.Join(publisher.Dir, "filestore-"+strconv.FormatInt(time.Now().UnixNano(), 10)+".bin")
+		require.NoError(t, os.WriteFile(filePath, random.Bytes(2*1024*1024), 0o644))
+
+		args := append([]string{"add", "-q", "--nocopy"}, addArgs...)
+		args = append(args, filePath)
+		cidRoot = strings.TrimSpace(publisher.IPFS(args...).Stdout.String())
+
+		dagOut := publisher.IPFS("dag", "get", cidRoot)
+		var dagNode struct {
+			Links []struct {
+				Hash map[string]string `json:"Hash"`
+			} `json:"Links"`
+		}
+		require.NoError(t, json.Unmarshal(dagOut.Stdout.Bytes(), &dagNode))
+		require.Greater(t, len(dagNode.Links), 1, "filestore file should have multiple chunks")
+		cidChunk = dagNode.Links[0].Hash["/"]
+		require.NotEmpty(t, cidChunk)
+		return cidRoot, cidChunk
+	}
+
+	t.Run("Filestore --nocopy with 'all' strategy provides every block", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Experimental.FilestoreEnabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "all")
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+		})
+		defer nodes.StopDaemons()
+		publisher, peers := nodes[0], nodes[1:]
+
+		// Positive control: with the default 'all' strategy the
+		// filestore Put path provides every block as it is written,
+		// including non-root chunks.
+		cidRoot, cidChunk := addLargeFilestoreFile(t, publisher)
+
+		pid := publisher.PeerID().String()
+		expectProviders(t, cidRoot, pid, peers...)
+		expectProviders(t, cidChunk, pid, peers...)
+	})
+
+	t.Run("Filestore --nocopy with selective strategy skips write-time provide", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Experimental.FilestoreEnabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "pinned")
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+		})
+		defer nodes.StopDaemons()
+		publisher, peers := nodes[0], nodes[1:]
+
+		// With a selective strategy the filestore must not eagerly
+		// announce blocks at write time. --pin=false skips the pin
+		// (so fast-provide-root has nothing to do) and
+		// --fast-provide-root=false disables it explicitly, isolating
+		// the assertion to the filestore's internal provide path.
+		cidRoot, cidChunk := addLargeFilestoreFile(t, publisher,
+			"--pin=false", "--fast-provide-root=false")
+
+		expectNoProviders(t, cidRoot, peers...)
+		expectNoProviders(t, cidChunk, peers...)
+	})
+
+	t.Run("Filestore --nocopy + selective strategy + --fast-provide-dag walks DAG", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Experimental.FilestoreEnabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "pinned")
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+		})
+		defer nodes.StopDaemons()
+		publisher, peers := nodes[0], nodes[1:]
+
+		// The selective-strategy gate skips the filestore's write-time
+		// provide, but the post-add ExecuteFastProvideDAG walk reads
+		// blocks through the wrapping blockstore (which transparently
+		// serves filestore-backed content) and announces each block,
+		// honoring the active strategy. This is the integration test
+		// behind the changelog claim that filestore content now plays
+		// well with the fast-provide-dag flag.
+		cidRoot, cidChunk := addLargeFilestoreFile(t, publisher,
+			"--fast-provide-dag", "--fast-provide-wait")
+
+		pid := publisher.PeerID().String()
+		expectProviders(t, cidRoot, pid, peers...)
+		expectProviders(t, cidChunk, pid, peers...)
+	})
+
 	t.Run("Provide with 'roots' strategy", func(t *testing.T) {
 		t.Parallel()
 
