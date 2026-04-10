@@ -17,6 +17,7 @@ import (
 
 	pinclient "github.com/ipfs/boxo/pinning/remote/client"
 	cid "github.com/ipfs/go-cid"
+	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log/v2"
 	config "github.com/ipfs/kubo/config"
@@ -73,11 +74,11 @@ type RemotePinOutput struct {
 	Name   string
 }
 
-func toRemotePinOutput(ps pinclient.PinStatusGetter) RemotePinOutput {
+func toRemotePinOutput(ps pinclient.PinStatusGetter, enc cidenc.Encoder) RemotePinOutput {
 	return RemotePinOutput{
 		Name:   ps.GetPin().GetName(),
 		Status: ps.GetStatus().String(),
-		Cid:    ps.GetPin().GetCid().String(),
+		Cid:    enc.Encode(ps.GetPin().GetCid()),
 	}
 }
 
@@ -142,6 +143,11 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(req.Context)
 		defer cancel()
+
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
 
 		// Get remote service
 		c, err := getRemotePinServiceFromRequest(req, env)
@@ -257,7 +263,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 			}
 		}
 
-		return res.Emit(toRemotePinOutput(ps))
+		return res.Emit(toRemotePinOutput(ps, enc))
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RemotePinOutput) error {
@@ -294,6 +300,11 @@ Pass '--status=queued,pinning,pinned,failed' to list pins in all states.
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		ctx, cancel := context.WithCancel(req.Context)
 		defer cancel()
 
@@ -303,7 +314,7 @@ Pass '--status=queued,pinning,pinned,failed' to list pins in all states.
 			lsErr <- lsRemote(ctx, req, c, psCh)
 		}()
 		for ps := range psCh {
-			if err := res.Emit(toRemotePinOutput(ps)); err != nil {
+			if err := res.Emit(toRemotePinOutput(ps, enc)); err != nil {
 				return err
 			}
 		}
