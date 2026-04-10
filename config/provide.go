@@ -12,6 +12,22 @@ const (
 	DefaultProvideEnabled  = true
 	DefaultProvideStrategy = "all"
 
+	// DefaultProvideBloomFPRate is the target false positive rate for the
+	// bloom filter used by +unique and +entities reprovide cycles and
+	// fast-provide-dag walks. Expressed as 1/N (one false positive per N
+	// lookups). At ~1 in 4.75M (~0.00002%) each CID costs ~4 bytes before
+	// ipfs/bbloom's power-of-two rounding.
+	//
+	// Kubo owns this default independently of boxo/dag/walker; the two
+	// values may diverge over time without coordination.
+	DefaultProvideBloomFPRate = 4_750_000
+
+	// MinProvideBloomFPRate is the smallest accepted Provide.BloomFPRate.
+	// Below 1 in 1M the bloom filter becomes lossy enough to drop a
+	// meaningful fraction of CIDs from each reprovide cycle (e.g. at
+	// rate=10_000 a 100M-CID repo skips ~10K CIDs per cycle).
+	MinProvideBloomFPRate = 1_000_000
+
 	// DHT provider defaults
 	DefaultProvideDHTInterval                 = 22 * time.Hour // https://github.com/ipfs/kubo/pull/9326
 	DefaultProvideDHTMaxWorkers               = 16             // Unified default for both sweep and legacy providers
@@ -36,6 +52,8 @@ const (
 	ProvideStrategyPinned
 	ProvideStrategyRoots
 	ProvideStrategyMFS
+	ProvideStrategyUnique   // bloom filter cross-DAG deduplication
+	ProvideStrategyEntities // entity-aware traversal (implies Unique)
 )
 
 // Provide configures both immediate CID announcements (provide operations) for new content
@@ -49,6 +67,16 @@ type Provide struct {
 	// Strategy determines which CIDs are announced to the routing system.
 	// Default: DefaultProvideStrategy
 	Strategy *OptionalString `json:",omitempty"`
+
+	// BloomFPRate sets the target false positive rate of the bloom filter
+	// used by Provide.Strategy modifiers +unique and +entities (and the
+	// matching fast-provide-dag walk). Expressed as 1/N (one false
+	// positive per N lookups), so higher N means lower FP rate but more
+	// memory per CID. Only takes effect when Provide.Strategy includes
+	// +unique or +entities.
+	//
+	// Default: DefaultProvideBloomFPRate
+	BloomFPRate *OptionalInteger `json:",omitempty"`
 
 	// DHT configures DHT-specific provide and reprovide settings.
 	DHT ProvideDHT
@@ -100,25 +128,78 @@ type ProvideDHT struct {
 	ResumeEnabled Flag `json:",omitempty"`
 }
 
-func ParseProvideStrategy(s string) ProvideStrategy {
+func ParseProvideStrategy(s string) (ProvideStrategy, error) {
 	var strategy ProvideStrategy
 	for part := range strings.SplitSeq(s, "+") {
 		switch part {
-		case "all", "flat", "": // special case, does not mix with others ("flat" is deprecated, maps to "all")
-			return ProvideStrategyAll
+		case "all", "flat":
+			strategy |= ProvideStrategyAll
+		case "":
+			// empty string (default config) maps to "all",
+			// but empty tokens from splitting (e.g. "pinned+") are invalid
+			if s == "" {
+				strategy |= ProvideStrategyAll
+			} else {
+				return 0, fmt.Errorf("invalid provide strategy: empty token in %q", s)
+			}
 		case "pinned":
 			strategy |= ProvideStrategyPinned
 		case "roots":
 			strategy |= ProvideStrategyRoots
 		case "mfs":
 			strategy |= ProvideStrategyMFS
+		case "unique":
+			strategy |= ProvideStrategyUnique
+		case "entities":
+			strategy |= ProvideStrategyEntities | ProvideStrategyUnique
+		default:
+			return 0, fmt.Errorf("unknown provide strategy token: %q in %q", part, s)
 		}
+	}
+	// "all" provides every block and cannot be combined with selective strategies
+	if strategy&ProvideStrategyAll != 0 && strategy != ProvideStrategyAll {
+		return 0, fmt.Errorf("\"all\" strategy cannot be combined with other strategies in %q", s)
+	}
+	// +unique/+entities require a base strategy that walks DAGs (pinned and/or mfs)
+	wantsDedup := strategy&(ProvideStrategyUnique|ProvideStrategyEntities) != 0
+	if wantsDedup {
+		walksDAGs := strategy&(ProvideStrategyPinned|ProvideStrategyMFS) != 0
+		if !walksDAGs {
+			return 0, fmt.Errorf("+unique/+entities must combine with pinned and/or mfs in %q", s)
+		}
+		if strategy&ProvideStrategyRoots != 0 {
+			return 0, fmt.Errorf("+unique/+entities is incompatible with roots in %q", s)
+		}
+	}
+	return strategy, nil
+}
+
+// MustParseProvideStrategy is like ParseProvideStrategy but panics on error.
+// Use with strategy strings that have already been validated at startup.
+func MustParseProvideStrategy(s string) ProvideStrategy {
+	strategy, err := ParseProvideStrategy(s)
+	if err != nil {
+		panic(err)
 	}
 	return strategy
 }
 
 // ValidateProvideConfig validates the Provide configuration according to DHT requirements.
 func ValidateProvideConfig(cfg *Provide) error {
+	// Validate Provide.Strategy
+	strategy := cfg.Strategy.WithDefault(DefaultProvideStrategy)
+	if _, err := ParseProvideStrategy(strategy); err != nil {
+		return fmt.Errorf("Provide.Strategy: %w", err)
+	}
+
+	// Validate Provide.BloomFPRate
+	if !cfg.BloomFPRate.IsDefault() {
+		rate := cfg.BloomFPRate.WithDefault(DefaultProvideBloomFPRate)
+		if rate < MinProvideBloomFPRate {
+			return fmt.Errorf("Provide.BloomFPRate must be >= %d (1 in 1M), got %d", MinProvideBloomFPRate, rate)
+		}
+	}
+
 	// Validate Provide.DHT.Interval
 	if !cfg.DHT.Interval.IsDefault() {
 		interval := cfg.DHT.Interval.WithDefault(DefaultProvideDHTInterval)
@@ -184,7 +265,7 @@ func ValidateProvideConfig(cfg *Provide) error {
 // ShouldProvideForStrategy determines if content should be provided based on the provide strategy
 // and content characteristics (pinned status, root status, MFS status).
 func ShouldProvideForStrategy(strategy ProvideStrategy, isPinned bool, isPinnedRoot bool, isMFS bool) bool {
-	if strategy == ProvideStrategyAll {
+	if strategy&ProvideStrategyAll != 0 {
 		// 'all' strategy: always provide
 		return true
 	}

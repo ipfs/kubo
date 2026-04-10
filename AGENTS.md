@@ -93,6 +93,7 @@ The full test suite is composed of several targets:
 | `make test_short`    | fast subset (`test_go_fmt` + `test_unit`)                             |
 | `make test_unit`     | unit tests with coverage (excludes `test/cli`)                        |
 | `make test_cli`      | CLI integration tests (requires `make build` first)                   |
+| `make test_fuse`     | FUSE filesystem tests (requires `/dev/fuse` and `fusermount` in PATH) |
 | `make test_sharness` | legacy shell-based integration tests                                  |
 | `make test_go_fmt`   | checks Go source formatting                                          |
 | `make -O test_go_lint` | runs `golangci-lint`                                                |
@@ -121,6 +122,16 @@ export IPFS_PATH="$(mktemp -d)"
 
 If you see "version (N) is lower than repos (M)", the `ipfs` binary in `PATH` is outdated. Rebuild with `make build` and verify `PATH`.
 
+### Running FUSE Tests
+
+FUSE tests require `/dev/fuse` and `fusermount` in `PATH`. On systems with only fuse3, create a symlink in a temp directory (never use `sudo` to install system-wide):
+
+```bash
+FUSE_BIN="$(mktemp -d)" && ln -s /usr/bin/fusermount3 "$FUSE_BIN/fusermount" && PATH="$FUSE_BIN:$PATH" make test_fuse
+```
+
+Set `TEST_FUSE=1` to make mount failures fatal (CI does this). Without it, tests auto-detect and skip when FUSE is unavailable.
+
 ### Running Sharness Tests
 
 Sharness tests are legacy shell-based tests. Run individual tests with a timeout:
@@ -144,8 +155,10 @@ pkill -f "ipfs daemon"
 - all new integration tests go in `test/cli/`, not `test/sharness/`
 - if a `test/sharness` test needs significant changes, remove it and add a replacement in `test/cli/`
 - use [testify](https://github.com/stretchr/testify) for assertions (already a dependency)
+- use `t.Context()` instead of `context.Background()` in tests
 - for Go 1.25+, use `testing/synctest` when testing concurrent code (goroutines, channels, timers)
 - reuse existing `.car` fixtures in `test/cli/fixtures/` when possible; only add new fixtures when the test requires data not covered by existing ones
+- when writing tests that cover CIDv0 vs CIDv1, always set the CID version explicitly (never rely on defaults); if chunk size matters for the test, also set the chunker explicitly
 - always re-run modified tests locally before submitting to confirm they pass
 - avoid emojis in test names and test log output
 
@@ -164,6 +177,7 @@ Run these steps in order before considering work complete:
 - after editing CLI help text in `core/commands/`, verify width: `go test ./test/cli/... -run TestCommandDocsWidth`
 - config options are documented in `docs/config.md`
 - changelogs in `docs/changelogs/`: only edit the Table of Contents and the Highlights section; the Changelog and Contributors sections are auto-generated and must not be modified
+- avoid unnecessary line wrapping in `docs/changelogs/*`; let lines be long
 - follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 - keep commit titles short and messages terse
 

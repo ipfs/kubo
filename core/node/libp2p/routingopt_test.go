@@ -1,39 +1,21 @@
 package libp2p
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ipfs/boxo/autoconf"
 	config "github.com/ipfs/kubo/config"
+	"github.com/libp2p/go-libp2p/core/connmgr"
+	"github.com/libp2p/go-libp2p/core/event"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestHttpAddrsFromConfig(t *testing.T) {
-	require.Equal(t, []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"},
-		httpAddrsFromConfig(config.Addresses{
-			Swarm: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"},
-		}), "Swarm addrs should be taken by default")
-
-	require.Equal(t, []string{"/ip4/192.168.0.1/tcp/4001"},
-		httpAddrsFromConfig(config.Addresses{
-			Swarm:    []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"},
-			Announce: []string{"/ip4/192.168.0.1/tcp/4001"},
-		}), "Announce addrs should override Swarm if specified")
-
-	require.Equal(t, []string{"/ip4/0.0.0.0/udp/4001/quic-v1"},
-		httpAddrsFromConfig(config.Addresses{
-			Swarm:      []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"},
-			NoAnnounce: []string{"/ip4/0.0.0.0/tcp/4001"},
-		}), "Swarm addrs should not contain NoAnnounce addrs")
-
-	require.Equal(t, []string{"/ip4/192.168.0.1/tcp/4001", "/ip4/192.168.0.2/tcp/4001"},
-		httpAddrsFromConfig(config.Addresses{
-			Swarm:          []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"},
-			Announce:       []string{"/ip4/192.168.0.1/tcp/4001"},
-			AppendAnnounce: []string{"/ip4/192.168.0.2/tcp/4001"},
-		}), "AppendAnnounce addrs should be included if specified")
-}
 
 func TestDetermineCapabilities(t *testing.T) {
 	tests := []struct {
@@ -221,4 +203,88 @@ func TestEndpointCapabilitiesReadWriteLogic(t *testing.T) {
 		assert.False(t, capabilities.IPNSGet)
 		assert.False(t, capabilities.IPNSPut)
 	})
+}
+
+// stubHost is a minimal host.Host stub for testing httpRouterAddrFunc.
+// Only the methods checked via type assertion (confirmedAddrsHost) matter;
+// all other methods panic if called.
+type stubHost struct {
+	reachable []ma.Multiaddr
+}
+
+func (h *stubHost) ConfirmedAddrs() (reachable, unreachable, unknown []ma.Multiaddr) {
+	return h.reachable, nil, nil
+}
+
+func (h *stubHost) ID() peer.ID                                         { panic("unused") }
+func (h *stubHost) Addrs() []ma.Multiaddr                               { panic("unused") }
+func (h *stubHost) Peerstore() peerstore.Peerstore                      { panic("unused") }
+func (h *stubHost) Network() network.Network                            { panic("unused") }
+func (h *stubHost) Mux() protocol.Switch                                { panic("unused") }
+func (h *stubHost) Connect(context.Context, peer.AddrInfo) error        { panic("unused") }
+func (h *stubHost) SetStreamHandler(protocol.ID, network.StreamHandler) { panic("unused") }
+func (h *stubHost) SetStreamHandlerMatch(protocol.ID, func(protocol.ID) bool, network.StreamHandler) {
+	panic("unused")
+}
+func (h *stubHost) RemoveStreamHandler(protocol.ID) { panic("unused") }
+func (h *stubHost) NewStream(context.Context, peer.ID, ...protocol.ID) (network.Stream, error) {
+	panic("unused")
+}
+func (h *stubHost) Close() error                     { panic("unused") }
+func (h *stubHost) ConnManager() connmgr.ConnManager { panic("unused") }
+func (h *stubHost) EventBus() event.Bus              { panic("unused") }
+
+func TestHttpRouterAddrFunc(t *testing.T) {
+	tests := []struct {
+		name      string
+		reachable []string // autonat confirmed addrs (nil = none)
+		cfg       config.Addresses
+		want      []string
+	}{
+		{
+			name:      "prefers autonat confirmed reachable addrs over swarm fallback",
+			reachable: []string{"/ip4/1.2.3.4/tcp/4001", "/ip4/1.2.3.4/udp/4001/quic-v1"},
+			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"}},
+			want:      []string{"/ip4/1.2.3.4/tcp/4001", "/ip4/1.2.3.4/udp/4001/quic-v1"},
+		},
+		{
+			name: "falls back to swarm when autonat has no confirmed addrs",
+			cfg:  config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}},
+			want: []string{"/ip4/0.0.0.0/tcp/4001"},
+		},
+		{
+			name:      "Announce overrides autonat and swarm",
+			reachable: []string{"/ip4/1.2.3.4/tcp/4001"},
+			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, Announce: []string{"/ip4/5.6.7.8/tcp/4001"}},
+			want:      []string{"/ip4/5.6.7.8/tcp/4001"},
+		},
+		{
+			name:      "AppendAnnounce added to autonat addrs",
+			reachable: []string{"/ip4/1.2.3.4/tcp/4001"},
+			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, AppendAnnounce: []string{"/ip4/10.0.0.1/tcp/4001"}},
+			want:      []string{"/ip4/1.2.3.4/tcp/4001", "/ip4/10.0.0.1/tcp/4001"},
+		},
+		{
+			name: "AppendAnnounce added to swarm fallback",
+			cfg:  config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, AppendAnnounce: []string{"/ip4/10.0.0.1/tcp/4001"}},
+			want: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/10.0.0.1/tcp/4001"},
+		},
+		{
+			name: "NoAnnounce filters swarm fallback",
+			cfg:  config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"}, NoAnnounce: []string{"/ip4/0.0.0.0/tcp/4001"}},
+			want: []string{"/ip4/0.0.0.0/udp/4001/quic-v1"},
+		},
+		{
+			name: "AppendAnnounce added to Announce",
+			cfg:  config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, Announce: []string{"/ip4/5.6.7.8/tcp/4001"}, AppendAnnounce: []string{"/ip4/10.0.0.1/tcp/4001"}},
+			want: []string{"/ip4/5.6.7.8/tcp/4001", "/ip4/10.0.0.1/tcp/4001"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := &stubHost{reachable: parseMultiaddrs(tt.reachable)}
+			fn := httpRouterAddrFunc(h, tt.cfg)
+			assert.Equal(t, parseMultiaddrs(tt.want), fn())
+		})
+	}
 }

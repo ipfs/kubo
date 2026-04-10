@@ -1,22 +1,188 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 
+	cid "github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/test/cli/harness"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	mhash "github.com/multiformats/go-multihash"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCidCommands(t *testing.T) {
 	t.Parallel()
 
+	t.Run("inspect", testCidInspect)
 	t.Run("base32", testCidBase32)
 	t.Run("format", testCidFormat)
 	t.Run("bases", testCidBases)
 	t.Run("codecs", testCidCodecs)
 	t.Run("hashes", testCidHashes)
+}
+
+// testCidInspect tests 'ipfs cid inspect' subcommand
+func testCidInspect(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode()
+
+	t.Run("CIDv0", func(t *testing.T) {
+		res := node.RunIPFS("cid", "inspect", "QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR")
+		assert.Equal(t, 0, res.ExitCode())
+		out := res.Stdout.String()
+		assert.Contains(t, out, "CID:        QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR")
+		assert.Contains(t, out, "Version:    0")
+		assert.Contains(t, out, "Multibase:  base58btc (implicit)")
+		assert.Contains(t, out, "Multicodec: dag-pb (0x70, implicit)")
+		assert.Contains(t, out, "Multihash:  sha2-256 (0x12, implicit)")
+		assert.Contains(t, out, "  Length:   32 bytes")
+		assert.Contains(t, out, "  Digest:   c3c4733ec8affd06cf9e9ff50ffc6bcd2ec85a6170004bb709669c31de94391a")
+		assert.Contains(t, out, "CIDv0:      QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR")
+		assert.Contains(t, out, "CIDv1:      bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+	})
+
+	t.Run("CIDv1 base32 dag-pb", func(t *testing.T) {
+		res := node.RunIPFS("cid", "inspect", "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+		assert.Equal(t, 0, res.ExitCode())
+		out := res.Stdout.String()
+		assert.Contains(t, out, "CID:        bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+		assert.Contains(t, out, "Version:    1")
+		assert.Contains(t, out, "Multibase:  base32 (b)")
+		assert.Contains(t, out, "Multicodec: dag-pb (0x70)")
+		assert.Contains(t, out, "Multihash:  sha2-256 (0x12)")
+		assert.Contains(t, out, "  Length:   32 bytes")
+		assert.Contains(t, out, "  Digest:   c3c4733ec8affd06cf9e9ff50ffc6bcd2ec85a6170004bb709669c31de94391a")
+		assert.NotContains(t, out, "implicit")
+		assert.Contains(t, out, "CIDv0:      QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR")
+		assert.Contains(t, out, "CIDv1:      bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+	})
+
+	t.Run("CIDv1 raw codec", func(t *testing.T) {
+		res := node.RunIPFS("cid", "inspect", "bafkreigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+		assert.Equal(t, 0, res.ExitCode())
+		out := res.Stdout.String()
+		assert.Contains(t, out, "CID:        bafkreigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+		assert.Contains(t, out, "Multibase:  base32 (b)")
+		assert.Contains(t, out, "Multicodec: raw (0x55)")
+		assert.Contains(t, out, "Multihash:  sha2-256 (0x12)")
+		assert.Contains(t, out, "  Length:   32 bytes")
+		assert.Contains(t, out, "  Digest:   c3c4733ec8affd06cf9e9ff50ffc6bcd2ec85a6170004bb709669c31de94391a")
+		assert.Contains(t, out, "CIDv0:      not possible, requires dag-pb (0x70), got raw (0x55)")
+		assert.Contains(t, out, "CIDv1:      bafkreigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+	})
+
+	t.Run("CIDv1 base36", func(t *testing.T) {
+		res := node.RunIPFS("cid", "inspect", "k2jmtxw8rjh1z69c6not3wtdxb0u3urbzhyll1t9jg6ox26dhi5sfi1m")
+		assert.Equal(t, 0, res.ExitCode())
+		out := res.Stdout.String()
+		assert.Contains(t, out, "CID:        k2jmtxw8rjh1z69c6not3wtdxb0u3urbzhyll1t9jg6ox26dhi5sfi1m")
+		assert.Contains(t, out, "Multibase:  base36 (k)")
+		assert.Contains(t, out, "Multicodec: dag-pb (0x70)")
+		assert.Contains(t, out, "  Digest:   c3c4733ec8affd06cf9e9ff50ffc6bcd2ec85a6170004bb709669c31de94391a")
+		assert.Contains(t, out, "CIDv0:      QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR")
+		assert.Contains(t, out, "CIDv1:      bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+	})
+
+	t.Run("invalid CID", func(t *testing.T) {
+		res := node.RunIPFS("cid", "inspect", "garbage")
+		assert.Equal(t, 1, res.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "invalid CID")
+	})
+
+	t.Run("PeerID as input", func(t *testing.T) {
+		res := node.RunIPFS("cid", "inspect", "12D3KooWD3eckifWpRn9wQpMG9R9hX3sD158z7EqHWmweQAJU5SA")
+		assert.Equal(t, 1, res.ExitCode())
+		stderr := res.Stderr.String()
+		assert.Contains(t, stderr, "PeerID")
+		assert.Contains(t, stderr, "inspect its CID representation instead")
+		// suggested CID should use base36 (k prefix)
+		assert.Contains(t, stderr, "\n  k")
+	})
+
+	t.Run("libp2p-key CID uses base36", func(t *testing.T) {
+		// Construct a libp2p-key CIDv1 from a known PeerID
+		pid, err := peer.Decode("12D3KooWD3eckifWpRn9wQpMG9R9hX3sD158z7EqHWmweQAJU5SA")
+		require.NoError(t, err)
+		pidCid := peer.ToCid(pid)
+		cidStr := pidCid.String()
+
+		res := node.RunIPFS("cid", "inspect", cidStr)
+		assert.Equal(t, 0, res.ExitCode())
+		out := res.Stdout.String()
+		assert.Contains(t, out, "Multicodec: libp2p-key (0x72)")
+		// CIDv1 should use base36 (k prefix)
+		assert.Contains(t, out, "CIDv1:      k")
+	})
+
+	t.Run("identity multihash CID", func(t *testing.T) {
+		// raw codec + identity multihash: digest is the raw content ("test" = 74657374)
+		res := node.RunIPFS("cid", "inspect", "bafkqabdumvzxi")
+		assert.Equal(t, 0, res.ExitCode())
+		out := res.Stdout.String()
+		assert.Contains(t, out, "CID:        bafkqabdumvzxi")
+		assert.Contains(t, out, "Multicodec: raw (0x55)")
+		assert.Contains(t, out, "Multihash:  identity (0x0)")
+		assert.Contains(t, out, "  Length:   4 bytes")
+		assert.Contains(t, out, "  Digest:   74657374")
+	})
+
+	t.Run("unknown codec", func(t *testing.T) {
+		// Construct a CID with unknown codec 0x9999
+		mh, err := mhash.Sum([]byte("test"), mhash.SHA2_256, -1)
+		require.NoError(t, err)
+		unknownCID := cid.NewCidV1(0x9999, mh)
+		cidStr := unknownCID.String()
+
+		res := node.RunIPFS("cid", "inspect", cidStr)
+		assert.Equal(t, 0, res.ExitCode())
+		out := res.Stdout.String()
+		assert.Contains(t, out, "Multicodec: unknown (0x9999)")
+		assert.Contains(t, out, "not possible, requires dag-pb (0x70), got unknown (0x9999)")
+	})
+
+	t.Run("JSON output", func(t *testing.T) {
+		res := node.RunIPFS("cid", "inspect", "--enc=json", "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+		assert.Equal(t, 0, res.ExitCode())
+
+		var result map[string]any
+		err := json.Unmarshal(res.Stdout.Bytes(), &result)
+		require.NoError(t, err)
+
+		// multibase.prefix should be a string, not a number
+		mb := result["multibase"].(map[string]any)
+		assert.IsType(t, "", mb["prefix"])
+		assert.Equal(t, "b", mb["prefix"])
+
+		// multihash.length should be a number (bytes)
+		mh := result["multihash"].(map[string]any)
+		assert.Equal(t, float64(32), mh["length"])
+
+		// cidV0 should be a clean CID string, no explanatory text
+		cidV0 := result["cidV0"].(string)
+		assert.True(t, strings.HasPrefix(cidV0, "Qm"), "cidV0 should be a valid CIDv0")
+
+		// cidV1 should be a clean CID string
+		cidV1 := result["cidV1"].(string)
+		assert.True(t, strings.HasPrefix(cidV1, "b"), "cidV1 should be base32 encoded")
+	})
+
+	t.Run("JSON output with empty CIDv0", func(t *testing.T) {
+		// raw codec can't be CIDv0
+		res := node.RunIPFS("cid", "inspect", "--enc=json", "bafkreigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+		assert.Equal(t, 0, res.ExitCode())
+
+		var result map[string]any
+		err := json.Unmarshal(res.Stdout.Bytes(), &result)
+		require.NoError(t, err)
+
+		// cidV0 should not be present (omitempty)
+		_, hasCidV0 := result["cidV0"]
+		assert.False(t, hasCidV0, "cidV0 should be omitted when not possible")
+	})
 }
 
 // testCidBase32 tests 'ipfs cid base32' subcommand

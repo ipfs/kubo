@@ -54,12 +54,22 @@ var patchRmLinkCmd = &cmds.Command{
 		ShortDescription: `
 Remove a Merkle-link from the given object and return the hash of the result.
 
-DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
+DEPRECATED and provided for legacy reasons.
+
+This command operates at the dag-pb level and only supports removing links
+from small, flat UnixFS directories (not HAMTShard). Removing links from
+files or large sharded directories will produce invalid UnixFS structures.
+
+For working with any UnixFS directories (including large/sharded ones),
+use 'ipfs files rm' instead: 'ipfs files --help'.
 `,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("root", true, false, "The hash of the node to modify."),
 		cmds.StringArg("name", true, false, "Name of the link to remove."),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(allowNonUnixFSOptionName, "", "Skip UnixFS validation, allowing link removal on non-directory nodes."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -78,7 +88,9 @@ DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
 		}
 
 		name := req.Arguments[1]
-		p, err := api.Object().RmLink(req.Context, root, name)
+		allowNonUnixFS, _ := req.Options[allowNonUnixFSOptionName].(bool)
+		p, err := api.Object().RmLink(req.Context, root, name,
+			options.Object.RmLinkSkipUnixFSValidation(allowNonUnixFS))
 		if err != nil {
 			return err
 		}
@@ -99,7 +111,8 @@ DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
 }
 
 const (
-	createOptionName = "create"
+	createOptionName         = "create"
+	allowNonUnixFSOptionName = "allow-non-unixfs"
 )
 
 var patchAddLinkCmd = &cmds.Command{
@@ -111,14 +124,19 @@ Add a Merkle-link to the given object and return the hash of the result.
 
 DEPRECATED and provided for legacy reasons.
 
-Use MFS and 'files' commands instead:
+This command operates at the dag-pb level and only supports adding links
+to small, flat UnixFS directories (not HAMTShard). Adding links to files
+or large sharded directories will produce invalid UnixFS structures.
+
+For working with any UnixFS directories (including large/sharded ones),
+use MFS and 'files' commands instead: 'ipfs files --help'.
 
   $ ipfs files cp /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn /some-dir
   $ ipfs files cp /ipfs/Qmayz4F4UzqcAMitTzU4zCSckDofvxstDuj3y7ajsLLEVs /some-dir/added-file.jpg
   $ ipfs files stat --hash /some-dir
 
   The above will add 'added-file.jpg' to the directory placed under /some-dir
-  and the CID of updated directory is returned by 'files stat'
+  and the CID of updated directory is returned by 'files stat'.
 
   'files cp' does not download the data, only the root block, which makes it
   possible to build arbitrary directory trees without fetching them in full to
@@ -132,6 +150,7 @@ Use MFS and 'files' commands instead:
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(createOptionName, "p", "Create intermediary nodes."),
+		cmds.BoolOption(allowNonUnixFSOptionName, "", "Skip UnixFS validation, allowing links on non-directory nodes."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -160,9 +179,11 @@ Use MFS and 'files' commands instead:
 		if err != nil {
 			return err
 		}
+		allowNonUnixFS, _ := req.Options[allowNonUnixFSOptionName].(bool)
 
 		p, err := api.Object().AddLink(req.Context, root, name, child,
-			options.Object.Create(create))
+			options.Object.Create(create),
+			options.Object.SkipUnixFSValidation(allowNonUnixFS))
 		if err != nil {
 			return err
 		}

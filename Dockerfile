@@ -1,6 +1,14 @@
 # syntax=docker/dockerfile:1
 # Enables BuildKit with cache mounts for faster builds
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.25 AS builder
+
+# GO_VERSION is the source of truth for the Go toolchain version. CI parses
+# the `go` directive from go.mod and overrides this build arg, so the
+# published image always matches the version `setup-go` installs from go.mod.
+# The default below is what `docker build .` (without --build-arg) uses, and
+# `.github/workflows/docker-check.yml` lints that this default stays in sync
+# with go.mod. When bumping Go, update both go.mod and this default together.
+ARG GO_VERSION=1.26.2
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:${GO_VERSION} AS builder
 
 ARG TARGETOS TARGETARCH
 

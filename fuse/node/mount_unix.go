@@ -1,4 +1,5 @@
-//go:build !windows && !openbsd && !netbsd && !plan9 && !nofuse
+// Mounts all three FUSE filesystems (/ipfs, /ipns, /mfs). go-fuse only builds on linux, darwin, and freebsd.
+//go:build (linux || darwin || freebsd) && !nofuse
 
 package node
 
@@ -26,7 +27,7 @@ const fuseNoDirectory = "fusermount: failed to access mountpoint"
 const fuseExitStatus1 = "fusermount: exit status 1"
 
 // platformFuseChecks can get overridden by arch-specific files
-// to run fuse checks (like checking the OSXFUSE version).
+// to run pre-mount checks (e.g. verifying macFUSE is installed).
 var platformFuseChecks = func(*core.IpfsNode) error {
 	return nil
 }
@@ -69,8 +70,8 @@ func doMount(node *core.IpfsNode, fsdir, nsdir, mfsdir string) error {
 	fmtFuseErr := func(err error, mountpoint string) error {
 		s := err.Error()
 		if strings.Contains(s, fuseNoDirectory) {
-			s = strings.Replace(s, `fusermount: "fusermount:`, "", -1)
-			s = strings.Replace(s, `\n", exit status 1`, "", -1)
+			s = strings.ReplaceAll(s, `fusermount: "fusermount:`, "")
+			s = strings.ReplaceAll(s, `\n", exit status 1`, "")
 			return errors.New(s)
 		}
 		if s == fuseExitStatus1 {
