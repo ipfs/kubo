@@ -166,7 +166,13 @@ func TestUpdateWhileDaemonRuns(t *testing.T) {
 // calls to the mock server. IPFS_VERSION_FAKE makes the binary report
 // an older version so the "upgrade" to v0.99.0 is accepted.
 func TestUpdateInstall(t *testing.T) {
-	t.Parallel()
+	// Not t.Parallel(): this test writes a copy of the ipfs binary and
+	// then exec's it. Running in parallel with other tests exposes the
+	// ETXTBSY race where a concurrent fork() in another test goroutine
+	// inherits our still-open write fd, leaving the freshly written
+	// file "text file busy" for exec until the sibling child execs.
+	// Running sequentially guarantees no other goroutine is mid-fork
+	// while we're writing.
 
 	// Build a fake binary to put inside the archive. After install, the
 	// file at tmpBinPath should contain exactly these bytes.
@@ -315,7 +321,9 @@ func TestUpdateInstall(t *testing.T) {
 // inside the subprocess returns tmpBinPath. The revert command reads the
 // stash and atomically replaces the file at tmpBinPath with stash content.
 func TestUpdateRevert(t *testing.T) {
-	t.Parallel()
+	// Not t.Parallel(): same ETXTBSY rationale as TestUpdateInstall.
+	// This test writes a binary copy and exec's it, which must not
+	// overlap with concurrent fork() calls from other test goroutines.
 
 	binName := "ipfs"
 	if runtime.GOOS == "windows" {
