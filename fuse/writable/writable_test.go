@@ -3,6 +3,7 @@
 package writable
 
 import (
+	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -42,4 +43,40 @@ func TestSymlinkSetattrChmodNoError(t *testing.T) {
 	if got := out.Attr.Mode & 0o777; got != 0o777 {
 		t.Fatalf("Symlink mode = 0o%o, want 0o777", got)
 	}
+}
+
+// TestStatfsReportsSpace verifies that Dir.Statfs proxies the
+// disk-space statistics of the repo's backing filesystem, and that an
+// empty RepoPath produces zeroed (but successful) results.
+func TestStatfsReportsSpace(t *testing.T) {
+	t.Run("matches repo filesystem", func(t *testing.T) {
+		dir := t.TempDir()
+		d := &Dir{Cfg: &Config{RepoPath: dir}}
+		out := &fuse.StatfsOut{}
+		if errno := d.Statfs(t.Context(), out); errno != 0 {
+			t.Fatalf("Statfs returned errno %v, want 0", errno)
+		}
+
+		var want syscall.Statfs_t
+		if err := syscall.Statfs(dir, &want); err != nil {
+			t.Fatal(err)
+		}
+		if out.Blocks != want.Blocks {
+			t.Fatalf("Blocks = %d, want %d (from repo path)", out.Blocks, want.Blocks)
+		}
+		if out.Bfree != want.Bfree {
+			t.Fatalf("Bfree = %d, want %d (from repo path)", out.Bfree, want.Bfree)
+		}
+	})
+
+	t.Run("empty repo path", func(t *testing.T) {
+		d := &Dir{Cfg: &Config{}}
+		out := &fuse.StatfsOut{}
+		if errno := d.Statfs(t.Context(), out); errno != 0 {
+			t.Fatalf("Statfs returned errno %v, want 0", errno)
+		}
+		if out.Blocks != 0 {
+			t.Fatalf("expected zeroed Blocks when RepoPath is empty, got %d", out.Blocks)
+		}
+	})
 }

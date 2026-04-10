@@ -759,6 +759,29 @@ func TestReadCancellationUnblocks(t *testing.T) {
 	}
 }
 
+// TestStatfs verifies that statfs on the /ipfs mount reports the disk
+// space of the repo's backing filesystem. macOS Finder refuses to copy
+// files onto a volume that reports zero free space.
+func TestStatfs(t *testing.T) {
+	nd, err := coremock.NewMockNode()
+	require.NoError(t, err)
+
+	// Point repoPath at a real directory so Statfs has a valid target.
+	// (NewMockNode's in-memory repo returns "" for Path().)
+	repoDir := t.TempDir()
+	root := &Root{ipfs: nd, repoPath: repoDir}
+	mntDir := testMount(t, root)
+
+	var got syscall.Statfs_t
+	require.NoError(t, syscall.Statfs(mntDir, &got))
+
+	var want syscall.Statfs_t
+	require.NoError(t, syscall.Statfs(repoDir, &want))
+
+	require.Equal(t, want.Blocks, got.Blocks, "total blocks should match the repo filesystem")
+	require.Equal(t, want.Bfree, got.Bfree, "free blocks should match the repo filesystem")
+}
+
 // Test that getxattr on an unknown attribute returns ENODATA (Linux) / ENOATTR.
 func TestUnknownXattr(t *testing.T) {
 	nd, _ := setupIpfsTest(t, nil)

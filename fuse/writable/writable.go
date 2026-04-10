@@ -35,6 +35,12 @@ type Config struct {
 	StoreMtime bool            // persist mtime on create and open-for-write
 	StoreMode  bool            // persist mode on chmod
 	DAG        ipld.DAGService // required: read-only opens use it to bypass MFS desclock
+	// RepoPath is the on-disk path of the IPFS repo (e.g. ~/.ipfs).
+	// Statfs calls syscall.Statfs on this path so that the FUSE mount
+	// reports how much free space is left on the volume that stores
+	// MFS data. Without it tools like macOS Finder see zero free space
+	// and refuse to copy files.
+	RepoPath string
 }
 
 // NewDir creates a Dir node backed by the given MFS directory.
@@ -68,6 +74,21 @@ func (d *Dir) fillAttr(a *fuse.Attr) {
 
 func (d *Dir) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	d.fillAttr(&out.Attr)
+	return 0
+}
+
+// Statfs reports disk-space statistics for the underlying filesystem.
+// macOS Finder checks free space before copying; without this it
+// reports "not enough free space" because go-fuse returns zeroed stats.
+func (d *Dir) Statfs(_ context.Context, out *fuse.StatfsOut) syscall.Errno {
+	if d.Cfg.RepoPath == "" {
+		return 0
+	}
+	var s syscall.Statfs_t
+	if err := syscall.Statfs(d.Cfg.RepoPath, &s); err != nil {
+		return fs.ToErrno(err)
+	}
+	out.FromStatfsT(&s)
 	return 0
 }
 
@@ -737,6 +758,7 @@ func SymlinkTarget(f *mfs.File) string {
 // Interface compliance checks.
 var (
 	_ fs.NodeGetattrer   = (*Dir)(nil)
+	_ fs.NodeStatfser    = (*Dir)(nil)
 	_ fs.NodeSetattrer   = (*Dir)(nil)
 	_ fs.NodeLookuper    = (*Dir)(nil)
 	_ fs.NodeReaddirer   = (*Dir)(nil)

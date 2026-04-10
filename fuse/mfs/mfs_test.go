@@ -12,6 +12,7 @@ import (
 	"context"
 	"crypto/rand"
 	"os"
+	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -86,4 +87,30 @@ func TestPersistence(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, bytes.Equal(content, got))
 	})
+}
+
+// TestStatfs verifies that statfs on the /mfs mount reports the disk
+// space of the repo's backing filesystem. macOS Finder refuses to copy
+// files onto a volume that reports zero free space.
+func TestStatfs(t *testing.T) {
+	ipfs, err := core.NewNode(t.Context(), &node.BuildCfg{})
+	require.NoError(t, err)
+
+	// The default in-memory repo returns "" for Path(), so point
+	// RepoPath at a real directory to exercise the syscall path.
+	repoDir := t.TempDir()
+	root := writable.NewDir(ipfs.FilesRoot.GetDirectory(), &writable.Config{
+		DAG:      ipfs.DAG,
+		RepoPath: repoDir,
+	})
+	mntDir := testMount(t, root)
+
+	var got syscall.Statfs_t
+	require.NoError(t, syscall.Statfs(mntDir, &got))
+
+	var want syscall.Statfs_t
+	require.NoError(t, syscall.Statfs(repoDir, &want))
+
+	require.Equal(t, want.Blocks, got.Blocks, "total blocks should match the repo filesystem")
+	require.Equal(t, want.Bfree, got.Bfree, "free blocks should match the repo filesystem")
 }

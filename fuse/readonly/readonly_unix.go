@@ -36,12 +36,28 @@ var immutableAttrCacheTime = 365 * 24 * time.Hour
 // Root is the root object of the /ipfs filesystem tree.
 type Root struct {
 	fs.Inode
-	ipfs *core.IpfsNode
+	ipfs     *core.IpfsNode
+	repoPath string
 }
 
 // NewRoot constructs a new readonly root node.
 func NewRoot(ipfs *core.IpfsNode) *Root {
-	return &Root{ipfs: ipfs}
+	return &Root{ipfs: ipfs, repoPath: ipfs.Repo.Path()}
+}
+
+// Statfs reports disk-space statistics for the underlying filesystem.
+// macOS Finder checks free space before copying; without this it
+// reports "not enough free space" because go-fuse returns zeroed stats.
+func (r *Root) Statfs(_ context.Context, out *fuse.StatfsOut) syscall.Errno {
+	if r.repoPath == "" {
+		return 0
+	}
+	var s syscall.Statfs_t
+	if err := syscall.Statfs(r.repoPath, &s); err != nil {
+		return fs.ToErrno(err)
+	}
+	out.FromStatfsT(&s)
+	return 0
 }
 
 func (*Root) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
@@ -369,6 +385,7 @@ var (
 	_ fs.NodeGetattrer   = (*Root)(nil)
 	_ fs.NodeLookuper    = (*Root)(nil)
 	_ fs.NodeReaddirer   = (*Root)(nil)
+	_ fs.NodeStatfser    = (*Root)(nil)
 	_ fs.NodeGetattrer   = (*Node)(nil)
 	_ fs.NodeLookuper    = (*Node)(nil)
 	_ fs.NodeOpener      = (*Node)(nil)

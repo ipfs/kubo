@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -78,7 +79,7 @@ func setupIpnsTest(t *testing.T, nd *core.IpfsNode, cfgs ...config.Mounts) (*cor
 	key, err := coreAPI.Key().Self(nd.Context())
 	require.NoError(t, err)
 
-	root, err := CreateRoot(nd.Context(), coreAPI, map[string]iface.Key{"local": key}, "", "", cfg)
+	root, err := CreateRoot(nd.Context(), coreAPI, map[string]iface.Key{"local": key}, "", "", nd.Repo.Path(), cfg)
 	require.NoError(t, err)
 
 	mntDir := t.TempDir()
@@ -171,4 +172,25 @@ func TestMultipleDirs(t *testing.T) {
 	fusetest.CheckExists(t, mnt.Dir+"/local/test1")
 	fusetest.VerifyFile(t, mnt.Dir+"/local/test1/file1", data1)
 	fusetest.VerifyFile(t, mnt.Dir+"/local/test1/dir2/file2", data2)
+}
+
+// TestStatfs verifies that statfs on the /ipns mount reports the disk
+// space of the repo's backing filesystem. macOS Finder refuses to copy
+// files onto a volume that reports zero free space.
+func TestStatfs(t *testing.T) {
+	_, mnt := setupIpnsTest(t, nil)
+
+	// The in-memory test repo returns "" for Path(), so point RepoPath
+	// at a real directory to exercise the syscall path.
+	repoDir := t.TempDir()
+	mnt.Root.RepoPath = repoDir
+
+	var got syscall.Statfs_t
+	require.NoError(t, syscall.Statfs(mnt.Dir, &got))
+
+	var want syscall.Statfs_t
+	require.NoError(t, syscall.Statfs(repoDir, &want))
+
+	require.Equal(t, want.Blocks, got.Blocks, "total blocks should match the repo filesystem")
+	require.Equal(t, want.Bfree, got.Bfree, "free blocks should match the repo filesystem")
 }

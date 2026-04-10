@@ -43,6 +43,7 @@ type Root struct {
 	Roots     map[string]*mfs.Root
 
 	LocalLinks map[string]*Link
+	RepoPath   string
 }
 
 func ipnsPubFunc(ipfs iface.CoreAPI, key iface.Key) mfs.PubFunc {
@@ -81,11 +82,12 @@ func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key, cfg *writa
 }
 
 // CreateRoot creates the IPNS FUSE root with one writable directory per key.
-func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.Key, ipfspath, ipnspath string, mountsCfg config.Mounts, mfsOpts ...mfs.Option) (*Root, error) {
+func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.Key, ipfspath, ipnspath, repoPath string, mountsCfg config.Mounts, mfsOpts ...mfs.Option) (*Root, error) {
 	cfg := &writable.Config{
 		StoreMtime: mountsCfg.StoreMtime.WithDefault(config.DefaultStoreMtime),
 		StoreMode:  mountsCfg.StoreMode.WithDefault(config.DefaultStoreMode),
 		DAG:        ipfs.Dag(),
+		RepoPath:   repoPath,
 	}
 
 	ldirs := make(map[string]*writable.Dir)
@@ -111,12 +113,28 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.K
 		LocalDirs:  ldirs,
 		LocalLinks: links,
 		Roots:      roots,
+		RepoPath:   repoPath,
 	}, nil
 }
 
 // Getattr returns the root directory attributes.
 func (r *Root) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr.Mode = uint32(fusemnt.NamespaceRootMode.Perm())
+	return 0
+}
+
+// Statfs reports disk-space statistics for the underlying filesystem.
+// macOS Finder checks free space before copying; without this it
+// reports "not enough free space" because go-fuse returns zeroed stats.
+func (r *Root) Statfs(_ context.Context, out *fuse.StatfsOut) syscall.Errno {
+	if r.RepoPath == "" {
+		return 0
+	}
+	var s syscall.Statfs_t
+	if err := syscall.Statfs(r.RepoPath, &s); err != nil {
+		return fs.ToErrno(err)
+	}
+	out.FromStatfsT(&s)
 	return 0
 }
 
@@ -174,4 +192,5 @@ var (
 	_ fs.NodeGetattrer = (*Root)(nil)
 	_ fs.NodeLookuper  = (*Root)(nil)
 	_ fs.NodeReaddirer = (*Root)(nil)
+	_ fs.NodeStatfser  = (*Root)(nil)
 )

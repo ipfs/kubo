@@ -16,5 +16,6 @@ func NewFileSystem(ipfs *core.IpfsNode, cfg config.Mounts) *writable.Dir {
 		StoreMtime: cfg.StoreMtime.WithDefault(config.DefaultStoreMtime),
 		StoreMode:  cfg.StoreMode.WithDefault(config.DefaultStoreMode),
 		DAG:        ipfs.DAG,
+		RepoPath:   ipfs.Repo.Path(),
 	})
 }
