@@ -557,7 +557,10 @@ func currentVersion() string {
 func checkDaemonNotRunning() error {
 	repoPath, err := fsrepo.BestKnownPath()
 	if err != nil {
-		// If we can't determine the repo path, skip the check.
+		// Without a repo path we can't check the lock, but we shouldn't
+		// silently proceed either. Warn so the user notices a misconfigured
+		// IPFS_PATH instead of getting an unexplained install.
+		fmt.Fprintf(os.Stderr, "Warning: could not determine IPFS path, skipping daemon check: %v\n", err)
 		return nil
 	}
 	locked, err := fsrepo.LockedByOtherProcess(repoPath)
