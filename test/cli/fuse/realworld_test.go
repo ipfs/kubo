@@ -1,3 +1,5 @@
+//go:build (linux || darwin || freebsd) && !nofuse
+
 // End-to-end FUSE coverage with real POSIX tools.
 //
 // TestFUSERealWorld spins up one ipfs daemon, mounts /ipfs, /ipns, and

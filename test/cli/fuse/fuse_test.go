@@ -1,3 +1,5 @@
+//go:build (linux || darwin || freebsd) && !nofuse
+
 // Package fuse contains end-to-end FUSE integration tests that exercise
 // mount/unmount and filesystem operations through a real ipfs daemon.
 //
