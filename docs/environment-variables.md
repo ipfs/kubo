@@ -112,9 +112,9 @@ Warning: Enabling tracing will likely affect performance.
 
 ## `IPFS_FUSE_DEBUG`
 
-If SET, enables fuse debug logging.
+When set to any non-empty value, enables verbose FUSE debug logging. Every FUSE operation (open, read, write, lookup, getattr, etc.) is logged to stderr with its arguments and return values. Useful for diagnosing mount issues or understanding what the kernel is requesting.
 
-Default: false
+Default: not set (no debug logging)
 
 ## `YAMUX_DEBUG`
 

@@ -326,11 +326,11 @@ We also support the use of protocol names of the form /x/$NAME/http where $NAME 
 ## FUSE
 
 FUSE makes it possible to mount `/ipfs`, `/ipns` and `/mfs` namespaces in your OS,
-allowing arbitrary apps access to IPFS using a subset of filesystem abstractions.
+allowing arbitrary apps access to IPFS using standard filesystem operations.
 
-It is considered  EXPERIMENTAL due to limited (and buggy) support on some platforms.
+It is considered EXPERIMENTAL due to limited support on some platforms.
 
-See [fuse.md](./fuse.md) for more details.
+See [fuse.md](./fuse.md) for setup instructions and details.
 
 ## Plugins
 

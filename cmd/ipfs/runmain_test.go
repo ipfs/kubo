@@ -1,3 +1,4 @@
+// Only built when collecting coverage via "go test -tags testrunmain".
 //go:build testrunmain
 
 package main_test

@@ -1,9 +1,8 @@
 module github.com/ipfs/kubo
 
-go 1.25.7
+go 1.26.2
 
 require (
-	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
 	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239
 	github.com/blang/semver/v4 v4.0.0
@@ -18,10 +17,11 @@ require (
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/uuid v1.6.0
+	github.com/hanwen/go-fuse/v2 v2.9.1-0.20260323175136-8b5aa92e8e7c
 	github.com/hashicorp/go-version v1.9.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.37.1-0.20260408155045-b5b87a7a4d3f
+	github.com/ipfs/boxo v0.38.0
 	github.com/ipfs/go-block-format v0.2.3
 	github.com/ipfs/go-cid v0.6.0
 	github.com/ipfs/go-cidutil v0.1.1

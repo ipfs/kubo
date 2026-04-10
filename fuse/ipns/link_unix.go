@@ -1,32 +1,33 @@
-//go:build !nofuse && !openbsd && !netbsd && !plan9
+// Symlink node for the /ipns FUSE mount. go-fuse only builds on linux, darwin, and freebsd.
+//go:build (linux || darwin || freebsd) && !nofuse
 
 package ipns
 
 import (
 	"context"
-	"os"
+	"syscall"
 
-	"bazil.org/fuse"
-	"bazil.org/fuse/fs"
+	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
 type Link struct {
+	fs.Inode
 	Target string
 }
 
-func (l *Link) Attr(ctx context.Context, a *fuse.Attr) error {
+func (l *Link) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	log.Debug("Link attr.")
-	// TODO: wire TTL from IPNS record (capped at Ipns.MaxCacheTTL) here instead of 0
-	a.Valid = 0
-	a.Mode = os.ModeSymlink | 0o555
-	a.Uid = uint32(os.Getuid())
-	a.Gid = uint32(os.Getgid())
-	return nil
+	out.Attr.Mode = 0o555
+	return 0
 }
 
-func (l *Link) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
+func (l *Link) Readlink(_ context.Context) ([]byte, syscall.Errno) {
 	log.Debugf("ReadLink: %s", l.Target)
-	return l.Target, nil
+	return []byte(l.Target), 0
 }
 
-var _ fs.NodeReadlinker = (*Link)(nil)
+var (
+	_ fs.NodeGetattrer  = (*Link)(nil)
+	_ fs.NodeReadlinker = (*Link)(nil)
+)
