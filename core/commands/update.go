@@ -613,10 +613,10 @@ func stashBinary(binPath, ver string) (stashPath string, err error) {
 		}
 	}()
 
-	if _, err := io.Copy(dst, src); err != nil {
+	if _, err = io.Copy(dst, src); err != nil {
 		return "", fmt.Errorf("copying binary to stash: %w", err)
 	}
-	if err := dst.Sync(); err != nil {
+	if err = dst.Sync(); err != nil {
 		return "", fmt.Errorf("syncing stash file: %w", err)
 	}
 
