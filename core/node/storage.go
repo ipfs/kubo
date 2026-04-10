@@ -42,7 +42,7 @@ func BaseBlockstoreCtor(
 		// Important: Provide calls from blockstore are intentionally BLOCKING.
 		// The Provider implementation (not the blockstore) should handle concurrency/queuing.
 		// This avoids spawning unbounded goroutines for concurrent block additions.
-		strategyFlag := config.ParseProvideStrategy(providingStrategy)
+		strategyFlag := config.MustParseProvideStrategy(providingStrategy)
 		if strategyFlag&config.ProvideStrategyAll != 0 {
 			opts = append(opts, blockstore.Provider(prov))
 		}
@@ -85,7 +85,7 @@ func FilestoreBlockstoreCtor(
 		gclocker = blockstore.NewGCLocker()
 
 		var fstoreProv provider.MultihashProvider
-		strategyFlag := config.ParseProvideStrategy(providingStrategy)
+		strategyFlag := config.MustParseProvideStrategy(providingStrategy)
 		if strategyFlag&config.ProvideStrategyAll != 0 {
 			fstoreProv = prov
 		}

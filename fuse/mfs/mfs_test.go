@@ -1,4 +1,9 @@
-//go:build !nofuse && !openbsd && !netbsd && !plan9
+//go:build (linux || darwin || freebsd) && !nofuse
+
+// Unit tests for the /mfs FUSE mount.
+// Generic writable operations are exercised by the shared suite in
+// fusetest.RunWritableSuite. This file contains the mount factory
+// and MFS-specific tests only.
 
 package mfs
 
@@ -6,336 +11,79 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	"errors"
-	iofs "io/fs"
 	"os"
-	"slices"
-	"strconv"
 	"testing"
-	"time"
 
-	"bazil.org/fuse"
-	"bazil.org/fuse/fs"
-	"bazil.org/fuse/fs/fstestutil"
+	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/stretchr/testify/require"
+
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/node"
-	"github.com/libp2p/go-libp2p-testing/ci"
+	"github.com/ipfs/kubo/fuse/fusetest"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
+	"github.com/ipfs/kubo/fuse/writable"
 )
 
-// Create an Ipfs.Node, a filesystem and a mount point.
-func setUp(t *testing.T, ipfs *core.IpfsNode) (fs.FS, *fstestutil.Mount) {
-	if ci.NoFuse() {
-		t.Skip("Skipping FUSE tests")
-	}
-
-	if ipfs == nil {
-		var err error
-		ipfs, err = core.NewNode(context.Background(), &node.BuildCfg{})
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	fs := NewFileSystem(ipfs)
-	mnt, err := fstestutil.MountedT(t, fs, nil)
-	if err == fuse.ErrOSXFUSENotFound {
-		t.Skip(err)
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return fs, mnt
-}
-
-// Test reading and writing a file.
-func TestReadWrite(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
-
-	path := mnt.Dir + "/testrw"
-	content := make([]byte, 8196)
-	_, err := rand.Read(content)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("write", func(t *testing.T) {
-		f, err := os.Create(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-
-		_, err = f.Write(content)
-		if err != nil {
-			t.Fatal(err)
-		}
-	})
-	t.Run("read", func(t *testing.T) {
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-
-		buf := make([]byte, 8196)
-		l, err := f.Read(buf)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if bytes.Equal(content, buf[:l]) != true {
-			t.Fatal("read and write not equal")
-		}
+func testMount(t *testing.T, root fs.InodeEmbedder) string {
+	t.Helper()
+	return fusetest.TestMount(t, root, &fs.Options{
+		EntryTimeout: &mutableCacheTime,
+		AttrTimeout:  &mutableCacheTime,
+		MountOptions: fuse.MountOptions{
+			MaxReadAhead:      fusemnt.MaxReadAhead,
+			ExtraCapabilities: fusemnt.WritableMountCapabilities,
+		},
 	})
 }
 
-// Test creating a directory.
-func TestMkdir(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
+func mfsMount(t *testing.T, cfg writable.Config) string {
+	t.Helper()
+	ipfs, err := core.NewNode(context.Background(), &node.BuildCfg{})
+	require.NoError(t, err)
 
-	path := mnt.Dir + "/foo/bar/baz/qux/quux"
-
-	t.Run("write", func(t *testing.T) {
-		err := os.MkdirAll(path, iofs.ModeDir)
-		if err != nil {
-			t.Fatal(err)
-		}
-	})
-	t.Run("read", func(t *testing.T) {
-		stat, err := os.Stat(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !stat.IsDir() {
-			t.Fatal("not dir")
-		}
-	})
+	mountsCfg := config.Mounts{}
+	if cfg.StoreMtime {
+		mountsCfg.StoreMtime = config.True
+	}
+	if cfg.StoreMode {
+		mountsCfg.StoreMode = config.True
+	}
+	root := NewFileSystem(ipfs, mountsCfg)
+	return testMount(t, root)
 }
 
-// Test file persistence across mounts.
+func TestWritableSuite(t *testing.T) {
+	fusetest.RunWritableSuite(t, mfsMount)
+}
+
+// TestPersistence verifies that file data survives unmount and remount
+// on the same IpfsNode.
 func TestPersistence(t *testing.T) {
 	ipfs, err := core.NewNode(context.Background(), &node.BuildCfg{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	content := make([]byte, 8196)
 	_, err = rand.Read(content)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	t.Run("write", func(t *testing.T) {
-		_, mnt := setUp(t, ipfs)
-		defer mnt.Close()
-		path := mnt.Dir + "/testpersistence"
+		root := NewFileSystem(ipfs, config.Mounts{})
+		mntDir := testMount(t, root)
 
-		f, err := os.Create(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-
+		f, err := os.Create(mntDir + "/testpersistence")
+		require.NoError(t, err)
 		_, err = f.Write(content)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+		require.NoError(t, f.Close())
 	})
 	t.Run("read", func(t *testing.T) {
-		_, mnt := setUp(t, ipfs)
-		defer mnt.Close()
-		path := mnt.Dir + "/testpersistence"
+		root := NewFileSystem(ipfs, config.Mounts{})
+		mntDir := testMount(t, root)
 
-		f, err := os.Open(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-
-		buf := make([]byte, 8196)
-		l, err := f.Read(buf)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if bytes.Equal(content, buf[:l]) != true {
-			t.Fatal("read and write not equal")
-		}
+		got, err := os.ReadFile(mntDir + "/testpersistence")
+		require.NoError(t, err)
+		require.True(t, bytes.Equal(content, got))
 	})
-}
-
-// Test getting the file attributes.
-func TestAttr(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
-
-	path := mnt.Dir + "/testattr"
-	content := make([]byte, 8196)
-	_, err := rand.Read(content)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("write", func(t *testing.T) {
-		f, err := os.Create(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer f.Close()
-
-		_, err = f.Write(content)
-		if err != nil {
-			t.Fatal(err)
-		}
-	})
-	t.Run("read", func(t *testing.T) {
-		fi, err := os.Stat(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if fi.IsDir() {
-			t.Fatal("file is a directory")
-		}
-
-		if fi.ModTime().After(time.Now()) {
-			t.Fatal("future modtime")
-		}
-		if time.Since(fi.ModTime()) > time.Second {
-			t.Fatal("past modtime")
-		}
-
-		if fi.Name() != "testattr" {
-			t.Fatal("invalid filename")
-		}
-
-		if fi.Size() != 8196 {
-			t.Fatal("invalid size")
-		}
-	})
-}
-
-// Test concurrent access to the filesystem.
-func TestConcurrentRW(t *testing.T) {
-	_, mnt := setUp(t, nil)
-	defer mnt.Close()
-
-	files := 5
-	fileWorkers := 5
-
-	path := mnt.Dir + "/testconcurrent"
-	content := make([][]byte, files)
-
-	for i := range content {
-		content[i] = make([]byte, 8196)
-		_, err := rand.Read(content[i])
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	t.Run("write", func(t *testing.T) {
-		errs := make(chan (error), 1)
-		for i := range files {
-			go func() {
-				var err error
-				defer func() { errs <- err }()
-
-				f, err := os.Create(path + strconv.Itoa(i))
-				if err != nil {
-					return
-				}
-				defer f.Close()
-
-				_, err = f.Write(content[i])
-				if err != nil {
-					return
-				}
-			}()
-		}
-		for range files {
-			err := <-errs
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-	})
-	t.Run("read", func(t *testing.T) {
-		errs := make(chan (error), 1)
-		for i := 0; i < files*fileWorkers; i++ {
-			go func() {
-				var err error
-				defer func() { errs <- err }()
-
-				f, err := os.Open(path + strconv.Itoa(i/fileWorkers))
-				if err != nil {
-					return
-				}
-				defer f.Close()
-
-				buf := make([]byte, 8196)
-				l, err := f.Read(buf)
-				if err != nil {
-					return
-				}
-				if bytes.Equal(content[i/fileWorkers], buf[:l]) != true {
-					err = errors.New("read and write not equal")
-					return
-				}
-			}()
-		}
-		for range files {
-			err := <-errs
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-	})
-}
-
-// Test ipfs_cid extended attribute
-func TestMFSRootXattr(t *testing.T) {
-	ipfs, err := core.NewNode(context.Background(), &node.BuildCfg{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fs, mnt := setUp(t, ipfs)
-	defer mnt.Close()
-
-	node, err := fs.Root()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	root := node.(*Dir)
-
-	listReq := fuse.ListxattrRequest{}
-	listRes := fuse.ListxattrResponse{}
-	err = root.Listxattr(context.Background(), &listReq, &listRes)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if slices.Compare(listRes.Xattr, []byte("ipfs_cid\x00")) != 0 {
-		t.Fatal("list xattr returns invalid value")
-	}
-
-	getReq := fuse.GetxattrRequest{
-		Name: "ipfs_cid",
-	}
-	getRes := fuse.GetxattrResponse{}
-	err = root.Getxattr(context.Background(), &getReq, &getRes)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ipldNode, err := ipfs.FilesRoot.GetDirectory().GetNode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if slices.Compare(getRes.Xattr, []byte(ipldNode.Cid().String())) != 0 {
-		t.Fatal("xattr cid not equal to mfs root cid")
-	}
 }

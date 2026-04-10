@@ -1,19 +1,37 @@
+// Mount/unmount helpers for the /ipfs FUSE mount. go-fuse only builds on linux, darwin, and freebsd.
 //go:build (linux || darwin || freebsd) && !nofuse
 
 package readonly
 
 import (
+	"os"
+
+	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
-	mount "github.com/ipfs/kubo/fuse/mount"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
 
 // Mount mounts IPFS at a given location, and returns a mount.Mount instance.
-func Mount(ipfs *core.IpfsNode, mountpoint string) (mount.Mount, error) {
+func Mount(ipfs *core.IpfsNode, mountpoint string) (fusemnt.Mount, error) {
 	cfg, err := ipfs.Repo.Config()
 	if err != nil {
 		return nil, err
 	}
-	allowOther := cfg.Mounts.FuseAllowOther
-	fsys := NewFileSystem(ipfs)
-	return mount.NewMount(fsys, mountpoint, allowOther)
+	root := NewRoot(ipfs)
+	opts := &fs.Options{
+		NullPermissions: true,
+		UID:             uint32(os.Getuid()),
+		GID:             uint32(os.Getgid()),
+		AttrTimeout:     &immutableAttrCacheTime,
+		EntryTimeout:    &immutableAttrCacheTime,
+		MountOptions: fuse.MountOptions{
+			AllowOther:   cfg.Mounts.FuseAllowOther.WithDefault(config.DefaultFuseAllowOther),
+			FsName:       "ipfs",
+			MaxReadAhead: fusemnt.MaxReadAhead,
+			Debug:        os.Getenv("IPFS_FUSE_DEBUG") != "",
+		},
+	}
+	return fusemnt.NewMount(root, mountpoint, opts)
 }

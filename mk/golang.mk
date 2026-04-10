@@ -66,8 +66,32 @@ TEST_CLI_TIMEOUT ?= 10m
 test_cli: cmd/ipfs/ipfs test/bin/gotestsum $$(DEPS_GO)
 	mkdir -p test/cli
 	rm -f test/cli/cli-tests.json
-	PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/cli/cli-tests.json -- -v -timeout=$(TEST_CLI_TIMEOUT) ./test/cli/... ./test/integration/... ./client/rpc/...
+	TEST_FUSE=0 PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/cli/cli-tests.json -- -v -timeout=$(TEST_CLI_TIMEOUT) ./test/cli/... ./test/integration/... ./client/rpc/...
 .PHONY: test_cli
+
+# FUSE tests (requires /dev/fuse and fusermount in PATH)
+# TEST_FUSE=1 makes mount failures fatal instead of skipping
+# Keep this shorter than the CI job timeout so a hang trips Go's panic
+# (and prints stack traces) instead of getting silently killed by CI.
+TEST_FUSE_TIMEOUT ?= 4m
+
+# FUSE unit tests (./fuse/...)
+test_fuse_unit: test/bin/gotestsum $$(DEPS_GO)
+	mkdir -p test/fuse
+	rm -f test/fuse/fuse-unit-tests.json
+	TEST_FUSE=1 gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/fuse/fuse-unit-tests.json -- -v -timeout=$(TEST_FUSE_TIMEOUT) ./fuse/...
+.PHONY: test_fuse_unit
+
+# FUSE CLI integration tests (test/cli/fuse/)
+test_fuse_cli: cmd/ipfs/ipfs test/bin/gotestsum $$(DEPS_GO)
+	mkdir -p test/fuse
+	rm -f test/fuse/fuse-cli-tests.json
+	TEST_FUSE=1 PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile test/fuse/fuse-cli-tests.json -- -v -timeout=$(TEST_FUSE_TIMEOUT) ./test/cli/fuse/...
+.PHONY: test_fuse_cli
+
+# Combined: run all FUSE tests
+test_fuse: test_fuse_unit test_fuse_cli
+.PHONY: test_fuse
 
 # Example tests (docs/examples/kubo-as-a-library)
 # Tests against both published and current kubo versions
