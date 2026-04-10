@@ -1706,6 +1706,11 @@ Examples:
 			return errors.New("this is a potentially destructive operation; pass --confirm to proceed")
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		// Determine new root CID
 		var newRootCid cid.Cid
 		if len(req.Arguments) > 0 {
@@ -1742,7 +1747,7 @@ Examples:
 			// Special case: empty dir is always available (hardcoded in boxo)
 			emptyDirCid := ft.EmptyDirNode().Cid()
 			if !newRootCid.Equals(emptyDirCid) {
-				return fmt.Errorf("new root %s does not exist locally; fetch it first with 'ipfs block get'", newRootCid)
+				return fmt.Errorf("new root %s does not exist locally; fetch it first with 'ipfs block get'", enc.Encode(newRootCid))
 			}
 		}
 
@@ -1771,7 +1776,7 @@ Examples:
 		if err == nil {
 			oldRootCid, err := cid.Cast(oldRootBytes)
 			if err == nil {
-				oldRootStr = oldRootCid.String()
+				oldRootStr = enc.Encode(oldRootCid)
 			}
 		} else if !errors.Is(err, datastore.ErrNotFound) {
 			return fmt.Errorf("reading current MFS root: %w", err)
@@ -1784,12 +1789,13 @@ Examples:
 		}
 
 		// Build output message
+		newRootStr := enc.Encode(newRootCid)
 		var msg string
 		if oldRootStr != "" {
-			msg = fmt.Sprintf("MFS root changed from %s to %s\n", oldRootStr, newRootCid)
+			msg = fmt.Sprintf("MFS root changed from %s to %s\n", oldRootStr, newRootStr)
 			msg += fmt.Sprintf("The old root %s will be garbage collected unless pinned.\n", oldRootStr)
 		} else {
-			msg = fmt.Sprintf("MFS root set to %s\n", newRootCid)
+			msg = fmt.Sprintf("MFS root set to %s\n", newRootStr)
 		}
 
 		return cmds.EmitOnce(res, &MessageOutput{Message: msg})

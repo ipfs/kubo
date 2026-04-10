@@ -77,6 +77,11 @@ use 'ipfs files rm' instead: 'ipfs files --help'.
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		root, err := cmdutils.PathOrCidPath(req.Arguments[0])
 		if err != nil {
 			return err
@@ -94,7 +99,7 @@ use 'ipfs files rm' instead: 'ipfs files --help'.
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: p.RootCid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: enc.Encode(p.RootCid())})
 	},
 	Type: Object{},
 	Encoders: cmds.EncoderMap{
@@ -153,6 +158,11 @@ use MFS and 'files' commands instead: 'ipfs files --help'.
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		root, err := cmdutils.PathOrCidPath(req.Arguments[0])
 		if err != nil {
 			return err
@@ -182,7 +192,7 @@ use MFS and 'files' commands instead: 'ipfs files --help'.
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: p.RootCid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: enc.Encode(p.RootCid())})
 	},
 	Type: Object{},
 	Encoders: cmds.EncoderMap{

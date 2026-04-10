@@ -149,6 +149,11 @@ Displays the hashes of all local objects. NOTE: This treats all local objects as
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		// todo: make async
 		allKeys, err := n.Blockstore.AllKeysChan(ctx)
 		if err != nil {
@@ -156,7 +161,7 @@ Displays the hashes of all local objects. NOTE: This treats all local objects as
 		}
 
 		for k := range allKeys {
-			err := res.Emit(&RefWrapper{Ref: k.String()})
+			err := res.Emit(&RefWrapper{Ref: enc.Encode(k)})
 			if err != nil {
 				return err
 			}
