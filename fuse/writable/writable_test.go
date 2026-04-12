@@ -6,7 +6,29 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
+
+// TestConfigEffectiveBlksize verifies the zero-value fallback: when a
+// caller does not plumb Import.UnixFSChunker through (e.g. test-only
+// mounts) Config.effectiveBlksize returns the FUSE default so stat
+// still advertises a usable preferred I/O size.
+func TestConfigEffectiveBlksize(t *testing.T) {
+	t.Run("explicit value passes through", func(t *testing.T) {
+		c := &Config{Blksize: 65536}
+		if got := c.effectiveBlksize(); got != 65536 {
+			t.Fatalf("effectiveBlksize = %d, want 65536", got)
+		}
+	})
+
+	t.Run("zero falls back to DefaultBlksize", func(t *testing.T) {
+		c := &Config{}
+		if got := c.effectiveBlksize(); got != fusemnt.DefaultBlksize {
+			t.Fatalf("effectiveBlksize = %d, want DefaultBlksize (%d)",
+				got, fusemnt.DefaultBlksize)
+		}
+	})
+}
 
 // TestSymlinkSetattrChmodNoError verifies that Setattr on a symlink
 // with only a mode change is silently accepted. POSIX symlinks have no

@@ -41,6 +41,20 @@ type Config struct {
 	// MFS data. Without it tools like macOS Finder see zero free space
 	// and refuse to copy files.
 	RepoPath string
+	// Blksize is the preferred I/O size advertised via st_blksize on
+	// every stat. Callers should derive it from Import.UnixFSChunker via
+	// fusemnt.BlksizeFromChunker so the hint matches the chunker MFS
+	// will use for writes. Zero falls back to fusemnt.DefaultBlksize.
+	Blksize uint32
+}
+
+// effectiveBlksize returns the configured preferred I/O size, falling
+// back to fusemnt.DefaultBlksize when Blksize is left zero.
+func (c *Config) effectiveBlksize() uint32 {
+	if c.Blksize == 0 {
+		return fusemnt.DefaultBlksize
+	}
+	return c.Blksize
 }
 
 // NewDir creates a Dir node backed by the given MFS directory.
@@ -62,8 +76,15 @@ type Dir struct {
 	Cfg    *Config
 }
 
+// fillAttr fills stat attributes for a directory. Blksize is set on
+// every entry: go-fuse's setBlocks otherwise auto-fills both st_blocks
+// and st_blksize with a 4 KiB page-based fallback. For directories that
+// fallback computes Blocks from Size=0 and yields st_blocks=0, which
+// some tools treat as "unsupported".
 func (d *Dir) fillAttr(a *fuse.Attr) {
 	a.Mode = uint32(fusemnt.DefaultDirModeRW.Perm())
+	a.Blocks = 1
+	a.Blksize = d.Cfg.effectiveBlksize()
 	if m, err := d.MFSDir.Mode(); err == nil && m != 0 {
 		a.Mode = files.ModePermsToUnixPerms(m)
 	}
@@ -380,6 +401,8 @@ type FileInode struct {
 func (fi *FileInode) fillAttr(a *fuse.Attr) {
 	size, _ := fi.MFSFile.Size()
 	a.Size = uint64(size)
+	a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
+	a.Blksize = fi.Cfg.effectiveBlksize()
 	a.Mode = uint32(fusemnt.DefaultFileModeRW.Perm())
 	if m, err := fi.MFSFile.Mode(); err == nil && m != 0 {
 		a.Mode = files.ModePermsToUnixPerms(m)
@@ -676,6 +699,8 @@ func (s *Symlink) Readlink(_ context.Context) ([]byte, syscall.Errno) {
 func (s *Symlink) fillAttr(a *fuse.Attr) {
 	a.Mode = uint32(fusemnt.SymlinkMode.Perm())
 	a.Size = uint64(len(s.Target))
+	a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
+	a.Blksize = s.Cfg.effectiveBlksize()
 	if s.MFSFile != nil {
 		if t, err := s.MFSFile.ModTime(); err == nil && !t.IsZero() {
 			a.SetTimes(nil, &t, nil)

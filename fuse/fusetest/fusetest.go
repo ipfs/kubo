@@ -67,6 +67,27 @@ func AssertStatfsNonZero(t *testing.T, path string) {
 	require.LessOrEqual(t, st.Bfree, st.Blocks, "Bfree must not exceed Blocks")
 }
 
+// AssertStatBlocks stats path and checks that st_blocks matches the file
+// size rounded up to 512-byte units (the POSIX stat convention) and that
+// st_blksize matches wantBlksize. These are the fields du, ls -s, and
+// stat read to report disk usage per entry.
+func AssertStatBlocks(t *testing.T, path string, wantBlksize uint32) {
+	t.Helper()
+	fi, err := os.Stat(path)
+	require.NoError(t, err)
+	st, ok := fi.Sys().(*syscall.Stat_t)
+	require.True(t, ok, "expected *syscall.Stat_t from os.Stat on FUSE mount")
+
+	wantBlocks := int64((fi.Size() + 511) / 512)
+	if wantBlocks == 0 && fi.Size() > 0 {
+		wantBlocks = 1
+	}
+	require.Equal(t, wantBlocks, int64(st.Blocks),
+		"st_blocks mismatch for %s (size=%d)", path, fi.Size())
+	require.Equal(t, wantBlksize, uint32(st.Blksize),
+		"st_blksize mismatch for %s", path)
+}
+
 // MountError handles a FUSE mount error. When TEST_FUSE=1 (CI), a mount
 // failure is fatal because the environment is expected to have working FUSE.
 // When auto-detecting (no TEST_FUSE set), mount failures cause a skip.
