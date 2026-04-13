@@ -44,17 +44,9 @@ type Config struct {
 	// Blksize is the preferred I/O size advertised via st_blksize on
 	// every stat. Callers should derive it from Import.UnixFSChunker via
 	// fusemnt.BlksizeFromChunker so the hint matches the chunker MFS
-	// will use for writes. Zero falls back to fusemnt.DefaultBlksize.
+	// will use for writes. Zero is normalized to fusemnt.DefaultBlksize
+	// by NewDir.
 	Blksize uint32
-}
-
-// effectiveBlksize returns the configured preferred I/O size, falling
-// back to fusemnt.DefaultBlksize when Blksize is left zero.
-func (c *Config) effectiveBlksize() uint32 {
-	if c.Blksize == 0 {
-		return fusemnt.DefaultBlksize
-	}
-	return c.Blksize
 }
 
 // NewDir creates a Dir node backed by the given MFS directory.
@@ -65,6 +57,13 @@ func (c *Config) effectiveBlksize() uint32 {
 func NewDir(d *mfs.Directory, cfg *Config) *Dir {
 	if cfg == nil || cfg.DAG == nil {
 		panic("fuse/writable: Config.DAG is required")
+	}
+	// Normalize Blksize once so fillAttr on every inode can read
+	// cfg.Blksize directly. Tests and callers that don't plumb
+	// Import.UnixFSChunker leave this zero; we fall back to the FUSE
+	// default so stat still advertises a usable st_blksize.
+	if cfg.Blksize == 0 {
+		cfg.Blksize = fusemnt.DefaultBlksize
 	}
 	return &Dir{MFSDir: d, Cfg: cfg}
 }
@@ -84,7 +83,7 @@ type Dir struct {
 func (d *Dir) fillAttr(a *fuse.Attr) {
 	a.Mode = uint32(fusemnt.DefaultDirModeRW.Perm())
 	a.Blocks = 1
-	a.Blksize = d.Cfg.effectiveBlksize()
+	a.Blksize = d.Cfg.Blksize
 	if m, err := d.MFSDir.Mode(); err == nil && m != 0 {
 		a.Mode = files.ModePermsToUnixPerms(m)
 	}
@@ -402,7 +401,7 @@ func (fi *FileInode) fillAttr(a *fuse.Attr) {
 	size, _ := fi.MFSFile.Size()
 	a.Size = uint64(size)
 	a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
-	a.Blksize = fi.Cfg.effectiveBlksize()
+	a.Blksize = fi.Cfg.Blksize
 	a.Mode = uint32(fusemnt.DefaultFileModeRW.Perm())
 	if m, err := fi.MFSFile.Mode(); err == nil && m != 0 {
 		a.Mode = files.ModePermsToUnixPerms(m)
@@ -700,7 +699,7 @@ func (s *Symlink) fillAttr(a *fuse.Attr) {
 	a.Mode = uint32(fusemnt.SymlinkMode.Perm())
 	a.Size = uint64(len(s.Target))
 	a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
-	a.Blksize = s.Cfg.effectiveBlksize()
+	a.Blksize = s.Cfg.Blksize
 	if s.MFSFile != nil {
 		if t, err := s.MFSFile.ModTime(); err == nil && !t.IsZero() {
 			a.SetTimes(nil, &t, nil)

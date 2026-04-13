@@ -6,26 +6,28 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
 	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
 
-// TestConfigEffectiveBlksize verifies the zero-value fallback: when a
-// caller does not plumb Import.UnixFSChunker through (e.g. test-only
-// mounts) Config.effectiveBlksize returns the FUSE default so stat
-// still advertises a usable preferred I/O size.
-func TestConfigEffectiveBlksize(t *testing.T) {
-	t.Run("explicit value passes through", func(t *testing.T) {
-		c := &Config{Blksize: 65536}
-		if got := c.effectiveBlksize(); got != 65536 {
-			t.Fatalf("effectiveBlksize = %d, want 65536", got)
+// TestNewDirNormalizesBlksize verifies that callers who don't plumb
+// Import.UnixFSChunker through (e.g. test-only mounts) get the FUSE
+// default so stat still advertises a usable st_blksize.
+func TestNewDirNormalizesBlksize(t *testing.T) {
+	t.Run("zero falls back to DefaultBlksize", func(t *testing.T) {
+		cfg := &Config{DAG: dag.NewDAGService(nil)}
+		NewDir(nil, cfg)
+		if cfg.Blksize != fusemnt.DefaultBlksize {
+			t.Fatalf("Blksize = %d, want DefaultBlksize (%d)",
+				cfg.Blksize, fusemnt.DefaultBlksize)
 		}
 	})
 
-	t.Run("zero falls back to DefaultBlksize", func(t *testing.T) {
-		c := &Config{}
-		if got := c.effectiveBlksize(); got != fusemnt.DefaultBlksize {
-			t.Fatalf("effectiveBlksize = %d, want DefaultBlksize (%d)",
-				got, fusemnt.DefaultBlksize)
+	t.Run("explicit value passes through", func(t *testing.T) {
+		cfg := &Config{DAG: dag.NewDAGService(nil), Blksize: 65536}
+		NewDir(nil, cfg)
+		if cfg.Blksize != 65536 {
+			t.Fatalf("Blksize = %d, want 65536", cfg.Blksize)
 		}
 	})
 }

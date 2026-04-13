@@ -21,6 +21,12 @@ const StatBlockSize = 512
 // contract stays stable across Kubo and boxo upgrades.
 const DefaultBlksize = 1024 * 1024
 
+// MaxBlksize caps the preferred I/O size hint so a pathological chunker
+// config (e.g. `size-4294967295`) cannot make tools allocate multi-GiB
+// buffers per read. 16 MiB is well above any reasonable chunk size and
+// still fits in a single FUSE read request.
+const MaxBlksize = 16 * 1024 * 1024
+
 // SizeToStatBlocks converts a byte size to the number of 512-byte blocks
 // reported by POSIX stat(2) in the st_blocks field, rounded up so a
 // non-empty file reports at least one block.
@@ -32,9 +38,13 @@ func SizeToStatBlocks(size uint64) uint64 {
 // mounts from the user's Import.UnixFSChunker setting. It extracts the
 // byte count from `size-<bytes>` and returns DefaultBlksize for rabin,
 // buzhash, or malformed values (where there is no single preferred size).
+// Values above MaxBlksize are clamped.
 func BlksizeFromChunker(chunkerStr string) uint32 {
 	if sizeStr, ok := strings.CutPrefix(chunkerStr, "size-"); ok {
-		if size, err := strconv.ParseUint(sizeStr, 10, 32); err == nil && size > 0 {
+		if size, err := strconv.ParseUint(sizeStr, 10, 64); err == nil && size > 0 {
+			if size > MaxBlksize {
+				return MaxBlksize
+			}
 			return uint32(size)
 		}
 	}

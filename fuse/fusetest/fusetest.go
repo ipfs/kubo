@@ -79,9 +79,6 @@ func AssertStatBlocks(t *testing.T, path string, wantBlksize uint32) {
 	require.True(t, ok, "expected *syscall.Stat_t from os.Stat on FUSE mount")
 
 	wantBlocks := int64((fi.Size() + 511) / 512)
-	if wantBlocks == 0 && fi.Size() > 0 {
-		wantBlocks = 1
-	}
 	require.Equal(t, wantBlocks, int64(st.Blocks),
 		"st_blocks mismatch for %s (size=%d)", path, fi.Size())
 	require.Equal(t, wantBlksize, uint32(st.Blksize),

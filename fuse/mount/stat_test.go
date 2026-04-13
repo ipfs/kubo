@@ -34,7 +34,13 @@ func TestBlksizeFromChunker(t *testing.T) {
 		{"size prefix only", "size-", DefaultBlksize},
 		{"non-numeric size", "size-abc", DefaultBlksize},
 		{"zero size", "size-0", DefaultBlksize},
-		{"overflow uint32", "size-99999999999", DefaultBlksize},
+
+		// Clamp: values above MaxBlksize are capped so tools can't be
+		// tricked into allocating multi-GiB buffers per read.
+		{"at cap", "size-16777216", MaxBlksize},
+		{"above cap clamped", "size-33554432", MaxBlksize},
+		{"uint32 max clamped", "size-4294967295", MaxBlksize},
+		{"beyond uint32 clamped", "size-99999999999", MaxBlksize},
 	}
 
 	for _, tc := range tests {
