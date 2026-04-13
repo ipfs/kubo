@@ -6,7 +6,31 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
+
+// TestNewDirNormalizesBlksize verifies that callers who don't plumb
+// Import.UnixFSChunker through (e.g. test-only mounts) get the FUSE
+// default so stat still advertises a usable st_blksize.
+func TestNewDirNormalizesBlksize(t *testing.T) {
+	t.Run("zero falls back to DefaultBlksize", func(t *testing.T) {
+		cfg := &Config{DAG: dag.NewDAGService(nil)}
+		NewDir(nil, cfg)
+		if cfg.Blksize != fusemnt.DefaultBlksize {
+			t.Fatalf("Blksize = %d, want DefaultBlksize (%d)",
+				cfg.Blksize, fusemnt.DefaultBlksize)
+		}
+	})
+
+	t.Run("explicit value passes through", func(t *testing.T) {
+		cfg := &Config{DAG: dag.NewDAGService(nil), Blksize: 65536}
+		NewDir(nil, cfg)
+		if cfg.Blksize != 65536 {
+			t.Fatalf("Blksize = %d, want 65536", cfg.Blksize)
+		}
+	})
+}
 
 // TestSymlinkSetattrChmodNoError verifies that Setattr on a symlink
 // with only a mode change is silently accepted. POSIX symlinks have no

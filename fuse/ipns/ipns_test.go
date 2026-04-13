@@ -78,7 +78,7 @@ func setupIpnsTest(t *testing.T, nd *core.IpfsNode, cfgs ...config.Mounts) (*cor
 	key, err := coreAPI.Key().Self(nd.Context())
 	require.NoError(t, err)
 
-	root, err := CreateRoot(nd.Context(), coreAPI, map[string]iface.Key{"local": key}, "", "", nd.Repo.Path(), cfg)
+	root, err := CreateRoot(nd.Context(), coreAPI, map[string]iface.Key{"local": key}, "", "", nd.Repo.Path(), cfg, config.Import{})
 	require.NoError(t, err)
 
 	mntDir := t.TempDir()

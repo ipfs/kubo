@@ -25,7 +25,7 @@ func Mount(ipfs *core.IpfsNode, mountpoint string) (fusemnt.Mount, error) {
 	if err != nil {
 		return nil, err
 	}
-	root := NewFileSystem(ipfs, cfg.Mounts)
+	root := NewFileSystem(ipfs, cfg.Mounts, cfg.Import)
 	opts := &fs.Options{
 		NullPermissions: true,
 		UID:             uint32(os.Getuid()),

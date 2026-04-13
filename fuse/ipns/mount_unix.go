@@ -45,7 +45,7 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (fusemnt.Mount, error) {
 		return nil, err
 	}
 
-	root, err := CreateRoot(ipfs.Context(), coreAPI, map[string]iface.Key{"local": key}, ipfsmp, ipnsmp, ipfs.Repo.Path(), cfg.Mounts, mfsOpts...)
+	root, err := CreateRoot(ipfs.Context(), coreAPI, map[string]iface.Key{"local": key}, ipfsmp, ipnsmp, ipfs.Repo.Path(), cfg.Mounts, cfg.Import, mfsOpts...)
 	if err != nil {
 		return nil, err
 	}
