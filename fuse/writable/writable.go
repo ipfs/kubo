@@ -41,6 +41,13 @@ type Config struct {
 	// MFS data. Without it tools like macOS Finder see zero free space
 	// and refuse to copy files.
 	RepoPath string
+	// Blksize is the preferred I/O size advertised via st_blksize on
+	// every stat. Callers should derive it from Import.UnixFSChunker via
+	// fusemnt.BlksizeFromChunker so the hint matches the chunker MFS
+	// will use for writes. If zero, NewDir writes fusemnt.DefaultBlksize
+	// into this field in place, so fillAttr on every inode can read
+	// cfg.Blksize without a nil-check on each stat.
+	Blksize uint32
 }
 
 // NewDir creates a Dir node backed by the given MFS directory.
@@ -52,6 +59,12 @@ func NewDir(d *mfs.Directory, cfg *Config) *Dir {
 	if cfg == nil || cfg.DAG == nil {
 		panic("fuse/writable: Config.DAG is required")
 	}
+	// Tests and callers that don't plumb Import.UnixFSChunker leave
+	// Blksize zero; fall back to the FUSE default so stat advertises a
+	// usable st_blksize. See Config.Blksize for why we mutate in place.
+	if cfg.Blksize == 0 {
+		cfg.Blksize = fusemnt.DefaultBlksize
+	}
 	return &Dir{MFSDir: d, Cfg: cfg}
 }
 
@@ -62,8 +75,15 @@ type Dir struct {
 	Cfg    *Config
 }
 
+// fillAttr fills stat attributes for a directory. Blocks and Blksize
+// are set explicitly because go-fuse's setBlocks otherwise auto-fills
+// them from Size with a 4 KiB page-based fallback. For directories
+// Size is 0, so the fallback yields st_blocks=0, which some tools
+// (dedup scanners, file managers) treat as "unsupported".
 func (d *Dir) fillAttr(a *fuse.Attr) {
 	a.Mode = uint32(fusemnt.DefaultDirModeRW.Perm())
+	a.Blocks = 1
+	a.Blksize = d.Cfg.Blksize
 	if m, err := d.MFSDir.Mode(); err == nil && m != 0 {
 		a.Mode = files.ModePermsToUnixPerms(m)
 	}
@@ -380,6 +400,8 @@ type FileInode struct {
 func (fi *FileInode) fillAttr(a *fuse.Attr) {
 	size, _ := fi.MFSFile.Size()
 	a.Size = uint64(size)
+	a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
+	a.Blksize = fi.Cfg.Blksize
 	a.Mode = uint32(fusemnt.DefaultFileModeRW.Perm())
 	if m, err := fi.MFSFile.Mode(); err == nil && m != 0 {
 		a.Mode = files.ModePermsToUnixPerms(m)
@@ -676,6 +698,8 @@ func (s *Symlink) Readlink(_ context.Context) ([]byte, syscall.Errno) {
 func (s *Symlink) fillAttr(a *fuse.Attr) {
 	a.Mode = uint32(fusemnt.SymlinkMode.Perm())
 	a.Size = uint64(len(s.Target))
+	a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
+	a.Blksize = s.Cfg.Blksize
 	if s.MFSFile != nil {
 		if t, err := s.MFSFile.ModTime(); err == nil && !t.IsZero() {
 			a.SetTimes(nil, &t, nil)

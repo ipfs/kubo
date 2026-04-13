@@ -180,11 +180,17 @@ type roFileHandle struct {
 // fillAttr populates a fuse.Attr from this node's UnixFS metadata.
 // Used by both Getattr and Lookup (to fill EntryOut.Attr so the kernel
 // doesn't cache zero values for the entry timeout duration).
+//
+// Blocks and Blksize are set on every entry because go-fuse's setBlocks
+// otherwise auto-fills them from Size with a 4 KiB page-based fallback,
+// which clobbers the UnixFS-derived values set below.
 func (n *Node) fillAttr(a *fuse.Attr) {
+	a.Blksize = fusemnt.DefaultBlksize
+
 	if rawnd, ok := n.nd.(*mdag.RawNode); ok {
 		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
 		a.Size = uint64(len(rawnd.RawData()))
-		a.Blocks = 1
+		a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
 		return
 	}
 
@@ -198,17 +204,22 @@ func (n *Node) fillAttr(a *fuse.Attr) {
 	switch n.cached.Type() {
 	case ft.TDirectory, ft.THAMTShard:
 		a.Mode = uint32(fusemnt.DefaultDirModeRO.Perm())
+		// Nominal 1 block: du sums child leaves, so the directory's
+		// own st_blocks is not arithmetically meaningful, but some
+		// tools treat 0 as "unsupported" and skip the entry.
+		a.Blocks = 1
 	case ft.TFile:
 		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
 		a.Size = n.cached.FileSize()
-		a.Blocks = uint64(len(n.nd.Links()))
+		a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
 	case ft.TRaw:
 		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
 		a.Size = uint64(len(n.cached.Data()))
-		a.Blocks = uint64(len(n.nd.Links()))
+		a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
 	case ft.TSymlink:
 		a.Mode = uint32(fusemnt.SymlinkMode.Perm())
 		a.Size = uint64(len(n.cached.Data()))
+		a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
 	default:
 		log.Errorf("invalid data type: %s", n.cached.Type())
 		return

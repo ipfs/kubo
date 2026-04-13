@@ -759,6 +759,78 @@ func TestReadCancellationUnblocks(t *testing.T) {
 	}
 }
 
+// TestStatBlocks verifies that stat(2) on entries in /ipfs populates
+// st_blocks (used by du and ls -s) consistent with the file size, and
+// that st_blksize advertises the FUSE preferred I/O size.
+func TestStatBlocks(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	t.Run("multi-block file", func(t *testing.T) {
+		// >1 MiB spans several chunks, so the DAG has multiple leaf links.
+		fi, data := randObj(t, nd, 1024*1024+1)
+		require.Greater(t, len(data), 1024*1024)
+		fusetest.AssertStatBlocks(t,
+			gopath.Join(mntDir, fi.Cid().String()),
+			fusemnt.DefaultBlksize)
+	})
+
+	t.Run("small single-chunk file", func(t *testing.T) {
+		// <512 B fits in a single UnixFS chunk with no child links;
+		// st_blocks still rounds up to 1 so du reports at least 512 B.
+		fi, _ := randObj(t, nd, 100)
+		fusetest.AssertStatBlocks(t,
+			gopath.Join(mntDir, fi.Cid().String()),
+			fusemnt.DefaultBlksize)
+	})
+
+	t.Run("directory", func(t *testing.T) {
+		// du sums child leaves, so the directory's own st_blocks is not
+		// arithmetically meaningful. Report a nominal 1 block so tools
+		// that treat 0 as "unsupported" behave correctly.
+		child, _ := randObj(t, nd, 100)
+
+		db, err := uio.NewDirectory(nd.DAG)
+		require.NoError(t, err)
+		require.NoError(t, db.AddChild(nd.Context(), "f", child))
+		dirNode, err := db.GetNode()
+		require.NoError(t, err)
+		require.NoError(t, nd.DAG.Add(nd.Context(), dirNode))
+
+		info, err := os.Stat(gopath.Join(mntDir, dirNode.Cid().String()))
+		require.NoError(t, err)
+		st, ok := info.Sys().(*syscall.Stat_t)
+		require.True(t, ok)
+		require.EqualValues(t, 1, st.Blocks, "directory should report 1 nominal block")
+	})
+
+	t.Run("symlink", func(t *testing.T) {
+		// UnixFS TSymlink node: Size is the target path length, Blocks
+		// rounds up to 1 so tools don't see a zero-block symlink.
+		const target = "hello.txt"
+
+		slData, err := ft.SymlinkData(target)
+		require.NoError(t, err)
+		symNode := dag.NodeWithData(slData)
+		require.NoError(t, nd.DAG.Add(nd.Context(), symNode))
+
+		db, err := uio.NewDirectory(nd.DAG)
+		require.NoError(t, err)
+		require.NoError(t, db.AddChild(nd.Context(), "link", symNode))
+		dirNode, err := db.GetNode()
+		require.NoError(t, err)
+		require.NoError(t, nd.DAG.Add(nd.Context(), dirNode))
+
+		linkPath := gopath.Join(mntDir, dirNode.Cid().String(), "link")
+		info, err := os.Lstat(linkPath)
+		require.NoError(t, err)
+		st, ok := info.Sys().(*syscall.Stat_t)
+		require.True(t, ok)
+		require.EqualValues(t, len(target), st.Size)
+		require.EqualValues(t, 1, st.Blocks)
+		require.EqualValues(t, fusemnt.DefaultBlksize, st.Blksize)
+	})
+}
+
 // TestStatfs verifies that statfs on the /ipfs mount reports the disk
 // space of the repo's backing filesystem. macOS Finder refuses to copy
 // files onto a volume that reports zero free space.
