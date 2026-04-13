@@ -1,6 +1,10 @@
 package mount
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/hanwen/go-fuse/v2/fuse"
+)
 
 // TestDefaultBlksizeAnchor pins DefaultBlksize to 1 MiB so a silent
 // refactor cannot drift the value FUSE mounts advertise to tools.
@@ -35,12 +39,13 @@ func TestBlksizeFromChunker(t *testing.T) {
 		{"non-numeric size", "size-abc", DefaultBlksize},
 		{"zero size", "size-0", DefaultBlksize},
 
-		// Clamp: values above MaxBlksize are capped so tools can't be
-		// tricked into allocating multi-GiB buffers per read.
-		{"at cap", "size-16777216", MaxBlksize},
-		{"above cap clamped", "size-33554432", MaxBlksize},
-		{"uint32 max clamped", "size-4294967295", MaxBlksize},
-		{"beyond uint32 clamped", "size-99999999999", MaxBlksize},
+		// Clamp: values above fuse.MAX_KERNEL_WRITE (the largest single FUSE
+		// request the kernel delivers) are capped so tools can't be
+		// tricked into allocating buffers the kernel will just split.
+		{"above cap clamped", "size-2097152", fuse.MAX_KERNEL_WRITE},
+		{"16 MiB clamped", "size-16777216", fuse.MAX_KERNEL_WRITE},
+		{"uint32 max clamped", "size-4294967295", fuse.MAX_KERNEL_WRITE},
+		{"beyond uint32 clamped", "size-99999999999", fuse.MAX_KERNEL_WRITE},
 	}
 
 	for _, tc := range tests {
