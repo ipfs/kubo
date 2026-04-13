@@ -181,9 +181,9 @@ type roFileHandle struct {
 // Used by both Getattr and Lookup (to fill EntryOut.Attr so the kernel
 // doesn't cache zero values for the entry timeout duration).
 //
-// Blksize is set on every entry: go-fuse's setBlocks otherwise
-// auto-fills both st_blocks and st_blksize with a 4 KiB page-based
-// fallback, which would clobber the values set below.
+// Blocks and Blksize are set on every entry because go-fuse's setBlocks
+// otherwise auto-fills them from Size with a 4 KiB page-based fallback,
+// which clobbers the UnixFS-derived values set below.
 func (n *Node) fillAttr(a *fuse.Attr) {
 	a.Blksize = fusemnt.DefaultBlksize
 
@@ -204,6 +204,9 @@ func (n *Node) fillAttr(a *fuse.Attr) {
 	switch n.cached.Type() {
 	case ft.TDirectory, ft.THAMTShard:
 		a.Mode = uint32(fusemnt.DefaultDirModeRO.Perm())
+		// Nominal 1 block: du sums child leaves, so the directory's
+		// own st_blocks is not arithmetically meaningful, but some
+		// tools treat 0 as "unsupported" and skip the entry.
 		a.Blocks = 1
 	case ft.TFile:
 		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())

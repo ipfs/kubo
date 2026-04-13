@@ -44,8 +44,9 @@ type Config struct {
 	// Blksize is the preferred I/O size advertised via st_blksize on
 	// every stat. Callers should derive it from Import.UnixFSChunker via
 	// fusemnt.BlksizeFromChunker so the hint matches the chunker MFS
-	// will use for writes. Zero is normalized to fusemnt.DefaultBlksize
-	// by NewDir.
+	// will use for writes. If zero, NewDir writes fusemnt.DefaultBlksize
+	// into this field in place, so fillAttr on every inode can read
+	// cfg.Blksize without a nil-check on each stat.
 	Blksize uint32
 }
 
@@ -58,10 +59,9 @@ func NewDir(d *mfs.Directory, cfg *Config) *Dir {
 	if cfg == nil || cfg.DAG == nil {
 		panic("fuse/writable: Config.DAG is required")
 	}
-	// Normalize Blksize once so fillAttr on every inode can read
-	// cfg.Blksize directly. Tests and callers that don't plumb
-	// Import.UnixFSChunker leave this zero; we fall back to the FUSE
-	// default so stat still advertises a usable st_blksize.
+	// Tests and callers that don't plumb Import.UnixFSChunker leave
+	// Blksize zero; fall back to the FUSE default so stat advertises a
+	// usable st_blksize. See Config.Blksize for why we mutate in place.
 	if cfg.Blksize == 0 {
 		cfg.Blksize = fusemnt.DefaultBlksize
 	}
@@ -75,11 +75,11 @@ type Dir struct {
 	Cfg    *Config
 }
 
-// fillAttr fills stat attributes for a directory. Blksize is set on
-// every entry: go-fuse's setBlocks otherwise auto-fills both st_blocks
-// and st_blksize with a 4 KiB page-based fallback. For directories that
-// fallback computes Blocks from Size=0 and yields st_blocks=0, which
-// some tools treat as "unsupported".
+// fillAttr fills stat attributes for a directory. Blocks and Blksize
+// are set explicitly because go-fuse's setBlocks otherwise auto-fills
+// them from Size with a 4 KiB page-based fallback. For directories
+// Size is 0, so the fallback yields st_blocks=0, which some tools
+// (dedup scanners, file managers) treat as "unsupported".
 func (d *Dir) fillAttr(a *fuse.Attr) {
 	a.Mode = uint32(fusemnt.DefaultDirModeRW.Perm())
 	a.Blocks = 1
