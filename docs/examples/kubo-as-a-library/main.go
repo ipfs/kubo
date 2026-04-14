@@ -15,13 +15,14 @@ import (
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
 	icore "github.com/ipfs/kubo/core/coreiface"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 	"github.com/ipfs/kubo/core/node/libp2p"
-	"github.com/ipfs/kubo/plugin/loader" // This package is needed so that all the preloaded plugins are loaded automatically
+	"github.com/ipfs/kubo/plugin/loader" // registers built-in plugins
 	"github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -29,13 +30,11 @@ import (
 /// ------ Setting up the IPFS Repo
 
 func setupPlugins(externalPluginsPath string) error {
-	// Load any external plugins if available on externalPluginsPath
 	plugins, err := loader.NewPluginLoader(filepath.Join(externalPluginsPath, "plugins"))
 	if err != nil {
 		return fmt.Errorf("error loading plugins: %s", err)
 	}
 
-	// Load preloaded and external plugins
 	if err := plugins.Initialize(); err != nil {
 		return fmt.Errorf("error initializing plugins: %s", err)
 	}
@@ -53,20 +52,22 @@ func createTempRepo() (string, error) {
 		return "", fmt.Errorf("failed to get temp dir: %s", err)
 	}
 
-	// Create a config with default options and a 2048 bit key
-	cfg, err := config.Init(io.Discard, 2048)
+	identity, err := config.CreateIdentity(io.Discard, []options.KeyGenerateOption{
+		options.Key.Type(options.Ed25519Key),
+	})
+	if err != nil {
+		return "", err
+	}
+	cfg, err := config.InitWithIdentity(identity)
 	if err != nil {
 		return "", err
 	}
 
-	// Use TCP-only on loopback with random port for reliable local testing.
-	// This matches what kubo's test harness uses (test/cli/transports_test.go).
-	// QUIC/UDP transports are avoided because they may be throttled on CI.
+	// TCP on loopback with a random port. QUIC/UDP is disabled because it can
+	// be throttled on some networks; TCP is more reliable for local testing.
 	cfg.Addresses.Swarm = []string{
 		"/ip4/127.0.0.1/tcp/0",
 	}
-
-	// Explicitly disable non-TCP transports for reliability.
 	cfg.Swarm.Transports.Network.QUIC = config.False
 	cfg.Swarm.Transports.Network.Relay = config.False
 	cfg.Swarm.Transports.Network.WebTransport = config.False
@@ -74,16 +75,13 @@ func createTempRepo() (string, error) {
 	cfg.Swarm.Transports.Network.Websocket = config.False
 	cfg.AutoTLS.Enabled = config.False
 
-	// Disable routing - we don't need DHT for direct peer connections.
-	// Bitswap works with directly connected peers without needing DHT lookups.
+	// No DHT: we connect peers by address, so content routing is not needed.
 	cfg.Routing.Type = config.NewOptionalString("none")
 
-	// Disable bootstrap for this example - we manually connect only the peers we need.
+	// No automatic bootstrap: we connect only the peers we need.
 	cfg.Bootstrap = []string{}
 
-	// When creating the repository, you can define custom settings on the repository, such as enabling experimental
-	// features (See experimental-features.md) or customizing the gateway endpoint.
-	// To do such things, you should modify the variable `cfg`. For example:
+	// Optional: enable experimental features by modifying cfg before Init, e.g.:
 	if *flagExp {
 		// https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#ipfs-filestore
 		cfg.Experimental.FilestoreEnabled = true
@@ -94,10 +92,8 @@ func createTempRepo() (string, error) {
 		// https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#p2p-http-proxy
 		cfg.Experimental.P2pHttpProxy = true
 		// See also: https://github.com/ipfs/kubo/blob/master/docs/config.md
-		// And: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md
 	}
 
-	// Create the repo with the config
 	err = fsrepo.Init(repoPath, cfg)
 	if err != nil {
 		return "", fmt.Errorf("failed to init ephemeral node: %s", err)
@@ -108,23 +104,18 @@ func createTempRepo() (string, error) {
 
 /// ------ Spawning the node
 
-// Creates an IPFS node and returns its coreAPI.
+// createNode opens the repo at repoPath and starts an IPFS node.
 func createNode(ctx context.Context, repoPath string) (*core.IpfsNode, error) {
-	// Open the repo
 	repo, err := fsrepo.Open(repoPath)
 	if err != nil {
 		return nil, err
 	}
 
-	// Construct the node
-
 	nodeOptions := &core.BuildCfg{
 		Online: true,
-		// For this example, we use NilRouterOption (no routing) since we connect peers directly.
-		// Bitswap works with directly connected peers without needing DHT lookups.
-		// In production, you would typically use:
-		//   Routing: libp2p.DHTOption,       // Full DHT node (stores and fetches records)
-		//   Routing: libp2p.DHTClientOption, // DHT client (only fetches records)
+		// No routing: peers are connected directly by address.
+		// In production use libp2p.DHTClientOption or libp2p.DHTOption
+		// so the node can find content and peers on the wider network.
 		Routing: libp2p.NilRouterOption,
 		Repo:    repo,
 	}
@@ -134,7 +125,7 @@ func createNode(ctx context.Context, repoPath string) (*core.IpfsNode, error) {
 
 var loadPluginsOnce sync.Once
 
-// Spawns a node to be used just for this run (i.e. creates a tmp repo).
+// spawnEphemeral creates a temporary repo, starts a node, and returns its API.
 func spawnEphemeral(ctx context.Context) (icore.CoreAPI, *core.IpfsNode, error) {
 	var onceErr error
 	loadPluginsOnce.Do(func() {
@@ -144,7 +135,6 @@ func spawnEphemeral(ctx context.Context) (icore.CoreAPI, *core.IpfsNode, error) 
 		return nil, nil, onceErr
 	}
 
-	// Create a Temporary Repo
 	repoPath, err := createTempRepo()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create temp repo: %s", err)
@@ -222,11 +212,32 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	// Spawn a local peer using a temporary path, for testing purposes
+	// Spawn a local peer using a temporary path, for testing purposes.
 	ipfsA, nodeA, err := spawnEphemeral(ctx)
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn peer node: %s", err))
 	}
+
+	fmt.Println("Spawning Kubo node on a temporary repo")
+	ipfsB, _, err := spawnEphemeral(ctx)
+	if err != nil {
+		panic(fmt.Errorf("failed to spawn ephemeral node: %s", err))
+	}
+
+	fmt.Println("IPFS node is running")
+
+	// Connect nodeB to nodeA before adding content. This lets the connection
+	// finish its setup during the Add below, so the fetch in Part IV is fast.
+	peerAddrs, err := ipfsA.Swarm().LocalAddrs(ctx)
+	if err != nil {
+		panic(fmt.Errorf("could not get peer addresses: %s", err))
+	}
+	peerMa := peerAddrs[0].String() + "/p2p/" + nodeA.Identity.String()
+	fmt.Println("Connecting to peer...")
+	if err := connectToPeers(ctx, ipfsB, []string{peerMa}); err != nil {
+		panic(fmt.Errorf("failed to connect to peer: %s", err))
+	}
+	fmt.Println("Connected to peer")
 
 	peerCidFile, err := ipfsA.Unixfs().Add(ctx,
 		files.NewBytesFile([]byte("hello from ipfs 101 in Kubo")))
@@ -235,15 +246,6 @@ func main() {
 	}
 
 	fmt.Printf("Added file to peer with CID %s\n", peerCidFile.String())
-
-	// Spawn a node using a temporary path, creating a temporary repo for the run
-	fmt.Println("Spawning Kubo node on a temporary repo")
-	ipfsB, _, err := spawnEphemeral(ctx)
-	if err != nil {
-		panic(fmt.Errorf("failed to spawn ephemeral node: %s", err))
-	}
-
-	fmt.Println("IPFS node is running")
 
 	/// --- Part II: Adding a file and a directory to IPFS
 
@@ -313,29 +315,7 @@ func main() {
 
 	/// --- Part IV: Getting a file from another IPFS node
 
-	fmt.Println("\n-- Connecting to nodeA and fetching content via bitswap --")
-
-	// Get nodeA's actual listening address dynamically.
-	// We configured TCP-only on 127.0.0.1 with random port, so this will be a TCP address.
-	peerAddrs, err := ipfsA.Swarm().LocalAddrs(ctx)
-	if err != nil {
-		panic(fmt.Errorf("could not get peer addresses: %s", err))
-	}
-	peerMa := peerAddrs[0].String() + "/p2p/" + nodeA.Identity.String()
-
-	bootstrapNodes := []string{
-		// In production, use real bootstrap peers like:
-		// "/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-		// For this example, we only connect to nodeA which has our test content.
-		peerMa,
-	}
-
-	fmt.Println("Connecting to peer...")
-	err = connectToPeers(ctx, ipfsB, bootstrapNodes)
-	if err != nil {
-		panic(fmt.Errorf("failed to connect to peers: %s", err))
-	}
-	fmt.Println("Connected to peer")
+	fmt.Println("\n-- Fetching content from nodeA via bitswap --")
 
 	exampleCIDStr := peerCidFile.RootCid().String()
 
