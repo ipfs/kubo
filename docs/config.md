@@ -395,14 +395,24 @@ Type: `array[string]` ([multiaddrs][multiaddr])
 
 ### `Addresses.NoAnnounce`
 
-An array of swarm addresses not to announce to the network.
-Takes precedence over `Addresses.Announce` and `Addresses.AppendAnnounce`.
+An array of multiaddrs (exact matches or `/ipcidr/` netmasks). Kubo does not
+announce these addresses and strips them from libp2p identify, the DHT
+self-record, and the signed peer record. Matching entries in
+[`Addresses.Announce`](#addressesannounce) and
+[`Addresses.AppendAnnounce`](#addressesappendannounce) are removed as well.
+
+This is the **publish-side** filter: it controls what other peers learn about
+this node's addresses. It does not affect what this node dials. For the
+**dial-side** filter see [`Swarm.AddrFilters`](#swarmaddrfilters). The
+[`server` profile](#server-profile) typically populates both fields together
+so that a range is neither advertised nor dialed.
 
 > [!TIP]
-> The [`server` configuration profile](#server-profile) fills up this list with sensible defaults,
-> preventing announcement of non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
-> which is the [multiaddress][multiaddr] representation of `192.168.0.0/16`) but you should always
-> check settings against your own network and/or hosting provider.
+> The [`server` profile](#server-profile) populates this field with a set of
+> private, local-only, and non-globally-reachable prefixes (RFC 1918 private,
+> RFC 6598 CGNAT, ULA, link-local, and others). See the
+> [`server` profile](#server-profile) section for the full list and for
+> optional entries operators may add manually.
 
 Default: `[]`
 
@@ -3080,18 +3090,27 @@ Options for configuring the swarm.
 
 ### `Swarm.AddrFilters`
 
-An array of addresses (multiaddr netmasks) to not dial. By default, IPFS nodes
-advertise _all_ addresses, even internal ones. This makes it easier for nodes on
-the same network to reach each other. Unfortunately, this means that an IPFS
-node will try to connect to one or more private IP addresses whenever dialing
-another node, even if this other node is on a different network. This may
-trigger netscan alerts on some hosting providers or cause strain in some setups.
+An array of multiaddr netmasks. The libp2p connection gater refuses any
+connection (inbound or outbound) whose remote address matches an entry,
+before any handshake.
+
+By default Kubo advertises every interface address, so without this list a
+node may dial private or non-routable addresses learned from other peers.
+Some hosting providers treat such dials as netscan abuse.
+
+This is the **dial-side** filter: it controls which peers this node connects
+to or accepts connections from. It does not affect what this node advertises
+about itself. For the **publish-side** filter see
+[`Addresses.NoAnnounce`](#addressesnoannounce). The
+[`server` profile](#server-profile) typically populates both fields together
+so that a range is neither advertised nor dialed.
 
 > [!TIP]
-> The [`server` configuration profile](#server-profile) fills up this list with sensible defaults,
-> preventing dials to all non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
-> which is the [multiaddress][multiaddr] representation of `192.168.0.0/16`) but you should always
-> check settings against your own network and/or hosting provider.
+> The [`server` profile](#server-profile) populates this field with a set of
+> private, local-only, and non-globally-reachable prefixes (RFC 1918 private,
+> RFC 6598 CGNAT, ULA, link-local, and others). See the
+> [`server` profile](#server-profile) section for the full list and for
+> optional entries operators may add manually.
 
 Default: `[]`
 
@@ -4101,11 +4120,108 @@ documented in `ipfs config profile --help`.
 
 ### `server` profile
 
-Disables local [`Discovery.MDNS`](#discoverymdns), [turns off uPnP NAT port mapping](#swarmdisablenatportmap),  and blocks connections to
-IPv4 and IPv6 prefixes that are [private, local only, or unrouteable](https://github.com/ipfs/kubo/blob/b71cf0d15904bdef21fe2eee5f1118a274309a4d/config/profile.go#L24-L43).
+The `server` profile hardens a node for public-internet operation. Recommended
+on machines with public IPv4 addresses (no NAT, no uPnP) at providers that
+interpret local IPFS discovery and traffic as netscan abuse
+([example](https://github.com/ipfs/kubo/issues/10327)).
 
-Recommended when running IPFS on machines with public IPv4 addresses (no NAT, no uPnP)
-at providers that interpret local IPFS discovery and traffic as netscan abuse ([example](https://github.com/ipfs/kubo/issues/10327)).
+Applying it:
+
+- disables local [`Discovery.MDNS`](#discoverymdns),
+- turns off [uPnP NAT port mapping](#swarmdisablenatportmap),
+- appends a set of IPv4 and IPv6 prefixes to both
+  [`Addresses.NoAnnounce`](#addressesnoannounce) (do not advertise) and
+  [`Swarm.AddrFilters`](#swarmaddrfilters) (do not dial or accept).
+
+The prefix list comes from the IANA [IPv4][iana-ipv4-special] and
+[IPv6][iana-ipv6-special] Special-Purpose Address Registries per
+[RFC 6890], covering entries marked "Not Globally Reachable."
+
+The filters apply only at the libp2p swarm layer. The HTTP
+[`Addresses.API`](#addressesapi) and [`Addresses.Gateway`](#addressesgateway)
+listeners keep working over loopback.
+
+#### IPv4 prefixes filtered by `server` profile
+
+| Multiaddr                       | Description                                      | Reference                |
+| ------------------------------- | ------------------------------------------------ | ------------------------ |
+| `/ip4/10.0.0.0/ipcidr/8`        | Private-use                                      | [RFC 1918]               |
+| `/ip4/100.64.0.0/ipcidr/10`     | Shared address space (CGNAT)                     | [RFC 6598]               |
+| `/ip4/169.254.0.0/ipcidr/16`    | Link-local                                       | [RFC 3927]               |
+| `/ip4/172.16.0.0/ipcidr/12`     | Private-use                                      | [RFC 1918]               |
+| `/ip4/192.0.0.0/ipcidr/24`      | IETF protocol assignments                        | [RFC 6890]               |
+| `/ip4/192.0.2.0/ipcidr/24`      | `TEST-NET-1` (documentation)                     | [RFC 5737]               |
+| `/ip4/192.168.0.0/ipcidr/16`    | Private-use                                      | [RFC 1918]               |
+| `/ip4/198.18.0.0/ipcidr/15`     | Benchmarking                                     | [RFC 2544]               |
+| `/ip4/198.51.100.0/ipcidr/24`   | `TEST-NET-2` (documentation)                     | [RFC 5737]               |
+| `/ip4/203.0.113.0/ipcidr/24`    | `TEST-NET-3` (documentation)                     | [RFC 5737]               |
+| `/ip4/240.0.0.0/ipcidr/4`       | Reserved (covers broadcast `255.255.255.255/32`) | [RFC 1112 §4][rfc1112-4] |
+
+#### IPv6 prefixes filtered by `server` profile
+
+| Multiaddr                     | Description                  | Reference  |
+| ----------------------------- | ---------------------------- | ---------- |
+| `/ip6/100::/ipcidr/64`        | Discard-only                 | [RFC 6666] |
+| `/ip6/2001:2::/ipcidr/48`     | Benchmarking                 | [RFC 5180] |
+| `/ip6/2001:db8::/ipcidr/32`   | Documentation                | [RFC 3849] |
+| `/ip6/fc00::/ipcidr/7`        | Unique local addresses (ULA) | [RFC 4193] |
+| `/ip6/fe80::/ipcidr/10`       | Link-local unicast           | [RFC 4291] |
+
+#### Overriding specific entries
+
+If you need peering over one of the prefixes above, remove that entry from
+[`Swarm.AddrFilters`](#swarmaddrfilters) and
+[`Addresses.NoAnnounce`](#addressesnoannounce) after applying the profile.
+Or skip the profile and populate those fields manually.
+
+| Scenario                                           | Remove                       |
+| -------------------------------------------------- | ---------------------------- |
+| LAN peering over `10.0.0.0/8`                      | `/ip4/10.0.0.0/ipcidr/8`     |
+| LAN peering over `172.16.0.0/12`                   | `/ip4/172.16.0.0/ipcidr/12`  |
+| LAN peering over `192.168.0.0/16`                  | `/ip4/192.168.0.0/ipcidr/16` |
+| Tailscale or other CGNAT overlay (`100.64.0.0/10`) | `/ip4/100.64.0.0/ipcidr/10`  |
+| IPv6 ULA overlay (WireGuard, Nebula)               | `/ip6/fc00::/ipcidr/7`       |
+| Link-local IPv6 peering                            | `/ip6/fe80::/ipcidr/10`      |
+
+#### Optional prefixes operators may add manually
+
+The prefixes below are not in the `server` profile but can be added
+manually to [`Swarm.AddrFilters`](#swarmaddrfilters) and
+[`Addresses.NoAnnounce`](#addressesnoannounce) for stricter hardening.
+
+**`/ip4/127.0.0.0/ipcidr/8`** (IPv4 loopback, [RFC 1122 §3.2.1.3][rfc1122-3.2.1.3]).
+Since go-libp2p v0.47, [`AllAddrs`][libp2p/go-libp2p#3460] returns every
+interface address, so loopback can leak into announced sets and identify.
+Adding this suppresses those leaks.
+Trade-off: breaks peering between multiple daemons running on the same host
+over `127.0.0.1`, which some test and development setups rely on.
+
+**`/ip6/::/ipcidr/3`** (everything outside global unicast `2000::/3`,
+[RFC 4291 §2.4][rfc4291-2.4]). A single mask that catches IPv6 loopback
+(`::1`), unspecified, IPv4-mapped (`::ffff:0:0/96`), NAT64 (`64:ff9b::/96`,
+`64:ff9b:1::/48`), and unallocated space where bogus prefixes such as
+`1e::/16` leak in.
+Trade-off: broad. Also blocks NAT64 reachability in setups that use it, and
+blocks IPv6 loopback peering between multiple daemons on the same host.
+
+[iana-ipv4-special]: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+[iana-ipv6-special]: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+[rfc1112-4]: https://datatracker.ietf.org/doc/html/rfc1112#section-4
+[rfc1122-3.2.1.3]: https://datatracker.ietf.org/doc/html/rfc1122#section-3.2.1.3
+[rfc4291-2.4]: https://datatracker.ietf.org/doc/html/rfc4291#section-2.4
+[RFC 1112]: https://datatracker.ietf.org/doc/html/rfc1112
+[RFC 1918]: https://datatracker.ietf.org/doc/html/rfc1918
+[RFC 2544]: https://datatracker.ietf.org/doc/html/rfc2544
+[RFC 3849]: https://datatracker.ietf.org/doc/html/rfc3849
+[RFC 3927]: https://datatracker.ietf.org/doc/html/rfc3927
+[RFC 4193]: https://datatracker.ietf.org/doc/html/rfc4193
+[RFC 4291]: https://datatracker.ietf.org/doc/html/rfc4291
+[RFC 5180]: https://datatracker.ietf.org/doc/html/rfc5180
+[RFC 5737]: https://datatracker.ietf.org/doc/html/rfc5737
+[RFC 6598]: https://datatracker.ietf.org/doc/html/rfc6598
+[RFC 6666]: https://datatracker.ietf.org/doc/html/rfc6666
+[RFC 6890]: https://datatracker.ietf.org/doc/html/rfc6890
+[libp2p/go-libp2p#3460]: https://github.com/libp2p/go-libp2p/issues/3460
 
 ### `randomports` profile
 
