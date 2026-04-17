@@ -48,11 +48,14 @@ var defaultServerFilters = []string{
 	"/ip4/198.51.100.0/ipcidr/24", // RFC 5737: TEST-NET-2 (documentation)
 	"/ip4/203.0.113.0/ipcidr/24",  // RFC 5737: TEST-NET-3 (documentation)
 	"/ip4/240.0.0.0/ipcidr/4",     // RFC 1112: reserved (covers broadcast 255.255.255.255)
-	"/ip6/100::/ipcidr/64",        // RFC 6666: discard-only
+	"/ip6/100::/ipcidr/64",        // RFC 6666: discard-only (subset of ::/3 below; kept for documentation)
 	"/ip6/2001:2::/ipcidr/48",     // RFC 5180: BMWG benchmarking
 	"/ip6/2001:db8::/ipcidr/32",   // RFC 3849: documentation
 	"/ip6/fc00::/ipcidr/7",        // RFC 4193: unique local addresses (ULA)
 	"/ip6/fe80::/ipcidr/10",       // RFC 4291: link-local unicast
+	"/ip4/127.0.0.0/ipcidr/8",     // RFC 1122: IPv4 loopback
+	"/ip6/::1/ipcidr/128",         // RFC 4291 §2.4: IPv6 loopback (subset of ::/3 below; kept for documentation)
+	"/ip6/::/ipcidr/3",            // RFC 4291 §2.4: everything outside global unicast 2000::/3 (covers unspecified, IPv4-mapped, NAT64, and unallocated space where prefixes like 1e::/16 leak)
 }
 
 // Profiles is a map holding configuration transformers. Docs are in docs/config.md.
