@@ -49,7 +49,11 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	doPinRoots, _ := req.Options[pinRootsOptionName].(bool)
+	localOnly, _ := req.Options[localOnlyOptionName].(bool)
 
+	if doPinRoots && localOnly {
+		return fmt.Errorf("cannot pass both --%s and --%s", pinRootsOptionName, localOnlyOptionName)
+	}
 	fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
 	fastProvideDAG, fastProvideDAGSet := req.Options[fastProvideDAGOptionName].(bool)
 	fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)

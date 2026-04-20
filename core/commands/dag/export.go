@@ -1,6 +1,7 @@
 package dagcmd
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -16,7 +17,10 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	gocar "github.com/ipld/go-car/v2"
+	"github.com/ipld/go-ipld-prime/datamodel"
+	"github.com/ipld/go-ipld-prime/linking"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
+	"github.com/ipld/go-ipld-prime/traversal"
 	selectorparse "github.com/ipld/go-ipld-prime/traversal/selector/parse"
 )
 
@@ -27,6 +31,7 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
+	localOnly, _ := req.Options[localOnlyOptionName].(bool)
 	api, err := cmdenv.GetApi(env, req)
 	if err != nil {
 		return err
@@ -51,7 +56,25 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		}()
 
 		lsys := cidlink.DefaultLinkSystem()
-		lsys.SetReadStorage(&dagStore{dag: api.Dag(), ctx: req.Context})
+		ds := &dagStore{dag: api.Dag(), ctx: req.Context}
+		if localOnly {
+			lsys.StorageReadOpener = func(lctx linking.LinkContext, lnk datamodel.Link) (io.Reader, error) {
+				cl, ok := lnk.(cidlink.Link)
+				if !ok {
+					return nil, fmt.Errorf("unsupported link type: %T", lnk)
+				}
+				block, err := ds.dag.Get(lctx.Ctx, cl.Cid)
+				if err != nil {
+					if ipld.IsNotFound(err) {
+						return nil, traversal.SkipMe{}
+					}
+					return nil, fmt.Errorf("local block read failed: %w", err)
+				}
+				return bytes.NewReader(block.RawData()), nil
+			}
+		} else {
+			lsys.SetReadStorage(ds)
+		}
 
 		// Uncomment the following to support CARv2 output.
 		/*
@@ -194,7 +217,7 @@ func cidFromBinString(key string) (cid.Cid, error) {
 		return cid.Undef, fmt.Errorf("dagStore: key was not a cid: %w", err)
 	}
 	if l != len(key) {
-		return cid.Undef, fmt.Errorf("dagSore: key was not a cid: had %d bytes leftover", len(key)-l)
+		return cid.Undef, fmt.Errorf("dagStore: key was not a cid: had %d bytes leftover", len(key)-l)
 	}
 	return k, nil
 }
