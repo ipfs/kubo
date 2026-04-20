@@ -4143,32 +4143,32 @@ listeners keep working over loopback.
 
 #### IPv4 prefixes filtered by `server` profile
 
-| Multiaddr                       | Description                                      | Reference                |
-| ------------------------------- | ------------------------------------------------ | ------------------------ |
-| `/ip4/10.0.0.0/ipcidr/8`        | Private-use                                      | [RFC 1918]               |
-| `/ip4/100.64.0.0/ipcidr/10`     | Shared address space (CGNAT)                     | [RFC 6598]               |
-| `/ip4/169.254.0.0/ipcidr/16`    | Link-local                                       | [RFC 3927]               |
-| `/ip4/172.16.0.0/ipcidr/12`     | Private-use                                      | [RFC 1918]               |
-| `/ip4/192.0.0.0/ipcidr/24`      | IETF protocol assignments                        | [RFC 6890]               |
-| `/ip4/192.0.2.0/ipcidr/24`      | `TEST-NET-1` (documentation)                     | [RFC 5737]               |
-| `/ip4/192.168.0.0/ipcidr/16`    | Private-use                                      | [RFC 1918]               |
-| `/ip4/198.18.0.0/ipcidr/15`     | Benchmarking                                     | [RFC 2544]               |
-| `/ip4/198.51.100.0/ipcidr/24`   | `TEST-NET-2` (documentation)                     | [RFC 5737]               |
-| `/ip4/203.0.113.0/ipcidr/24`    | `TEST-NET-3` (documentation)                     | [RFC 5737]               |
-| `/ip4/240.0.0.0/ipcidr/4`       | Reserved (covers broadcast `255.255.255.255/32`) | [RFC 1112 §4][rfc1112-4] |
-| `/ip4/127.0.0.0/ipcidr/8`       | Loopback                                         | [RFC 1122 §3.2.1.3][rfc1122-3.2.1.3] |
+| Multiaddr                     | Description                                      | Reference                            |
+| ----------------------------- | ------------------------------------------------ | ------------------------------------ |
+| `/ip4/10.0.0.0/ipcidr/8`      | Private-use                                      | [RFC 1918]                           |
+| `/ip4/100.64.0.0/ipcidr/10`   | Shared address space (CGNAT)                     | [RFC 6598]                           |
+| `/ip4/127.0.0.0/ipcidr/8`     | Loopback                                         | [RFC 1122 §3.2.1.3][rfc1122-3.2.1.3] |
+| `/ip4/169.254.0.0/ipcidr/16`  | Link-local                                       | [RFC 3927]                           |
+| `/ip4/172.16.0.0/ipcidr/12`   | Private-use                                      | [RFC 1918]                           |
+| `/ip4/192.0.0.0/ipcidr/24`    | IETF protocol assignments                        | [RFC 6890]                           |
+| `/ip4/192.0.2.0/ipcidr/24`    | `TEST-NET-1` (documentation)                     | [RFC 5737]                           |
+| `/ip4/192.168.0.0/ipcidr/16`  | Private-use                                      | [RFC 1918]                           |
+| `/ip4/198.18.0.0/ipcidr/15`   | Benchmarking                                     | [RFC 2544]                           |
+| `/ip4/198.51.100.0/ipcidr/24` | `TEST-NET-2` (documentation)                     | [RFC 5737]                           |
+| `/ip4/203.0.113.0/ipcidr/24`  | `TEST-NET-3` (documentation)                     | [RFC 5737]                           |
+| `/ip4/240.0.0.0/ipcidr/4`     | Reserved (covers broadcast `255.255.255.255/32`) | [RFC 1112 §4][rfc1112-4]             |
 
 #### IPv6 prefixes filtered by `server` profile
 
-| Multiaddr                     | Description                                                               | Reference                    |
-| ----------------------------- | ------------------------------------------------------------------------- | ---------------------------- |
-| `/ip6/100::/ipcidr/64`        | Discard-only                                                              | [RFC 6666]                   |
-| `/ip6/2001:2::/ipcidr/48`     | Benchmarking                                                              | [RFC 5180]                   |
-| `/ip6/2001:db8::/ipcidr/32`   | Documentation                                                             | [RFC 3849]                   |
-| `/ip6/fc00::/ipcidr/7`        | Unique local addresses (ULA)                                              | [RFC 4193]                   |
-| `/ip6/fe80::/ipcidr/10`       | Link-local unicast                                                        | [RFC 4291]                   |
-| `/ip6/::1/ipcidr/128`         | Loopback                                                                  | [RFC 4291 §2.4][rfc4291-2.4] |
-| `/ip6/::/ipcidr/3`            | Everything outside global unicast `2000::/3` (catches unallocated leaks)  | [RFC 4291 §2.4][rfc4291-2.4] |
+| Multiaddr                   | Description                                                        | Reference                    |
+| --------------------------- | ------------------------------------------------------------------ | ---------------------------- |
+| `/ip6/::/ipcidr/3`          | IANA-reserved `0000::/3` (catches unallocated leaks like `1e::/16`) | [RFC 4291 §2.4][rfc4291-2.4] |
+| `/ip6/::1/ipcidr/128`       | Loopback                                                           | [RFC 4291 §2.4][rfc4291-2.4] |
+| `/ip6/100::/ipcidr/64`      | Discard-only                                                       | [RFC 6666]                   |
+| `/ip6/2001:2::/ipcidr/48`   | Benchmarking                                                       | [RFC 5180]                   |
+| `/ip6/2001:db8::/ipcidr/32` | Documentation                                                      | [RFC 3849]                   |
+| `/ip6/fc00::/ipcidr/7`      | Unique local addresses (ULA)                                       | [RFC 4193]                   |
+| `/ip6/fe80::/ipcidr/10`     | Link-local unicast                                                 | [RFC 4291]                   |
 
 #### Overriding specific entries
 
