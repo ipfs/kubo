@@ -2157,7 +2157,7 @@ The `+unique` and `+entities` modifiers can be appended to `pinned`, `mfs`, or `
 
 #### Memory during reprovide
 
-Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million CIDs. This is due to the use of a buffered provider, which loads all CIDs into memory to avoid holding a lock on the entire pinset during the reprovide cycle.
+Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million CIDs. This is because the pinner snapshots the pin index into memory at the start of each reprovide cycle so that pin/unpin are not blocked while the DHT reprovider works over the snapshot.
 
 With `+unique` or `+entities`, a bloom filter replaces the in-memory CID set, significantly reducing memory usage:
 
