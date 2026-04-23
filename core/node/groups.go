@@ -243,7 +243,9 @@ func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 	finalBstore := fx.Provide(GcBlockstoreCtor)
 	if cfg.Experimental.FilestoreEnabled || cfg.Experimental.UrlstoreEnabled {
-		finalBstore = fx.Provide(FilestoreBlockstoreCtor)
+		finalBstore = fx.Provide(FilestoreBlockstoreCtor(
+			cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy),
+		))
 	}
 
 	return fx.Options(

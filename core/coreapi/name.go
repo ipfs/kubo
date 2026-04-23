@@ -28,7 +28,7 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 	ctx, span := tracing.Span(ctx, "CoreAPI.NameAPI", "Publish", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
 
-	if err := api.checkPublishAllowed(); err != nil {
+	if err := api.checkPublishAllowed(ctx); err != nil {
 		return ipns.Name{}, err
 	}
 

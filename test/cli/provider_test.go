@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -19,27 +23,43 @@ import (
 
 const (
 	timeStep = 20 * time.Millisecond
-	timeout  = time.Second
+	timeout  = 30 * time.Second
 )
 
 type cfgApplier func(*harness.Node)
 
-func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
+// uniq appends a nanosecond timestamp to s, ensuring unique CIDs
+// across test runs and parallel subtests.
+func uniq(s string) string {
+	return s + " " + strconv.FormatInt(time.Now().UnixNano(), 10)
+}
+
+// awaitReprovideFunc waits until at least minCIDs have been provided
+// and returns the total number of CIDs provided so far. The returned
+// count can be passed as minCIDs to a subsequent call to wait for the
+// next reprovide cycle.
+type awaitReprovideFunc func(t *testing.T, n *harness.Node, minCIDs int64) int64
+
+func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide awaitReprovideFunc) {
 	t.Helper()
 
 	initNodes := func(t *testing.T, n int, fn func(n *harness.Node)) harness.Nodes {
-		nodes := harness.NewT(t).NewNodes(n).Init()
+		h := harness.NewT(t)
+		nodes := h.NewNodes(n).Init()
 		nodes.ForEachPar(apply)
 		nodes.ForEachPar(fn)
+		h.BootstrapWithStubDHT(nodes)
 		nodes = nodes.StartDaemons().Connect()
 		time.Sleep(500 * time.Millisecond) // wait for DHT clients to be bootstrapped
 		return nodes
 	}
 
 	initNodesWithoutStart := func(t *testing.T, n int, fn func(n *harness.Node)) harness.Nodes {
-		nodes := harness.NewT(t).NewNodes(n).Init()
+		h := harness.NewT(t)
+		nodes := h.NewNodes(n).Init()
 		nodes.ForEachPar(apply)
 		nodes.ForEachPar(fn)
+		h.BootstrapWithStubDHT(nodes)
 		return nodes
 	}
 
@@ -228,45 +248,47 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 		expectNoProviders(t, cid, nodes[1:]...)
 	})
 
-	// It is a lesser evil - forces users to fix their config and have some sort of interval
-	t.Run("Manual Reprovide trigger does not work when periodic reprovide is disabled", func(t *testing.T) {
-		t.Parallel()
+	// `routing reprovide` is only available with the legacy provider.
+	// Sweep provider reprovides automatically on schedule.
+	if !sweep {
+		t.Run("Manual Reprovide trigger does not work when periodic reprovide is disabled", func(t *testing.T) {
+			t.Parallel()
 
-		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Provide.DHT.Interval", "0")
+			nodes := initNodes(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.DHT.Interval", "0")
+			})
+			defer nodes.StopDaemons()
+
+			cid := nodes[0].IPFSAddStr(time.Now().String())
+
+			expectNoProviders(t, cid, nodes[1:]...)
+
+			res := nodes[0].RunIPFS("routing", "reprovide")
+			assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.DHT.Interval is set to '0'")
+			assert.Equal(t, 1, res.ExitCode())
+
+			expectNoProviders(t, cid, nodes[1:]...)
 		})
-		defer nodes.StopDaemons()
 
-		cid := nodes[0].IPFSAddStr(time.Now().String())
+		t.Run("Manual Reprovide trigger does not work when Provide system is disabled", func(t *testing.T) {
+			t.Parallel()
 
-		expectNoProviders(t, cid, nodes[1:]...)
+			nodes := initNodes(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.Enabled", false)
+			})
+			defer nodes.StopDaemons()
 
-		res := nodes[0].RunIPFS("routing", "reprovide")
-		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.DHT.Interval is set to '0'")
-		assert.Equal(t, 1, res.ExitCode())
+			cid := nodes[0].IPFSAddStr(time.Now().String())
 
-		expectNoProviders(t, cid, nodes[1:]...)
-	})
+			expectNoProviders(t, cid, nodes[1:]...)
 
-	// It is a lesser evil - forces users to fix their config and have some sort of interval
-	t.Run("Manual Reprovide trigger does not work when Provide system is disabled", func(t *testing.T) {
-		t.Parallel()
+			res := nodes[0].RunIPFS("routing", "reprovide")
+			assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.Enabled is set to 'false'")
+			assert.Equal(t, 1, res.ExitCode())
 
-		nodes := initNodes(t, 2, func(n *harness.Node) {
-			n.SetIPFSConfig("Provide.Enabled", false)
+			expectNoProviders(t, cid, nodes[1:]...)
 		})
-		defer nodes.StopDaemons()
-
-		cid := nodes[0].IPFSAddStr(time.Now().String())
-
-		expectNoProviders(t, cid, nodes[1:]...)
-
-		res := nodes[0].RunIPFS("routing", "reprovide")
-		assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.Enabled is set to 'false'")
-		assert.Equal(t, 1, res.ExitCode())
-
-		expectNoProviders(t, cid, nodes[1:]...)
-	})
+	}
 
 	t.Run("Provide with 'all' strategy", func(t *testing.T) {
 		t.Parallel()
@@ -275,9 +297,10 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			n.SetIPFSConfig("Provide.Strategy", "all")
 		})
 		defer nodes.StopDaemons()
+		publisher := nodes[0]
 
-		cid := nodes[0].IPFSAddStr("all strategy")
-		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+		cid := publisher.IPFSAddStr(uniq("all strategy"))
+		expectProviders(t, cid, publisher.PeerID().String(), nodes[1:]...)
 	})
 
 	t.Run("Provide with 'pinned' strategy", func(t *testing.T) {
@@ -287,14 +310,15 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			n.SetIPFSConfig("Provide.Strategy", "pinned")
 		})
 		defer nodes.StopDaemons()
+		publisher := nodes[0]
 
 		// Add a non-pinned CID (should not be provided)
-		cid := nodes[0].IPFSAddStr("pinned strategy", "--pin=false")
+		cid := publisher.IPFSAddStr(uniq("pinned strategy"), "--pin=false")
 		expectNoProviders(t, cid, nodes[1:]...)
 
 		// Pin the CID (should now be provided)
-		nodes[0].IPFS("pin", "add", cid)
-		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+		publisher.IPFS("pin", "add", cid)
+		expectProviders(t, cid, publisher.PeerID().String(), nodes[1:]...)
 	})
 
 	t.Run("Provide with 'pinned+mfs' strategy", func(t *testing.T) {
@@ -304,17 +328,245 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			n.SetIPFSConfig("Provide.Strategy", "pinned+mfs")
 		})
 		defer nodes.StopDaemons()
+		publisher := nodes[0]
 
-		// Add a pinned CID (should be provided)
-		cidPinned := nodes[0].IPFSAddStr("pinned content")
-		cidUnpinned := nodes[0].IPFSAddStr("unpinned content", "--pin=false")
-		cidMFS := nodes[0].IPFSAddStr("mfs content", "--pin=false")
-		nodes[0].IPFS("files", "cp", "/ipfs/"+cidMFS, "/myfile")
+		cidPinned := publisher.IPFSAddStr(uniq("pinned content"))
+		cidUnpinned := publisher.IPFSAddStr(uniq("unpinned content"), "--pin=false")
+		cidMFS := publisher.IPFSAddStr(uniq("mfs content"), "--pin=false")
+		publisher.IPFS("files", "cp", "/ipfs/"+cidMFS, "/myfile")
 
-		n0pid := nodes[0].PeerID().String()
-		expectProviders(t, cidPinned, n0pid, nodes[1:]...)
+		expectProviders(t, cidPinned, publisher.PeerID().String(), nodes[1:]...)
 		expectNoProviders(t, cidUnpinned, nodes[1:]...)
-		expectProviders(t, cidMFS, n0pid, nodes[1:]...)
+		expectProviders(t, cidMFS, publisher.PeerID().String(), nodes[1:]...)
+	})
+
+	// addLargeFileInSubdir adds a 2 MiB file inside /subdir/ in MFS and
+	// returns the MFS root CID, the file root CID, and a chunk CID.
+	// The file is large enough to be split into multiple blocks.
+	// The resulting DAG: root-dir/subdir/largefile (2+ chunks).
+	addLargeFileInSubdir := func(t *testing.T, publisher *harness.Node) (cidRoot, cidSubdir, cidFile, cidChunk string) {
+		t.Helper()
+		largeData := random.Bytes(2 * 1024 * 1024) // 2 MiB = 2 chunks at 1 MiB
+
+		// Add file without pinning, then build directory structure in MFS
+		cidFile = publisher.IPFSAdd(bytes.NewReader(largeData), "-Q", "--pin=false")
+		publisher.IPFS("files", "mkdir", "-p", "/subdir")
+		publisher.IPFS("files", "cp", "/ipfs/"+cidFile, "/subdir/largefile")
+
+		// Get CIDs for the directory structure
+		cidRoot = publisher.IPFS("files", "stat", "--hash", "/").Stdout.Trimmed()
+		cidSubdir = publisher.IPFS("files", "stat", "--hash", "/subdir").Stdout.Trimmed()
+
+		// Get a chunk CID from the file's DAG links
+		dagOut := publisher.IPFS("dag", "get", cidFile)
+		var dagNode struct {
+			Links []struct {
+				Hash map[string]string `json:"Hash"`
+			} `json:"Links"`
+		}
+		require.NoError(t, json.Unmarshal(dagOut.Stdout.Bytes(), &dagNode))
+		require.Greater(t, len(dagNode.Links), 1, "file should have multiple chunks")
+		cidChunk = dagNode.Links[0].Hash["/"]
+		require.NotEmpty(t, cidChunk)
+
+		return cidRoot, cidSubdir, cidFile, cidChunk
+	}
+
+	// +unique and +entities tests verify which CIDs end up in the DHT
+	// (strategy scope). Bloom filter deduplication correctness and
+	// entity type detection are tested in boxo/dag/walker/*_test.go.
+
+	t.Run("Provide with 'pinned+mfs+unique' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Strategy", "pinned+mfs+unique")
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+		})
+		defer nodes.StopDaemons()
+		publisher, peers := nodes[0], nodes[1:]
+
+		// +unique provides all blocks in pinned DAGs (same scope as
+		// pinned+mfs but with bloom filter dedup across pins).
+		// Use --fast-provide-dag and --fast-provide-wait on pin add
+		// so we can verify which blocks the strategy includes.
+		cidRoot, cidSubdir, cidFile, cidChunk := addLargeFileInSubdir(t, publisher)
+		publisher.IPFS("pin", "add", "--fast-provide-dag", "--fast-provide-wait", cidRoot)
+		cidUnpinned := publisher.IPFSAddStr(uniq("unpinned content"), "--pin=false")
+
+		pid := publisher.PeerID().String()
+		// All blocks in the pinned DAG should be provided (including chunks)
+		expectProviders(t, cidRoot, pid, peers...)
+		expectProviders(t, cidSubdir, pid, peers...)
+		expectProviders(t, cidFile, pid, peers...)
+		expectProviders(t, cidChunk, pid, peers...)
+		expectNoProviders(t, cidUnpinned, peers...)
+	})
+
+	t.Run("Provide with 'pinned+mfs+entities' strategy", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Strategy", "pinned+mfs+entities")
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+		})
+		defer nodes.StopDaemons()
+		publisher, peers := nodes[0], nodes[1:]
+
+		// +entities provides only entity roots (files, directories,
+		// HAMT shards) and skips internal file chunks.
+		// Use --fast-provide-dag and --fast-provide-wait on pin add
+		// so we can verify which blocks the strategy skips.
+		cidRoot, cidSubdir, cidFile, cidChunk := addLargeFileInSubdir(t, publisher)
+		publisher.IPFS("pin", "add", "--fast-provide-dag", "--fast-provide-wait", cidRoot)
+
+		pid := publisher.PeerID().String()
+		// Entity roots: directories and file root
+		expectProviders(t, cidRoot, pid, peers...)
+		expectProviders(t, cidSubdir, pid, peers...)
+		expectProviders(t, cidFile, pid, peers...)
+		// Internal chunk should NOT be provided (+entities skips chunks)
+		expectNoProviders(t, cidChunk, peers...)
+	})
+
+	t.Run("ipfs add --fast-provide-dag honors +entities (no chunk providing)", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Strategy", "pinned+entities")
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+		})
+		defer nodes.StopDaemons()
+		publisher, peers := nodes[0], nodes[1:]
+
+		// Regression test for the providingDagService double-providing
+		// path. Before the fix, ipfs add --pin --fast-provide-dag wrapped
+		// the DAGService with providingDagService, which announced every
+		// block as it was written -- including chunks -- regardless of
+		// the +entities modifier. The post-add ExecuteFastProvideDAG
+		// walk then ran in parallel, so chunks ended up in the DHT
+		// despite +entities saying they should be skipped.
+		//
+		// After the fix, ExecuteFastProvideDAG is the single mechanism
+		// for --fast-provide-dag and respects the active strategy.
+		largeData := random.Bytes(2 * 1024 * 1024) // 2 MiB = 2 chunks
+		cidFile := publisher.IPFSAdd(bytes.NewReader(largeData),
+			"--fast-provide-dag", "--fast-provide-wait")
+
+		// Get a chunk CID from the file's DAG links
+		dagOut := publisher.IPFS("dag", "get", cidFile)
+		var dagNode struct {
+			Links []struct {
+				Hash map[string]string `json:"Hash"`
+			} `json:"Links"`
+		}
+		require.NoError(t, json.Unmarshal(dagOut.Stdout.Bytes(), &dagNode))
+		require.Greater(t, len(dagNode.Links), 1, "file should have multiple chunks")
+		cidChunk := dagNode.Links[0].Hash["/"]
+		require.NotEmpty(t, cidChunk)
+
+		pid := publisher.PeerID().String()
+		// File root (entity) should be provided
+		expectProviders(t, cidFile, pid, peers...)
+		// Chunk should NOT be provided (+entities skips chunks)
+		expectNoProviders(t, cidChunk, peers...)
+	})
+
+	// addLargeFilestoreFile writes a 2 MiB file to the publisher's
+	// node directory and adds it via --nocopy, returning the root CID
+	// and a chunk CID from the file's DAG links. With the configured
+	// 1 MiB chunker the file produces multiple leaf blocks so we can
+	// distinguish root-level from chunk-level provide behavior.
+	addLargeFilestoreFile := func(t *testing.T, publisher *harness.Node, addArgs ...string) (cidRoot, cidChunk string) {
+		t.Helper()
+		filePath := filepath.Join(publisher.Dir, "filestore-"+strconv.FormatInt(time.Now().UnixNano(), 10)+".bin")
+		require.NoError(t, os.WriteFile(filePath, random.Bytes(2*1024*1024), 0o644))
+
+		args := append([]string{"add", "-q", "--nocopy"}, addArgs...)
+		args = append(args, filePath)
+		cidRoot = strings.TrimSpace(publisher.IPFS(args...).Stdout.String())
+
+		dagOut := publisher.IPFS("dag", "get", cidRoot)
+		var dagNode struct {
+			Links []struct {
+				Hash map[string]string `json:"Hash"`
+			} `json:"Links"`
+		}
+		require.NoError(t, json.Unmarshal(dagOut.Stdout.Bytes(), &dagNode))
+		require.Greater(t, len(dagNode.Links), 1, "filestore file should have multiple chunks")
+		cidChunk = dagNode.Links[0].Hash["/"]
+		require.NotEmpty(t, cidChunk)
+		return cidRoot, cidChunk
+	}
+
+	t.Run("Filestore --nocopy with 'all' strategy provides every block", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Experimental.FilestoreEnabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "all")
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+		})
+		defer nodes.StopDaemons()
+		publisher, peers := nodes[0], nodes[1:]
+
+		// Positive control: with the default 'all' strategy the
+		// filestore Put path provides every block as it is written,
+		// including non-root chunks.
+		cidRoot, cidChunk := addLargeFilestoreFile(t, publisher)
+
+		pid := publisher.PeerID().String()
+		expectProviders(t, cidRoot, pid, peers...)
+		expectProviders(t, cidChunk, pid, peers...)
+	})
+
+	t.Run("Filestore --nocopy with selective strategy skips write-time provide", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Experimental.FilestoreEnabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "pinned")
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+		})
+		defer nodes.StopDaemons()
+		publisher, peers := nodes[0], nodes[1:]
+
+		// With a selective strategy the filestore must not eagerly
+		// announce blocks at write time. --pin=false skips the pin
+		// (so fast-provide-root has nothing to do) and
+		// --fast-provide-root=false disables it explicitly, isolating
+		// the assertion to the filestore's internal provide path.
+		cidRoot, cidChunk := addLargeFilestoreFile(t, publisher,
+			"--pin=false", "--fast-provide-root=false")
+
+		expectNoProviders(t, cidRoot, peers...)
+		expectNoProviders(t, cidChunk, peers...)
+	})
+
+	t.Run("Filestore --nocopy + selective strategy + --fast-provide-dag walks DAG", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Experimental.FilestoreEnabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "pinned")
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+		})
+		defer nodes.StopDaemons()
+		publisher, peers := nodes[0], nodes[1:]
+
+		// The selective-strategy gate skips the filestore's write-time
+		// provide, but the post-add ExecuteFastProvideDAG walk reads
+		// blocks through the wrapping blockstore (which transparently
+		// serves filestore-backed content) and announces each block,
+		// honoring the active strategy. This is the integration test
+		// behind the changelog claim that filestore content now plays
+		// well with the fast-provide-dag flag.
+		cidRoot, cidChunk := addLargeFilestoreFile(t, publisher,
+			"--fast-provide-dag", "--fast-provide-wait")
+
+		pid := publisher.PeerID().String()
+		expectProviders(t, cidRoot, pid, peers...)
+		expectProviders(t, cidChunk, pid, peers...)
 	})
 
 	t.Run("Provide with 'roots' strategy", func(t *testing.T) {
@@ -324,13 +576,17 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			n.SetIPFSConfig("Provide.Strategy", "roots")
 		})
 		defer nodes.StopDaemons()
+		publisher := nodes[0]
 
-		// Add a root CID (should be provided)
-		cidRoot := nodes[0].IPFSAddStr("roots strategy", "-w", "-Q")
-		// the same without wrapping should give us a child node.
-		cidChild := nodes[0].IPFSAddStr("root strategy", "--pin=false")
+		// Add with -w: the wrapper directory is the recursive pin root,
+		// the file inside is a child block of that pin (not a root).
+		// Use --only-hash first to learn the child CID without providing.
+		data := random.Bytes(1000)
+		cidChild := publisher.IPFSAdd(bytes.NewReader(data), "-Q", "--only-hash")
+		cidRoot := publisher.IPFSAdd(bytes.NewReader(data), "-Q", "-w")
 
-		expectProviders(t, cidRoot, nodes[0].PeerID().String(), nodes[1:]...)
+		// 'roots' strategy provides only pin roots, not child blocks.
+		expectProviders(t, cidRoot, publisher.PeerID().String(), nodes[1:]...)
 		expectNoProviders(t, cidChild, nodes[1:]...)
 	})
 
@@ -341,19 +597,66 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			n.SetIPFSConfig("Provide.Strategy", "mfs")
 		})
 		defer nodes.StopDaemons()
+		publisher := nodes[0]
 
-		// Add a file to MFS (should be provided)
+		// 'mfs' only provides content in MFS. Pinned content outside
+		// MFS should NOT be provided (mfs excludes pinned by default).
+		cidPinned := publisher.IPFSAddStr(uniq("pinned but not mfs"))
+		expectNoProviders(t, cidPinned, nodes[1:]...)
+
+		// Add to MFS (should be provided)
 		data := random.Bytes(1000)
-		cid := nodes[0].IPFSAdd(bytes.NewReader(data), "-Q")
+		cidMFS := publisher.IPFSAdd(bytes.NewReader(data), "-Q", "--pin=false")
+		publisher.IPFS("files", "cp", "/ipfs/"+cidMFS, "/myfile")
+		expectProviders(t, cidMFS, publisher.PeerID().String(), nodes[1:]...)
 
-		// not yet in MFS
-		expectNoProviders(t, cid, nodes[1:]...)
-
-		nodes[0].IPFS("files", "cp", "/ipfs/"+cid, "/myfile")
-		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+		// Pinned CID still not provided (mfs strategy ignores pins)
+		expectNoProviders(t, cidPinned, nodes[1:]...)
 	})
 
-	if reprovide {
+	// Reprovide tests: add content offline, start daemon, wait for reprovide.
+	//
+	// Each test waits for TWO reprovide cycles to confirm the schedule
+	// works repeatedly, not just on the initial bootstrap. The second
+	// cycle also catches bugs where state isn't persisted across cycles.
+	//
+	// Legacy: `routing reprovide` blocks until the reprovide cycle finishes,
+	// so we call it and check results immediately after.
+	//
+	// Sweep: no manual trigger exists. Instead, we set
+	// Provide.DHT.Interval=30s on the importing node and poll
+	// `provide stat` until the cycle completes.
+
+	// verifyReprovide waits for two reprovide cycles and asserts which
+	// CIDs are/aren't findable after each. minCIDs is the expected
+	// number of provided CIDs per cycle.
+	verifyReprovide := func(
+		t *testing.T,
+		publisher *harness.Node,
+		queriers harness.Nodes,
+		minCIDs int64,
+		provided []string,
+		notProvided []string,
+	) {
+		t.Helper()
+		pid := publisher.PeerID().String()
+		check := func() {
+			for _, c := range provided {
+				expectProviders(t, c, pid, queriers...)
+			}
+			for _, c := range notProvided {
+				expectNoProviders(t, c, queriers...)
+			}
+		}
+
+		after1 := awaitReprovide(t, publisher, minCIDs)
+		check()
+		// Second cycle: confirms the schedule runs repeatedly.
+		awaitReprovide(t, publisher, after1+minCIDs)
+		check()
+	}
+
+	{
 
 		t.Run("Reprovides with 'all' strategy when strategy is '' (empty)", func(t *testing.T) {
 			t.Parallel()
@@ -361,16 +664,19 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
 				n.SetIPFSConfig("Provide.Strategy", "")
 			})
+			publisher := nodes[0]
+			if sweep {
+				publisher.SetIPFSConfig("Provide.DHT.Interval", "30s")
+			}
 
-			cid := nodes[0].IPFSAddStr(time.Now().String())
+			cid := publisher.IPFSAddStr(time.Now().String())
 
 			nodes = nodes.StartDaemons().Connect()
 			defer nodes.StopDaemons()
-			expectNoProviders(t, cid, nodes[1:]...)
+			peers := nodes[1:]
 
-			nodes[0].IPFS("routing", "reprovide")
-
-			expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+			verifyReprovide(t, publisher, peers, 1, // 1 block added
+				[]string{cid}, nil)
 		})
 
 		t.Run("Reprovides with 'all' strategy", func(t *testing.T) {
@@ -379,16 +685,19 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
 				n.SetIPFSConfig("Provide.Strategy", "all")
 			})
+			publisher := nodes[0]
+			if sweep {
+				publisher.SetIPFSConfig("Provide.DHT.Interval", "30s")
+			}
 
-			cid := nodes[0].IPFSAddStr(time.Now().String())
+			cid := publisher.IPFSAddStr(time.Now().String())
 
 			nodes = nodes.StartDaemons().Connect()
 			defer nodes.StopDaemons()
-			expectNoProviders(t, cid, nodes[1:]...)
+			peers := nodes[1:]
 
-			nodes[0].IPFS("routing", "reprovide")
-
-			expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+			verifyReprovide(t, publisher, peers, 1, // 1 block added
+				[]string{cid}, nil)
 		})
 
 		t.Run("Reprovides with 'pinned' strategy", func(t *testing.T) {
@@ -400,62 +709,54 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
 				n.SetIPFSConfig("Provide.Strategy", "pinned")
 			})
+			publisher := nodes[0]
+			if sweep {
+				publisher.SetIPFSConfig("Provide.DHT.Interval", "30s")
+			}
 
-			// Add a pin while offline so it cannot be provided
-			cidBarDir := nodes[0].IPFSAdd(bytes.NewReader(bar), "-Q", "-w")
+			// Add a pin while offline
+			cidBarDir := publisher.IPFSAdd(bytes.NewReader(bar), "-Q", "-w")
 
 			nodes = nodes.StartDaemons().Connect()
 			defer nodes.StopDaemons()
+			peers := nodes[1:]
 
-			// Add content without pinning while daemon line
-			cidFoo := nodes[0].IPFSAdd(bytes.NewReader(foo), "--pin=false")
-			cidBar := nodes[0].IPFSAdd(bytes.NewReader(bar), "--pin=false")
+			// Add content without pinning while daemon is online
+			cidFoo := publisher.IPFSAdd(bytes.NewReader(foo), "--pin=false")
+			cidBar := publisher.IPFSAdd(bytes.NewReader(bar), "--pin=false")
 
-			// Nothing should have been provided. The pin was offline, and
-			// the others should not be provided per the strategy.
-			expectNoProviders(t, cidFoo, nodes[1:]...)
-			expectNoProviders(t, cidBar, nodes[1:]...)
-			expectNoProviders(t, cidBarDir, nodes[1:]...)
-
-			nodes[0].IPFS("routing", "reprovide")
-
-			// cidFoo is not pinned so should not be provided.
-			expectNoProviders(t, cidFoo, nodes[1:]...)
-			// cidBar gets provided by being a child from cidBarDir even though we added with pin=false.
-			expectProviders(t, cidBar, nodes[0].PeerID().String(), nodes[1:]...)
-			expectProviders(t, cidBarDir, nodes[0].PeerID().String(), nodes[1:]...)
+			verifyReprovide(t, publisher, peers, 2, // cidBar + cidBarDir (bar is child of the wrapped dir pin)
+				[]string{cidBar, cidBarDir},
+				[]string{cidFoo}) // cidFoo not pinned
 		})
 
 		t.Run("Reprovides with 'roots' strategy", func(t *testing.T) {
 			t.Parallel()
 
-			foo := random.Bytes(1000)
 			bar := random.Bytes(1000)
 
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
 				n.SetIPFSConfig("Provide.Strategy", "roots")
 			})
-			n0pid := nodes[0].PeerID().String()
+			publisher := nodes[0]
+			if sweep {
+				publisher.SetIPFSConfig("Provide.DHT.Interval", "30s")
+			}
 
-			// Add a pin. Only root should get pinned but not provided
-			// because node not started
-			cidBarDir := nodes[0].IPFSAdd(bytes.NewReader(bar), "-Q", "-w")
+			// Compute the child CID without storing anything (safe
+			// offline, daemon not started yet).
+			cidChild := publisher.IPFSAdd(bytes.NewReader(bar), "-Q", "--only-hash")
+			// Add with -w: pins the wrapper directory as root. The file
+			// inside is a child block of that pin, not a root.
+			cidRoot := publisher.IPFSAdd(bytes.NewReader(bar), "-Q", "-w")
 
 			nodes = nodes.StartDaemons().Connect()
 			defer nodes.StopDaemons()
+			peers := nodes[1:]
 
-			cidFoo := nodes[0].IPFSAdd(bytes.NewReader(foo))
-			cidBar := nodes[0].IPFSAdd(bytes.NewReader(bar), "--pin=false")
-
-			// cidFoo will get provided per the strategy but cidBar will not.
-			expectProviders(t, cidFoo, n0pid, nodes[1:]...)
-			expectNoProviders(t, cidBar, nodes[1:]...)
-
-			nodes[0].IPFS("routing", "reprovide")
-
-			expectProviders(t, cidFoo, n0pid, nodes[1:]...)
-			expectNoProviders(t, cidBar, nodes[1:]...)
-			expectProviders(t, cidBarDir, n0pid, nodes[1:]...)
+			verifyReprovide(t, publisher, peers, 1, // cidRoot (only pin root)
+				[]string{cidRoot},
+				[]string{cidChild}) // child of pin, not a root
 		})
 
 		t.Run("Reprovides with 'mfs' strategy", func(t *testing.T) {
@@ -466,22 +767,24 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
 				n.SetIPFSConfig("Provide.Strategy", "mfs")
 			})
-			n0pid := nodes[0].PeerID().String()
+			publisher := nodes[0]
+			if sweep {
+				publisher.SetIPFSConfig("Provide.DHT.Interval", "30s")
+			}
 
-			// add something and lets put it in MFS
-			cidBar := nodes[0].IPFSAdd(bytes.NewReader(bar), "--pin=false", "-Q")
-			nodes[0].IPFS("files", "cp", "/ipfs/"+cidBar, "/myfile")
+			// Add to MFS (should be provided)
+			cidMFS := publisher.IPFSAdd(bytes.NewReader(bar), "--pin=false", "-Q")
+			publisher.IPFS("files", "cp", "/ipfs/"+cidMFS, "/myfile")
+			// Pin something NOT in MFS (should NOT be provided)
+			cidPinned := publisher.IPFSAddStr(uniq("pinned but not mfs"))
 
 			nodes = nodes.StartDaemons().Connect()
 			defer nodes.StopDaemons()
+			peers := nodes[1:]
 
-			// cidBar is in MFS but not provided
-			expectNoProviders(t, cidBar, nodes[1:]...)
-
-			nodes[0].IPFS("routing", "reprovide")
-
-			// And now is provided
-			expectProviders(t, cidBar, n0pid, nodes[1:]...)
+			verifyReprovide(t, publisher, peers, 1, // cidMFS only
+				[]string{cidMFS},
+				[]string{cidPinned}) // mfs strategy ignores pinned content outside MFS
 		})
 
 		t.Run("Reprovides with 'pinned+mfs' strategy", func(t *testing.T) {
@@ -490,28 +793,79 @@ func runProviderSuite(t *testing.T, reprovide bool, apply cfgApplier) {
 			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
 				n.SetIPFSConfig("Provide.Strategy", "pinned+mfs")
 			})
-			n0pid := nodes[0].PeerID().String()
+			publisher := nodes[0]
+			if sweep {
+				publisher.SetIPFSConfig("Provide.DHT.Interval", "30s")
+			}
 
 			// Add a pinned CID (should be provided)
-			cidPinned := nodes[0].IPFSAddStr("pinned content", "--pin=true")
+			cidPinned := publisher.IPFSAddStr(uniq("pinned content"), "--pin=true")
 			// Add a CID to MFS (should be provided)
-			cidMFS := nodes[0].IPFSAddStr("mfs content")
-			nodes[0].IPFS("files", "cp", "/ipfs/"+cidMFS, "/myfile")
+			cidMFS := publisher.IPFSAddStr(uniq("mfs content"))
+			publisher.IPFS("files", "cp", "/ipfs/"+cidMFS, "/myfile")
 			// Add a CID that is neither pinned nor in MFS (should not be provided)
-			cidNeither := nodes[0].IPFSAddStr("neither content", "--pin=false")
+			cidNeither := publisher.IPFSAddStr(uniq("neither content"), "--pin=false")
 
 			nodes = nodes.StartDaemons().Connect()
 			defer nodes.StopDaemons()
+			peers := nodes[1:]
 
-			// Trigger reprovide
-			nodes[0].IPFS("routing", "reprovide")
+			verifyReprovide(t, publisher, peers, 2, // cidPinned + cidMFS
+				[]string{cidPinned, cidMFS},
+				[]string{cidNeither}) // neither pinned nor in MFS
+		})
 
-			// Check that pinned CID is provided
-			expectProviders(t, cidPinned, n0pid, nodes[1:]...)
-			// Check that MFS CID is provided
-			expectProviders(t, cidMFS, n0pid, nodes[1:]...)
-			// Check that neither CID is not provided
-			expectNoProviders(t, cidNeither, nodes[1:]...)
+		t.Run("Reprovides with 'pinned+mfs+unique' strategy", func(t *testing.T) {
+			t.Parallel()
+
+			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.Strategy", "pinned+mfs+unique")
+				n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+			})
+			publisher := nodes[0]
+			if sweep {
+				publisher.SetIPFSConfig("Provide.DHT.Interval", "30s")
+			}
+
+			// Build a directory DAG with a multi-chunk file in MFS, then pin it.
+			cidRoot, cidSubdir, cidFile, cidChunk := addLargeFileInSubdir(t, publisher)
+			publisher.IPFS("pin", "add", cidRoot)
+			cidUnpinned := publisher.IPFSAddStr(uniq("unpinned content"), "--pin=false")
+
+			nodes = nodes.StartDaemons().Connect()
+			defer nodes.StopDaemons()
+			peers := nodes[1:]
+
+			// +unique provides all blocks in pinned DAGs (same as pinned+mfs)
+			verifyReprovide(t, publisher, peers, 4, // root + subdir + file + chunks
+				[]string{cidRoot, cidSubdir, cidFile, cidChunk},
+				[]string{cidUnpinned})
+		})
+
+		t.Run("Reprovides with 'pinned+mfs+entities' strategy", func(t *testing.T) {
+			t.Parallel()
+
+			nodes := initNodesWithoutStart(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.Strategy", "pinned+mfs+entities")
+				n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576") // 1 MiB chunks
+			})
+			publisher := nodes[0]
+			if sweep {
+				publisher.SetIPFSConfig("Provide.DHT.Interval", "30s")
+			}
+
+			// Build a directory DAG with a multi-chunk file in MFS, then pin it.
+			cidRoot, cidSubdir, cidFile, cidChunk := addLargeFileInSubdir(t, publisher)
+			publisher.IPFS("pin", "add", cidRoot)
+
+			nodes = nodes.StartDaemons().Connect()
+			defer nodes.StopDaemons()
+			peers := nodes[1:]
+
+			// Entity roots: directories and file root (not chunks)
+			verifyReprovide(t, publisher, peers, 3, // root + subdir + file (not chunks)
+				[]string{cidRoot, cidSubdir, cidFile},
+				[]string{cidChunk}) // chunks skipped by +entities
 		})
 	}
 
@@ -712,12 +1066,22 @@ type provideStatJSON struct {
 		Schedule struct {
 			NextReprovidePrefix string `json:"next_reprovide_prefix"`
 		} `json:"schedule"`
+		Operations struct {
+			Ongoing struct {
+				KeyReprovides int `json:"key_reprovides"`
+			} `json:"ongoing"`
+			Past struct {
+				KeysProvided int64 `json:"keys_provided"`
+			} `json:"past"`
+		} `json:"operations"`
+		Queues struct {
+			PendingKeyProvides int64 `json:"pending_key_provides"`
+		} `json:"queues"`
 	} `json:"Sweep"`
 }
 
 // parseProvideStatJSON extracts timing and schedule information from
 // the JSON output of 'ipfs provide stat --enc=json'.
-// Note: prefix is unused in current tests but kept for potential future use.
 func parseProvideStatJSON(output string) (offset time.Duration, prefix string, err error) {
 	var stat provideStatJSON
 	if err := json.Unmarshal([]byte(output), &stat); err != nil {
@@ -728,26 +1092,74 @@ func parseProvideStatJSON(output string) (offset time.Duration, prefix string, e
 	return offset, prefix, nil
 }
 
+// waitForSweepReprovide polls `provide stat --enc=json` until the
+// sweep provider has provided at least minCIDs and no work is pending.
+// Pass 0 for minCIDs to just wait for any provide activity to finish.
+// Returns the total CIDs provided so far (for use as minCIDs in a
+// subsequent call to wait for the next cycle).
+// The importing node must have a short Provide.DHT.Interval so the
+// reprovide cycle completes within the timeout.
+func waitForSweepReprovide(t *testing.T, n *harness.Node, timeout time.Duration, minCIDs int64) int64 {
+	t.Helper()
+	if minCIDs == 0 {
+		minCIDs = 1
+	}
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		res := n.RunIPFS("provide", "stat", "--enc=json")
+		if res.ExitCode() == 0 {
+			var stat provideStatJSON
+			if err := json.Unmarshal(res.Stdout.Bytes(), &stat); err == nil {
+				s := stat.Sweep
+				if s.Operations.Past.KeysProvided >= minCIDs &&
+					s.Queues.PendingKeyProvides == 0 &&
+					s.Operations.Ongoing.KeyReprovides == 0 {
+					return s.Operations.Past.KeysProvided
+				}
+			}
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	t.Fatalf("sweep reprovide: expected at least %d CIDs provided within %s", minCIDs, timeout)
+	return 0
+}
+
 func TestProvider(t *testing.T) {
 	t.Parallel()
 
 	variants := []struct {
-		name      string
-		reprovide bool
-		apply     cfgApplier
+		name           string
+		sweep          bool
+		apply          cfgApplier
+		awaitReprovide awaitReprovideFunc
 	}{
 		{
-			name:      "LegacyProvider",
-			reprovide: true,
+			name:  "LegacyProvider",
+			sweep: false,
 			apply: func(n *harness.Node) {
 				n.SetIPFSConfig("Provide.DHT.SweepEnabled", false)
 			},
+			// `routing reprovide` blocks until the cycle finishes.
+			// minCIDs is ignored (legacy has no stat counter).
+			awaitReprovide: func(t *testing.T, n *harness.Node, minCIDs int64) int64 {
+				n.IPFS("routing", "reprovide")
+				return minCIDs
+			},
 		},
 		{
-			name:      "SweepingProvider",
-			reprovide: false,
+			name:  "SweepingProvider",
+			sweep: true,
 			apply: func(n *harness.Node) {
 				n.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+			},
+			// No manual trigger exists for sweep. Poll `provide stat`
+			// until the reprovide cycle completes.
+			awaitReprovide: func(t *testing.T, n *harness.Node, minCIDs int64) int64 {
+				// 90s accounts for provider bootstrap time (connecting
+				// to ephemeral peers, measuring prefix length) before
+				// the 30s reprovide cycle starts. On CI with parallel
+				// tests, bootstrap can take 20-30s.
+				return waitForSweepReprovide(t, n, 90*time.Second, minCIDs)
 			},
 		},
 	}
@@ -755,14 +1167,227 @@ func TestProvider(t *testing.T) {
 	for _, v := range variants {
 		t.Run(v.name, func(t *testing.T) {
 			// t.Parallel()
-			runProviderSuite(t, v.reprovide, v.apply)
+			runProviderSuite(t, v.sweep, v.apply, v.awaitReprovide)
 
 			// Resume tests only apply to SweepingProvider
-			if v.name == "SweepingProvider" {
+			if v.sweep {
 				runResumeTests(t, v.apply)
 			}
 		})
 	}
+}
+
+// TestProviderUniqueDedupLogging verifies that the +unique bloom filter
+// deduplication produces a "skippedBranches" log with a value > 0 when
+// two pins share content. Tests both the fast-provide-dag path (immediate
+// provide on pin add) and the reprovide cycle path.
+func TestProviderUniqueDedupLogging(t *testing.T) {
+	t.Parallel()
+
+	// Shared data that both pins will reference. Two pins containing
+	// the same file block give the bloom something to dedup.
+	sharedData := random.Bytes(10 * 1024) // 10 KiB, single block
+
+	t.Run("fast-provide-dag dedup across pins in single call", func(t *testing.T) {
+		t.Parallel()
+
+		h := harness.NewT(t)
+		node := h.NewNode().Init()
+		node.SetIPFSConfig("Provide.Strategy", "pinned+unique")
+		node.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+		node.SetIPFSConfig("Import.UnixFSChunker", "size-5120") // 5 KiB chunks
+		h.BootstrapWithStubDHT(harness.Nodes{node})
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					// dagwalker: bloom creation log
+					// core/commands/cmdenv: fast-provide-dag finished log
+					"GOLOG_LOG_LEVEL": "error,dagwalker=info,core/commands/cmdenv=info",
+				}),
+			},
+		}, "")
+		defer node.StopDaemon()
+
+		// 10 KiB file with 5 KiB chunks = 1 file root + 2 chunks = 3 blocks.
+		// Two dirs each containing the file under different names:
+		//   dirA/fileA → same 3 blocks
+		//   dirB/fileB → same 3 blocks
+		// Pinning both in a single `pin add` shares one bloom tracker.
+		// Walking dirA: dirA + file root + chunk1 + chunk2 = 4 provided.
+		// Walking dirB: dirB + file root (bloom hit, skip subtree) = 1 provided, 1 skipped.
+		// Total: 5 provided, 1 skipped branch (file root in dirB; its
+		// 2 chunks are never visited because the parent was skipped).
+		cidFile := node.IPFSAdd(bytes.NewReader(sharedData), "-Q", "--pin=false")
+		node.IPFS("files", "mkdir", "-p", "/dirA")
+		node.IPFS("files", "cp", "/ipfs/"+cidFile, "/dirA/fileA")
+		cidDirA := node.IPFS("files", "stat", "--hash", "/dirA").Stdout.Trimmed()
+		node.IPFS("files", "mkdir", "-p", "/dirB")
+		node.IPFS("files", "cp", "/ipfs/"+cidFile, "/dirB/fileB")
+		cidDirB := node.IPFS("files", "stat", "--hash", "/dirB").Stdout.Trimmed()
+		require.NotEqual(t, cidDirA, cidDirB, "dirs must differ to test dedup")
+		// Single pin add with both CIDs shares one bloom.
+		node.IPFS("pin", "add", "--fast-provide-dag", "--fast-provide-wait", cidDirA, cidDirB)
+
+		daemonLog := node.Daemon.Stderr.String()
+		require.Contains(t, daemonLog, "bloom tracker created")
+		require.NotContains(t, daemonLog, "bloom tracker autoscaled")
+		require.Contains(t, daemonLog, `"providedCIDs": 5`)
+		require.Contains(t, daemonLog, `"skippedBranches": 1`)
+	})
+
+	t.Run("reprovide cycle dedup across pins", func(t *testing.T) {
+		t.Parallel()
+
+		h := harness.NewT(t)
+		nodes := h.NewNodes(2).Init()
+		for _, n := range nodes {
+			n.SetIPFSConfig("Provide.Strategy", "pinned+unique")
+			n.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-5120") // 5 KiB chunks
+		}
+		publisher := nodes[0]
+		publisher.SetIPFSConfig("Provide.DHT.Interval", "30s")
+		h.BootstrapWithStubDHT(nodes)
+
+		// Same file structure as fast-provide-dag test above.
+		// The reprovide cycle walks all recursive pins:
+		//   pin dirA: dirA + file root + chunk1 + chunk2 = 4 provided
+		//   pin empty MFS root (always present): 1 provided
+		//   pin dirB: dirB + file root (bloom hit, skip subtree) = 1 provided, 1 skipped
+		// Total: 6 provided, 1 skipped branch.
+		cidFile := publisher.IPFSAdd(bytes.NewReader(sharedData), "-Q", "--pin=false")
+		publisher.IPFS("files", "mkdir", "-p", "/dirA")
+		publisher.IPFS("files", "cp", "/ipfs/"+cidFile, "/dirA/fileA")
+		cidDirA := publisher.IPFS("files", "stat", "--hash", "/dirA").Stdout.Trimmed()
+		publisher.IPFS("pin", "add", cidDirA)
+		publisher.IPFS("files", "mkdir", "-p", "/dirB")
+		publisher.IPFS("files", "cp", "/ipfs/"+cidFile, "/dirB/fileB")
+		cidDirB := publisher.IPFS("files", "stat", "--hash", "/dirB").Stdout.Trimmed()
+		require.NotEqual(t, cidDirA, cidDirB, "dirs must differ to test dedup")
+		publisher.IPFS("pin", "add", cidDirB)
+
+		nodes[0].StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithEnv(map[string]string{
+					"GOLOG_LOG_LEVEL": "error,dagwalker=info,provider=info",
+				}),
+			},
+		}, "")
+		nodes[1].StartDaemon()
+		defer nodes.StopDaemons()
+		nodes.Connect()
+
+		waitForSweepReprovide(t, publisher, 90*time.Second, 6)
+
+		daemonLog := publisher.Daemon.Stderr.String()
+		require.Contains(t, daemonLog, "bloom tracker created")
+		require.NotContains(t, daemonLog, "bloom tracker autoscaled")
+		require.Contains(t, daemonLog, `"providedCIDs": 6`)
+		require.Contains(t, daemonLog, `"skippedBranches": 1`)
+	})
+}
+
+// TestProviderFastProvideDAGAsyncSurvives verifies that
+// --fast-provide-dag without --fast-provide-wait runs a background
+// DAG walk that outlives the command handler and publishes every
+// block of the newly added DAG to the routing system.
+//
+// The async walk runs in a goroutine parented on the IpfsNode
+// lifetime context (not req.Context), so it keeps running after
+// `ipfs add` returns and is only cancelled on daemon shutdown.
+//
+// Provide.DHT.Interval is set high so the scheduled reprovide
+// cycle cannot fire during the test window. That makes the async
+// walk the only path that can publish non-root block CIDs.
+func TestProviderFastProvideDAGAsyncSurvives(t *testing.T) {
+	t.Parallel()
+
+	h := harness.NewT(t)
+	nodes := h.NewNodes(2).Init()
+	for _, n := range nodes {
+		n.SetIPFSConfig("Provide.Strategy", "pinned")
+		n.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+		// Small chunks so a modest file produces many leaf blocks.
+		n.SetIPFSConfig("Import.UnixFSChunker", "size-1024")
+	}
+	publisher, peers := nodes[0], nodes[1:]
+	publisher.SetIPFSConfig("Provide.DHT.Interval", "1h")
+	h.BootstrapWithStubDHT(nodes)
+
+	publisher.StartDaemonWithReq(harness.RunRequest{
+		CmdOpts: []harness.CmdOpt{
+			harness.RunWithEnv(map[string]string{
+				"GOLOG_LOG_LEVEL": "error,core/commands/cmdenv=info",
+			}),
+		},
+	}, "")
+	nodes[1].StartDaemon()
+	defer nodes.StopDaemons()
+	nodes.Connect()
+
+	// 16 KiB + 1 KiB chunks yields a file root plus many leaf
+	// blocks, so the providedCIDs count after the walk is
+	// unambiguous.
+	data := random.Bytes(16 * 1024)
+	cidFile := publisher.IPFSAdd(bytes.NewReader(data), "-Q",
+		"--pin=true",
+		"--fast-provide-dag=true",
+		// --fast-provide-wait deliberately omitted: the walk
+		// runs in the background after `ipfs add` returns.
+	)
+
+	// Pull a chunk CID out of the file DAG. Chunks are not pin
+	// roots, so fast-provide-root does not touch them; only the
+	// DAG walk can announce them.
+	dagOut := publisher.IPFS("dag", "get", cidFile)
+	var dagNode struct {
+		Links []struct {
+			Hash map[string]string `json:"Hash"`
+		} `json:"Links"`
+	}
+	require.NoError(t, json.Unmarshal(dagOut.Stdout.Bytes(), &dagNode))
+	require.Greater(t, len(dagNode.Links), 1, "file should have multiple chunks")
+	cidChunk := dagNode.Links[0].Hash["/"]
+	require.NotEmpty(t, cidChunk)
+
+	// The async walk logs "fast-provide-dag: finished" with a
+	// providedCIDs count on completion. A full walk of this file
+	// visits the root plus every leaf chunk, so the count is much
+	// larger than 2.
+	providedRe := regexp.MustCompile(`"providedCIDs": (\d+)`)
+	var providedCount int
+	require.Eventually(t, func() bool {
+		m := providedRe.FindStringSubmatch(publisher.Daemon.Stderr.String())
+		if len(m) != 2 {
+			return false
+		}
+		n, err := strconv.Atoi(m[1])
+		if err != nil {
+			return false
+		}
+		providedCount = n
+		return true
+	}, 30*time.Second, 200*time.Millisecond, "async fast-provide-dag walk did not log 'finished'")
+
+	require.Greater(t, providedCount, 2,
+		"providedCIDs=%d is too small for a full walk of the file DAG", providedCount)
+
+	// End-to-end: the peer can find the publisher as a provider
+	// for a chunk CID, which only the async walk could have
+	// announced within the test window.
+	pid := publisher.PeerID().String()
+	var found bool
+	for _, peer := range peers {
+		for i := time.Duration(0); i*timeStep < timeout; i++ {
+			res := peer.IPFS("routing", "findprovs", "-n=1", cidChunk)
+			if res.Stdout.Trimmed() == pid {
+				found = true
+				break
+			}
+		}
+	}
+	require.True(t, found, "chunk %s not announced by the async walk", cidChunk)
 }
 
 // TestHTTPOnlyProviderWithSweepEnabled tests that provider records are correctly
@@ -841,4 +1466,259 @@ func TestHTTPOnlyProviderWithSweepEnabled(t *testing.T) {
 	// LegacyProvider outputs "TotalReprovides:" in its stats
 	assert.Contains(t, statRes.Stdout.String(), "TotalReprovides:",
 		"should show legacy provider stats")
+}
+
+// TestProviderKeystoreDatastoreCompaction verifies that the SweepingProvider's
+// keystore uses a datastore factory that creates separate physical datastores
+// and reclaims disk space by deleting old datastores after each reset cycle.
+//
+// The keystore uses two alternating namespaces ("0" and "1") plus a "meta"
+// namespace. The lifecycle is:
+//  1. First start: namespace "0" is created as the initial active datastore
+//  2. First reset (keystore sync at startup): "1" is created, data is written,
+//     namespaces swap, "0" is destroyed from disk via os.RemoveAll
+//  3. Restart: "1" and "meta" survive on disk
+//  4. Second reset: "0" is recreated, namespaces swap, "1" is destroyed
+func TestProviderKeystoreDatastorePurge(t *testing.T) {
+	t.Parallel()
+
+	h := harness.NewT(t)
+	node := h.NewNode().Init()
+	node.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+	node.SetIPFSConfig("Provide.Enabled", true)
+	node.SetIPFSConfig("Bootstrap", []string{})
+
+	// Add content offline so the keystore has something to sync on startup.
+	for i := range 5 {
+		node.IPFSAddStr(fmt.Sprintf("keystore-compaction-test-%d", i))
+	}
+
+	keystoreBase := filepath.Join(node.Dir, "provider-keystore")
+	ns0 := filepath.Join(keystoreBase, "0")
+	ns1 := filepath.Join(keystoreBase, "1")
+
+	// Directory should not exist before starting the daemon.
+	_, err := os.Stat(keystoreBase)
+	require.True(t, os.IsNotExist(err), "provider-keystore should not exist before daemon start")
+
+	// --- First start: triggers keystore sync (ResetCids) ---
+	// Init creates "0", then reset swaps to "1" and destroys "0".
+	node.StartDaemon()
+
+	require.Eventually(t, func() bool {
+		return dirExists(ns1) && !dirExists(ns0)
+	}, 30*time.Second, 200*time.Millisecond,
+		"after first reset: ns1 should exist, ns0 should be destroyed")
+
+	// --- Restart: triggers a second keystore sync (ResetCids) ---
+	// Reset swaps back to "0" and destroys "1".
+	node.StopDaemon()
+
+	// Between restarts: ns1 survives on disk, ns0 does not.
+	assert.True(t, dirExists(ns1), "ns1 should survive shutdown")
+	assert.False(t, dirExists(ns0), "ns0 should not reappear between restarts")
+
+	node.StartDaemon()
+
+	require.Eventually(t, func() bool {
+		return dirExists(ns0) && !dirExists(ns1)
+	}, 30*time.Second, 200*time.Millisecond,
+		"after second reset: ns0 should exist, ns1 should be destroyed")
+
+	node.StopDaemon()
+}
+
+// TestProviderKeystoreMigrationPurge verifies that orphaned keystore data
+// left in the shared repo datastore by older Kubo versions is purged on
+// the first sweep-enabled daemon start. The migration is triggered by the
+// absence of the <repo>/provider-keystore/ directory.
+func TestProviderKeystoreMigrationPurge(t *testing.T) {
+	t.Parallel()
+
+	h := harness.NewT(t)
+	node := h.NewNode().Init()
+	node.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+	node.SetIPFSConfig("Provide.Enabled", true)
+	node.SetIPFSConfig("Bootstrap", []string{})
+
+	keystoreBase := filepath.Join(node.Dir, "provider-keystore")
+
+	// Pre-seed orphaned keystore data into the shared datastore, simulating
+	// the layout produced by older Kubo that stored keystore entries inline.
+	const numOrphans = 10
+	for i := range numOrphans {
+		node.DatastorePut(
+			fmt.Sprintf("/provider/keystore/%d/fake-key-%d", i%2, i),
+			fmt.Sprintf("orphan-%d", i),
+		)
+	}
+
+	// The orphaned keys should be visible via diag datastore.
+	count := node.DatastoreCount("/provider/keystore/")
+	require.Equal(t, int64(numOrphans), count, "orphaned keys should be present before migration")
+
+	// The provider-keystore directory must not exist yet (its absence
+	// triggers the migration).
+	require.False(t, dirExists(keystoreBase),
+		"provider-keystore/ should not exist before first sweep-enabled start")
+
+	// Start the daemon: this triggers the one-time migration purge.
+	node.StartDaemon()
+	node.StopDaemon()
+
+	// After migration the seeded orphaned keys should be gone from the
+	// shared datastore. The diag datastore count command mounts the
+	// separate provider-keystore datastores, so we check for the specific
+	// fake keys we seeded to confirm they were purged.
+	for i := range numOrphans {
+		key := fmt.Sprintf("/provider/keystore/%d/fake-key-%d", i%2, i)
+		assert.False(t, node.DatastoreHasKey(key),
+			"orphaned key %s should be purged after migration", key)
+	}
+
+	// The provider-keystore directory should now exist.
+	assert.True(t, dirExists(keystoreBase),
+		"provider-keystore/ should exist after sweep-enabled daemon ran")
+}
+
+func dirExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
+}
+
+// TestProviderKeystoreSyncShutdownQuiet verifies two shutdown UX
+// guarantees for a daemon running the sweeping provider with a
+// pin-walking strategy (see ipfs/kubo#11292):
+//
+//  1. Shutdown-caused keystore-sync errors never appear at Error
+//     level. The fix classifies keystore.ErrClosed and context
+//     cancellation as shutdown-caused and logs at Debug as
+//     "interrupted by shutdown" instead.
+//  2. `ipfs pin ls --stream` running against the daemon returns a
+//     meaningful error (no panic, no hang) when the daemon is
+//     shutting down mid-stream.
+//
+// Determinism: with Provide.DHT.Interval=10ms the periodic
+// reprovide goroutine runs syncKeystore back-to-back (ticks coalesce
+// under the select), so it is always mid-sync when StopDaemon
+// closes the keystore. The line-scan below fails on the exact
+// Error+err=keystore-closed/context-canceled combination the old
+// code emitted. Empirically this catches the regression on most
+// runs (~3 of 5 on a fast workstation); the first few bug-free
+// runs were verified by temporarily reverting core/node/provider.go.
+func TestProviderKeystoreSyncShutdownQuiet(t *testing.T) {
+	t.Parallel()
+
+	h := harness.NewT(t)
+	node := h.NewNode().Init()
+	node.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+	node.SetIPFSConfig("Provide.Enabled", true)
+	node.SetIPFSConfig("Provide.Strategy", "pinned+mfs+entities")
+	// Tight Interval: once the startup sync completes, the periodic
+	// goroutine runs syncKeystore back-to-back (ticks coalesce under
+	// the select), so it is always mid-sync when StopDaemon fires.
+	// This makes the shutdown interrupt deterministic. Briefly
+	// during startup the first periodic tick may overlap the startup
+	// sync and emit "reset already in progress" at Error; the log
+	// scan below explicitly ignores that unrelated class of error.
+	node.SetIPFSConfig("Provide.DHT.Interval", "10ms")
+	node.SetIPFSConfig("Bootstrap", []string{})
+
+	// Seed recursive pins so the keystore sync has meaningful work.
+	// Offline bulk add + bulk pin is much faster than per-file
+	// IPFSAddStr calls for this count.
+	const nPins = 500
+	dir := t.TempDir()
+	for i := range nPins {
+		require.NoError(t, os.WriteFile(
+			filepath.Join(dir, fmt.Sprintf("f%04d", i)),
+			fmt.Appendf(nil, "keystore-shutdown-content-%d", i),
+			0o600,
+		))
+	}
+	// --pin=false so the wrapping dir is not auto-pinned; each file
+	// is then pinned individually below to get nPins separate pin
+	// index entries (one big recursive pin would not exercise the
+	// pin-index streamIndex walk the same way).
+	addRes := node.IPFS("add", "-r", "-q", "--pin=false", dir)
+	addedCIDs := strings.Split(strings.TrimSpace(addRes.Stdout.String()), "\n")
+	require.GreaterOrEqual(t, len(addedCIDs), nPins, "expected at least %d CIDs from bulk add", nPins)
+	pinArgs := append([]string{"pin", "add"}, addedCIDs[:nPins]...)
+	node.IPFS(pinArgs...)
+
+	node.StartDaemonWithReq(harness.RunRequest{
+		CmdOpts: []harness.CmdOpt{
+			harness.RunWithEnv(map[string]string{
+				// Debug for the provider subsystem so the shutdown
+				// Debug line is visible for post-hoc inspection.
+				"GOLOG_LOG_LEVEL": "error,provider=debug",
+			}),
+		},
+	}, "")
+
+	// Wait for the startup sync to complete so periodic has sole
+	// access to the keystore when we shut down.
+	require.Eventually(t, func() bool {
+		return strings.Contains(node.Daemon.Stderr.String(), "provider keystore sync completed")
+	}, 30*time.Second, 50*time.Millisecond, "startup keystore sync should complete")
+
+	// Let periodic reprovide fire several times.
+	time.Sleep(1 * time.Second)
+
+	// Kick off `ipfs pin ls --stream` against the live RPC. The
+	// server-side channel is held by the pinner's streamIndex
+	// goroutine; when StopDaemon below tears down the keystore and
+	// datastore, the HTTP stream closes under the CLI, which must
+	// exit cleanly with a meaningful error (no panic, no hang).
+	pinLsDone := make(chan *harness.RunResult, 1)
+	go func() {
+		pinLsDone <- node.RunIPFS("pin", "ls", "--stream")
+	}()
+	// Brief delay so the pin ls RPC has started streaming.
+	time.Sleep(100 * time.Millisecond)
+
+	node.StopDaemon()
+
+	// --- Daemon-side assertions ---
+
+	daemonLog := node.Daemon.Stderr.String()
+
+	// Scan for the specific bug pattern: an Error-level line from
+	// the provider subsystem about "keystore sync" whose err field
+	// is the shutdown-caused "keystore is closed" or "context
+	// canceled". The fix routes those to Debug; only unrelated
+	// errors (e.g. "reset already in progress" from test-induced
+	// overlap) remain at Error and are ignored by this check.
+	for line := range strings.SplitSeq(daemonLog, "\n") {
+		if !strings.Contains(line, "\tERROR\t") {
+			continue
+		}
+		if !strings.Contains(line, "provider keystore sync") {
+			continue
+		}
+		if strings.Contains(line, `"err": "keystore is closed"`) ||
+			strings.Contains(line, `"err": "context canceled"`) {
+			t.Errorf("shutdown-caused keystore sync error should be logged at Debug, got Error:\n%s", line)
+		}
+	}
+
+	// --- Client-side assertions (ipfs pin ls --stream) ---
+
+	var pinLs *harness.RunResult
+	select {
+	case pinLs = <-pinLsDone:
+	case <-time.After(15 * time.Second):
+		t.Fatal("ipfs pin ls --stream did not return within 15s of daemon shutdown")
+	}
+
+	pinLsOut := pinLs.Stdout.String() + pinLs.Stderr.String()
+	require.NotContains(t, pinLsOut, "panic:",
+		"ipfs pin ls must not observe a daemon panic")
+	// Either the stream drained before shutdown (exit 0) or the
+	// server dropped it mid-stream (non-zero exit with a meaningful
+	// error message). Silent non-zero exits are confusing and fail.
+	if pinLs.ExitCode() != 0 {
+		require.NotEmpty(t, strings.TrimSpace(pinLs.Stderr.String()),
+			"pin ls exited non-zero but produced no error message")
+	}
 }

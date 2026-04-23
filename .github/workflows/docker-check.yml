@@ -30,6 +30,20 @@ jobs:
           verbose: true
           format: tty
 
+      # Guard rail: the Dockerfile ARG default is what `docker build .` uses
+      # locally without --build-arg. CI overrides it from go.mod, but the
+      # default must stay in sync so local builds and the published image use
+      # the same Go toolchain.
+      - name: Verify Dockerfile GO_VERSION default matches go.mod
+        run: |
+          GO_MOD_VERSION=$(awk '/^go [0-9]/ {print $2; exit}' go.mod)
+          DOCKERFILE_VERSION=$(awk -F= '/^ARG GO_VERSION=/ {print $2; exit}' Dockerfile)
+          if [ "$GO_MOD_VERSION" != "$DOCKERFILE_VERSION" ]; then
+            echo "::error file=Dockerfile::go.mod has 'go ${GO_MOD_VERSION}' but Dockerfile default ARG GO_VERSION=${DOCKERFILE_VERSION}. Update the Dockerfile default to match go.mod."
+            exit 1
+          fi
+          echo "OK: both pinned to ${GO_MOD_VERSION}"
+
   build:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -42,17 +56,25 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      
+        uses: docker/setup-buildx-action@v4
+
+      # Mirror the publish workflow: pull the Go version from go.mod so the
+      # PR check builds with the same toolchain that the published image uses.
+      - name: Read Go version from go.mod
+        id: go
+        run: echo "version=$(awk '/^go [0-9]/ {print $2; exit}' go.mod)" >> "$GITHUB_OUTPUT"
+
       - name: Build Docker image with BuildKit
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: false
           load: true
           tags: ${{ env.IMAGE_NAME }}:${{ env.WIP_IMAGE_TAG }}
+          build-args: |
+            GO_VERSION=${{ steps.go.outputs.version }}
           cache-from: |
             type=gha
             type=registry,ref=${{ env.IMAGE_NAME }}:buildcache

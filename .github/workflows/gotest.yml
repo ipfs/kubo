@@ -43,7 +43,7 @@ jobs:
           make test_unit &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         if: failure() || success()
         with:
           name: unittests
@@ -57,7 +57,7 @@ jobs:
           output: test/unit/gotest.junit.xml
         if: failure() || success()
       - name: Archive the JUnit XML report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: unit-tests-junit
           path: test/unit/gotest.junit.xml
@@ -70,7 +70,7 @@ jobs:
           output: test/unit/gotest.html
         if: failure() || success()
       - name: Archive the HTML report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: unit-tests-html
           path: test/unit/gotest.html
@@ -120,7 +120,7 @@ jobs:
           output: test/cli/cli-tests.junit.xml
         if: failure() || success()
       - name: Archive JUnit XML report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cli-tests-junit
           path: test/cli/cli-tests.junit.xml
@@ -133,7 +133,7 @@ jobs:
           output: test/cli/cli-tests.html
         if: failure() || success()
       - name: Archive HTML report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cli-tests-html
           path: test/cli/cli-tests.html
@@ -148,6 +148,59 @@ jobs:
       - name: Set summary
         run: cat test/cli/cli-tests.md >> $GITHUB_STEP_SUMMARY
         if: failure() || success()
+
+  # FUSE filesystem tests (require /dev/fuse and fusermount)
+  # Runs both FUSE unit tests (./fuse/...) and CLI integration tests (./test/cli/fuse/...)
+  fuse-tests:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    concurrency:
+      group: fuse-tests-${{ github.repository }}
+      cancel-in-progress: false
+    # A normal run takes ~3min. 6min gives roughly 2x and lets Go's 4min
+    # test timeout fire first (printing a stack trace) on a hang, instead
+    # of GitHub silently cancelling the job.
+    timeout-minutes: 6
+    env:
+      # Dump all goroutines on a test panic, not just the panicking one,
+      # so we can see which test is actually hung.
+      GOTRACEBACK: all
+      TEST_FUSE: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Install FUSE
+        run: |
+          if ! command -v fusermount3 &>/dev/null && ! command -v fusermount &>/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y fuse3
+          fi
+      - name: Clean up stale FUSE mounts
+        run: |
+          # On shared self-hosted runners, leftover mounts from previous
+          # runs can exhaust the kernel FUSE mount limit (mount_max).
+          # Unit tests mount with FsName "kubo-test"; CLI tests mount
+          # under the harness temp dir (ipfs/ipns/mfs subdirectories).
+          awk '$1 == "kubo-test" || $2 ~ /\/tmp\/.*\/(ipfs|ipns|mfs)$/ { print $2 }' /proc/mounts 2>/dev/null \
+            | while read -r mp; do
+                fusermount3 -uz "$mp" 2>/dev/null || fusermount -uz "$mp" 2>/dev/null || true
+              done
+      - name: Run FUSE tests
+        run: make test_fuse
+      - name: Clean up FUSE mounts
+        if: always()
+        run: |
+          awk '$1 == "kubo-test" || $2 ~ /\/tmp\/.*\/(ipfs|ipns|mfs)$/ { print $2 }' /proc/mounts 2>/dev/null \
+            | while read -r mp; do
+                fusermount3 -uz "$mp" 2>/dev/null || fusermount -uz "$mp" 2>/dev/null || true
+              done
 
   # Example tests (kubo-as-a-library)
   example-tests:

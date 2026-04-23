@@ -22,6 +22,7 @@ const (
 	silentOptionName          = "silent"
 	statsOptionName           = "stats"
 	fastProvideRootOptionName = "fast-provide-root"
+	fastProvideDAGOptionName  = "fast-provide-dag"
 	fastProvideWaitOptionName = "fast-provide-wait"
 )
 
@@ -97,7 +98,7 @@ into an object of the specified format.
 	Type: OutputObject{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *OutputObject) error {
-			enc, err := cmdenv.GetLowLevelCidEncoder(req)
+			enc, err := cmdenv.GetCidEncoder(req)
 			if err != nil {
 				return err
 			}
@@ -153,7 +154,7 @@ var DagResolveCmd = &cmds.Command{
 				// Nope, fallback on the default.
 				fallthrough
 			default:
-				enc, err = cmdenv.GetLowLevelCidEncoder(req)
+				enc, err = cmdenv.GetCidEncoder(req)
 				if err != nil {
 					return err
 				}
@@ -216,6 +217,7 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
 		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CIDs to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideDAGOptionName, "Walk and provide the full DAG according to Provide.Strategy after import. Default: Import.FastProvideDAG"),
 		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes before returning. Default: Import.FastProvideWait"),
 		cmdutils.AllowBigBlockOption,
 	},
@@ -244,7 +246,7 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 				return fmt.Errorf("unexpected message from DAG import")
 			}
 
-			enc, err := cmdenv.GetLowLevelCidEncoder(req)
+			enc, err := cmdenv.GetCidEncoder(req)
 			if err != nil {
 				return err
 			}
@@ -292,55 +294,13 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 	},
 }
 
-// DagStat is a dag stat command response
+// DagStat is a dag stat command response. Cid is stored as a
+// pre-encoded string (via GetCidEncoder in the Run handler) so that
+// --cid-base is respected and no custom MarshalJSON is needed.
 type DagStat struct {
-	Cid       cid.Cid
+	Cid       string `json:"Cid"`
 	Size      uint64 `json:",omitempty"`
 	NumBlocks int64  `json:",omitempty"`
-}
-
-func (s *DagStat) String() string {
-	return fmt.Sprintf("%s  %d  %d", s.Cid.String()[:20], s.Size, s.NumBlocks)
-}
-
-func (s *DagStat) MarshalJSON() ([]byte, error) {
-	type Alias DagStat
-	/*
-		We can't rely on cid.Cid.MarshalJSON since it uses the {"/": "..."}
-		format. To make the output consistent and follow the Kubo API patterns
-		we use the Cid.String method
-	*/
-	return json.Marshal(struct {
-		Cid string `json:"Cid"`
-		*Alias
-	}{
-		Cid:   s.Cid.String(),
-		Alias: (*Alias)(s),
-	})
-}
-
-func (s *DagStat) UnmarshalJSON(data []byte) error {
-	/*
-		We can't rely on cid.Cid.UnmarshalJSON since it uses the {"/": "..."}
-		format. To make the output consistent and follow the Kubo API patterns
-		we use the Cid.Parse method
-	*/
-	type Alias DagStat
-	aux := struct {
-		Cid string `json:"Cid"`
-		*Alias
-	}{
-		Alias: (*Alias)(s),
-	}
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-	Cid, err := cid.Parse(aux.Cid)
-	if err != nil {
-		return err
-	}
-	s.Cid = Cid
-	return nil
 }
 
 type DagStatSummary struct {
@@ -404,7 +364,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 			fmt.Fprintln(w)
 			csvWriter := csv.NewWriter(w)
 			csvWriter.Comma = '\t'
-			cidSpacing := len(event.DagStatsArray[0].Cid.String())
+			cidSpacing := len(event.DagStatsArray[0].Cid)
 			header := []string{fmt.Sprintf("%-*s", cidSpacing, "CID"), fmt.Sprintf("%-15s", "Blocks"), "Size"}
 			if err := csvWriter.Write(header); err != nil {
 				return err
@@ -412,7 +372,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 			for _, dagStat := range event.DagStatsArray {
 				numBlocksStr := fmt.Sprint(dagStat.NumBlocks)
 				err := csvWriter.Write([]string{
-					dagStat.Cid.String(),
+					dagStat.Cid,
 					fmt.Sprintf("%-15s", numBlocksStr),
 					fmt.Sprint(dagStat.Size),
 				})
@@ -432,7 +392,6 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 		}),
 		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStatSummary) error {
 			return json.NewEncoder(w).Encode(event)
-		},
-		),
+		}),
 	},
 }

@@ -22,6 +22,7 @@ type Harness struct {
 	Runner    *Runner
 	NodesRoot string
 	Nodes     Nodes
+	stubPeers *stubPeerPool // ephemeral DHT peers for TEST_DHT_STUB mode
 }
 
 // TODO: use zaptest.NewLogger(t) instead
@@ -71,6 +72,40 @@ func New(options ...func(h *Harness)) *Harness {
 	}
 
 	return h
+}
+
+// BootstrapWithStubDHT configures each node to bootstrap from
+// ephemeral in-process DHT peers on loopback instead of the public
+// swarm. Call after Init() and before StartDaemon().
+//
+// Creates 20 ephemeral DHT peers lazily on the first call, shared
+// across all nodes in this harness. Sets TEST_DHT_STUB on each
+// node's environment so the daemon lifts WAN DHT filters to accept
+// loopback peers. Peers are shut down in Cleanup().
+//
+// The sweep provider needs >=20 DHT peers to estimate the network
+// size (prefix length). Without enough peers it stays offline and
+// never provides.
+func (h *Harness) BootstrapWithStubDHT(nodes Nodes) {
+	if h.stubPeers == nil {
+		pool, err := newStubPeerPool(stubDHTPeerCount)
+		if err != nil {
+			log.Panicf("creating stub peer pool: %s", err)
+		}
+		h.stubPeers = pool
+	}
+	var addrs []string
+	for _, host := range h.stubPeers.hosts {
+		for _, addr := range host.Addrs() {
+			addrs = append(addrs, addr.String()+"/p2p/"+host.ID().String())
+		}
+	}
+	for _, node := range nodes {
+		node.SetIPFSConfig("Bootstrap", addrs)
+		// Tell the daemon to lift WAN DHT filters so loopback
+		// ephemeral peers enter the WAN routing table.
+		node.Runner.Env["TEST_DHT_STUB"] = "1"
+	}
 }
 
 func osEnviron() map[string]string {
@@ -183,7 +218,7 @@ func (h *Harness) Sh(expr string) *RunResult {
 func (h *Harness) Cleanup() {
 	log.Debugf("cleaning up cluster")
 	h.Nodes.StopDaemons()
-	// TODO: don't do this if test fails, not sure how?
+	h.stubPeers.Close()
 	log.Debugf("removing harness dir")
 	err := os.RemoveAll(h.Dir)
 	if err != nil {

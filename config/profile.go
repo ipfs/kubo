@@ -21,26 +21,41 @@ type Profile struct {
 	InitOnly bool
 }
 
-// defaultServerFilters has is a list of IPv4 and IPv6 prefixes that are private, local only, or unrouteable.
-// according to https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
-// and https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+// defaultServerFilters lists IPv4 and IPv6 prefixes that are private,
+// local-only, or otherwise not "Globally Reachable" per the IANA
+// Special-Purpose Address Registries (RFC 6890):
+//
+//	https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+//	https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+//
+// The `server` profile appends this list to both `Addresses.NoAnnounce`
+// (strip from self-announce / identify / DHT self-record) and
+// `Swarm.AddrFilters` (refuse libp2p dial/accept involving these ranges).
+// See docs/config.md under "`server` profile" for the rendered table with
+// per-entry RFC references and guidance on optional entries (for example
+// loopback or IPv6 outside `2000::/3`) that operators may add manually.
+//
+// Keep this list stable; changes here affect every `server`-profile user.
 var defaultServerFilters = []string{
-	"/ip4/10.0.0.0/ipcidr/8",
-	"/ip4/100.64.0.0/ipcidr/10",
-	"/ip4/169.254.0.0/ipcidr/16",
-	"/ip4/172.16.0.0/ipcidr/12",
-	"/ip4/192.0.0.0/ipcidr/24",
-	"/ip4/192.0.2.0/ipcidr/24",
-	"/ip4/192.168.0.0/ipcidr/16",
-	"/ip4/198.18.0.0/ipcidr/15",
-	"/ip4/198.51.100.0/ipcidr/24",
-	"/ip4/203.0.113.0/ipcidr/24",
-	"/ip4/240.0.0.0/ipcidr/4",
-	"/ip6/100::/ipcidr/64",
-	"/ip6/2001:2::/ipcidr/48",
-	"/ip6/2001:db8::/ipcidr/32",
-	"/ip6/fc00::/ipcidr/7",
-	"/ip6/fe80::/ipcidr/10",
+	"/ip4/10.0.0.0/ipcidr/8",      // RFC 1918: private-use
+	"/ip4/100.64.0.0/ipcidr/10",   // RFC 6598: shared address space (CGNAT)
+	"/ip4/127.0.0.0/ipcidr/8",     // RFC 1122: IPv4 loopback
+	"/ip4/169.254.0.0/ipcidr/16",  // RFC 3927: link-local
+	"/ip4/172.16.0.0/ipcidr/12",   // RFC 1918: private-use
+	"/ip4/192.0.0.0/ipcidr/24",    // RFC 6890: IETF protocol assignments
+	"/ip4/192.0.2.0/ipcidr/24",    // RFC 5737: TEST-NET-1 (documentation)
+	"/ip4/192.168.0.0/ipcidr/16",  // RFC 1918: private-use
+	"/ip4/198.18.0.0/ipcidr/15",   // RFC 2544: benchmarking
+	"/ip4/198.51.100.0/ipcidr/24", // RFC 5737: TEST-NET-2 (documentation)
+	"/ip4/203.0.113.0/ipcidr/24",  // RFC 5737: TEST-NET-3 (documentation)
+	"/ip4/240.0.0.0/ipcidr/4",     // RFC 1112: reserved (covers broadcast 255.255.255.255)
+	"/ip6/::/ipcidr/3",            // RFC 4291 §2.4: IANA-reserved 0000::/3 block (unspecified, loopback, IPv4-mapped, NAT64, and unallocated space where 1e::/16 leaks)
+	"/ip6/::1/ipcidr/128",         // RFC 4291 §2.4: IPv6 loopback (subset of `::/3` above; kept for documentation)
+	"/ip6/100::/ipcidr/64",        // RFC 6666: discard-only (subset of `::/3` above; kept for documentation)
+	"/ip6/2001:2::/ipcidr/48",     // RFC 5180: BMWG benchmarking
+	"/ip6/2001:db8::/ipcidr/32",   // RFC 3849: documentation
+	"/ip6/fc00::/ipcidr/7",        // RFC 4193: unique local addresses (ULA)
+	"/ip6/fe80::/ipcidr/10",       // RFC 4291: link-local unicast
 }
 
 // Profiles is a map holding configuration transformers. Docs are in docs/config.md.
@@ -327,7 +342,7 @@ fetching may be degraded.
 		Description: `Legacy UnixFS import profile for backward-compatible CID generation.
 Produces CIDv0 with no raw leaves, sha2-256, 256 KiB chunks, and
 link-based HAMT size estimation. Use only when legacy CIDs are required.
-See https://github.com/ipfs/specs/pull/499. Alias: legacy-cid-v0`,
+See https://specs.ipfs.tech/ipips/ipip-0499/. Alias: legacy-cid-v0`,
 		Transform: applyUnixFSv02015,
 	},
 	"legacy-cid-v0": {
@@ -338,7 +353,7 @@ See https://github.com/ipfs/specs/pull/499. Alias: legacy-cid-v0`,
 		Description: `Recommended UnixFS import profile for cross-implementation CID determinism.
 Uses CIDv1, raw leaves, sha2-256, 1 MiB chunks, 1024 links per file node,
 256 HAMT fanout, and block-based size estimation for HAMT threshold.
-See https://github.com/ipfs/specs/pull/499`,
+See https://specs.ipfs.tech/ipips/ipip-0499/`,
 		Transform: func(c *Config) error {
 			c.Import.CidVersion = *NewOptionalInteger(1)
 			c.Import.UnixFSRawLeaves = True

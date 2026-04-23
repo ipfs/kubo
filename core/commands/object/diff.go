@@ -97,26 +97,30 @@ Example:
 	Type: Changes{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Changes) error {
+			enc, err := cmdenv.GetCidEncoder(req)
+			if err != nil {
+				return err
+			}
 			verbose, _ := req.Options[verboseOptionName].(bool)
 
 			for _, change := range out.Changes {
 				if verbose {
 					switch change.Type {
 					case dagutils.Add:
-						fmt.Fprintf(w, "Added new link %q pointing to %s.\n", change.Path, change.After)
+						fmt.Fprintf(w, "Added new link %q pointing to %s.\n", change.Path, enc.Encode(change.After))
 					case dagutils.Mod:
-						fmt.Fprintf(w, "Changed %q from %s to %s.\n", change.Path, change.Before, change.After)
+						fmt.Fprintf(w, "Changed %q from %s to %s.\n", change.Path, enc.Encode(change.Before), enc.Encode(change.After))
 					case dagutils.Remove:
-						fmt.Fprintf(w, "Removed link %q (was %s).\n", change.Path, change.Before)
+						fmt.Fprintf(w, "Removed link %q (was %s).\n", change.Path, enc.Encode(change.Before))
 					}
 				} else {
 					switch change.Type {
 					case dagutils.Add:
-						fmt.Fprintf(w, "+ %s %q\n", change.After, change.Path)
+						fmt.Fprintf(w, "+ %s %q\n", enc.Encode(change.After), change.Path)
 					case dagutils.Mod:
-						fmt.Fprintf(w, "~ %s %s %q\n", change.Before, change.After, change.Path)
+						fmt.Fprintf(w, "~ %s %s %q\n", enc.Encode(change.Before), enc.Encode(change.After), change.Path)
 					case dagutils.Remove:
-						fmt.Fprintf(w, "- %s %q\n", change.Before, change.Path)
+						fmt.Fprintf(w, "- %s %q\n", enc.Encode(change.Before), change.Path)
 					}
 				}
 			}

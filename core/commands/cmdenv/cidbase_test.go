@@ -4,8 +4,81 @@ import (
 	"testing"
 
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
+	cmds "github.com/ipfs/go-ipfs-cmds"
 	mbase "github.com/multiformats/go-multibase"
 )
+
+func TestGetCidEncoder(t *testing.T) {
+	makeReq := func(opts map[string]any) *cmds.Request {
+		if opts == nil {
+			opts = map[string]any{}
+		}
+		return &cmds.Request{Options: opts}
+	}
+
+	t.Run("no options returns default encoder", func(t *testing.T) {
+		enc, err := GetCidEncoder(makeReq(nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if enc.Upgrade {
+			t.Error("expected Upgrade=false with no options")
+		}
+	})
+
+	t.Run("non-base58btc base auto-upgrades CIDv0", func(t *testing.T) {
+		enc, err := GetCidEncoder(makeReq(map[string]any{
+			"cid-base": "base32",
+		}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !enc.Upgrade {
+			t.Error("expected Upgrade=true for base32")
+		}
+		if enc.Base.Encoding() != mbase.Base32 {
+			t.Errorf("expected base32 encoding, got %v", enc.Base.Encoding())
+		}
+	})
+
+	t.Run("base58btc does not auto-upgrade", func(t *testing.T) {
+		enc, err := GetCidEncoder(makeReq(map[string]any{
+			"cid-base": "base58btc",
+		}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if enc.Upgrade {
+			t.Error("expected Upgrade=false for base58btc")
+		}
+	})
+
+	t.Run("deprecated flag still works as override", func(t *testing.T) {
+		// Explicitly disable upgrade even with non-base58btc base
+		enc, err := GetCidEncoder(makeReq(map[string]any{
+			"cid-base":                "base32",
+			"upgrade-cidv0-in-output": false,
+		}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if enc.Upgrade {
+			t.Error("expected Upgrade=false when explicitly disabled")
+		}
+
+		// Explicitly enable upgrade even with base58btc
+		enc, err = GetCidEncoder(makeReq(map[string]any{
+			"cid-base":                "base58btc",
+			"upgrade-cidv0-in-output": true,
+		}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !enc.Upgrade {
+			t.Error("expected Upgrade=true when explicitly enabled")
+		}
+	})
+}
 
 func TestEncoderFromPath(t *testing.T) {
 	test := func(path string, expected cidenc.Encoder) {

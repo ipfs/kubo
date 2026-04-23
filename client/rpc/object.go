@@ -24,6 +24,7 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 	var out objectOut
 	err = api.core().Request("object/patch/add-link", base.String(), name, child.String()).
 		Option("create", options.Create).
+		Option("allow-non-unixfs", options.SkipUnixFSValidation).
 		Exec(ctx, &out)
 	if err != nil {
 		return path.ImmutablePath{}, err
@@ -37,9 +38,15 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, 
 	return path.FromCid(c), nil
 }
 
-func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (path.ImmutablePath, error) {
+func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string, opts ...caopts.ObjectRmLinkOption) (path.ImmutablePath, error) {
+	options, err := caopts.ObjectRmLinkOptions(opts...)
+	if err != nil {
+		return path.ImmutablePath{}, err
+	}
+
 	var out objectOut
-	err := api.core().Request("object/patch/rm-link", base.String(), link).
+	err = api.core().Request("object/patch/rm-link", base.String(), link).
+		Option("allow-non-unixfs", options.SkipUnixFSValidation).
 		Exec(ctx, &out)
 	if err != nil {
 		return path.ImmutablePath{}, err

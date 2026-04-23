@@ -326,11 +326,11 @@ We also support the use of protocol names of the form /x/$NAME/http where $NAME 
 ## FUSE
 
 FUSE makes it possible to mount `/ipfs`, `/ipns` and `/mfs` namespaces in your OS,
-allowing arbitrary apps access to IPFS using a subset of filesystem abstractions.
+allowing arbitrary apps access to IPFS using standard filesystem operations.
 
-It is considered  EXPERIMENTAL due to limited (and buggy) support on some platforms.
+It is considered EXPERIMENTAL due to limited support on some platforms.
 
-See [fuse.md](./fuse.md) for more details.
+See [fuse.md](./fuse.md) for setup instructions and details.
 
 ## Plugins
 
@@ -599,7 +599,7 @@ ipfs config --json Experimental.GatewayOverLibp2p true
 - [ ] Needs more people to use and report on how well it works
 - [ ] Needs UX work for exposing non-recursive "HTTP transport" (NoFetch) over both libp2p and plain TCP (and sharing the configuration)
 - [ ] Needs a mechanism for HTTP handler to signal supported features ([IPIP-425](https://github.com/ipfs/specs/pull/425))
-- [ ] Needs an option for Kubo to detect peers that have it enabled and prefer HTTP transport before falling back to bitswap (and use CAR if peer supports dag-scope=entity from [IPIP-402](https://github.com/ipfs/specs/pull/402))
+- [ ] Needs an option for Kubo to detect peers that have it enabled and prefer HTTP transport before falling back to bitswap (and use CAR if peer supports dag-scope=entity from [IPIP-402](https://specs.ipfs.tech/ipips/ipip-0402/))
 
 ## Accelerated DHT Client
 
