@@ -1585,3 +1585,140 @@ func dirExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.IsDir()
 }
+
+// TestProviderKeystoreSyncShutdownQuiet verifies two shutdown UX
+// guarantees for a daemon running the sweeping provider with a
+// pin-walking strategy (see ipfs/kubo#11292):
+//
+//  1. Shutdown-caused keystore-sync errors never appear at Error
+//     level. The fix classifies keystore.ErrClosed and context
+//     cancellation as shutdown-caused and logs at Debug as
+//     "interrupted by shutdown" instead.
+//  2. `ipfs pin ls --stream` running against the daemon returns a
+//     meaningful error (no panic, no hang) when the daemon is
+//     shutting down mid-stream.
+//
+// Determinism: with Provide.DHT.Interval=10ms the periodic
+// reprovide goroutine runs syncKeystore back-to-back (ticks coalesce
+// under the select), so it is always mid-sync when StopDaemon
+// closes the keystore. The line-scan below fails on the exact
+// Error+err=keystore-closed/context-canceled combination the old
+// code emitted. Empirically this catches the regression on most
+// runs (~3 of 5 on a fast workstation); the first few bug-free
+// runs were verified by temporarily reverting core/node/provider.go.
+func TestProviderKeystoreSyncShutdownQuiet(t *testing.T) {
+	t.Parallel()
+
+	h := harness.NewT(t)
+	node := h.NewNode().Init()
+	node.SetIPFSConfig("Provide.DHT.SweepEnabled", true)
+	node.SetIPFSConfig("Provide.Enabled", true)
+	node.SetIPFSConfig("Provide.Strategy", "pinned+mfs+entities")
+	// Tight Interval: once the startup sync completes, the periodic
+	// goroutine runs syncKeystore back-to-back (ticks coalesce under
+	// the select), so it is always mid-sync when StopDaemon fires.
+	// This makes the shutdown interrupt deterministic. Briefly
+	// during startup the first periodic tick may overlap the startup
+	// sync and emit "reset already in progress" at Error; the log
+	// scan below explicitly ignores that unrelated class of error.
+	node.SetIPFSConfig("Provide.DHT.Interval", "10ms")
+	node.SetIPFSConfig("Bootstrap", []string{})
+
+	// Seed recursive pins so the keystore sync has meaningful work.
+	// Offline bulk add + bulk pin is much faster than per-file
+	// IPFSAddStr calls for this count.
+	const nPins = 500
+	dir := t.TempDir()
+	for i := range nPins {
+		require.NoError(t, os.WriteFile(
+			filepath.Join(dir, fmt.Sprintf("f%04d", i)),
+			fmt.Appendf(nil, "keystore-shutdown-content-%d", i),
+			0o600,
+		))
+	}
+	// --pin=false so the wrapping dir is not auto-pinned; each file
+	// is then pinned individually below to get nPins separate pin
+	// index entries (one big recursive pin would not exercise the
+	// pin-index streamIndex walk the same way).
+	addRes := node.IPFS("add", "-r", "-q", "--pin=false", dir)
+	addedCIDs := strings.Split(strings.TrimSpace(addRes.Stdout.String()), "\n")
+	require.GreaterOrEqual(t, len(addedCIDs), nPins, "expected at least %d CIDs from bulk add", nPins)
+	pinArgs := append([]string{"pin", "add"}, addedCIDs[:nPins]...)
+	node.IPFS(pinArgs...)
+
+	node.StartDaemonWithReq(harness.RunRequest{
+		CmdOpts: []harness.CmdOpt{
+			harness.RunWithEnv(map[string]string{
+				// Debug for the provider subsystem so the shutdown
+				// Debug line is visible for post-hoc inspection.
+				"GOLOG_LOG_LEVEL": "error,provider=debug",
+			}),
+		},
+	}, "")
+
+	// Wait for the startup sync to complete so periodic has sole
+	// access to the keystore when we shut down.
+	require.Eventually(t, func() bool {
+		return strings.Contains(node.Daemon.Stderr.String(), "provider keystore sync completed")
+	}, 30*time.Second, 50*time.Millisecond, "startup keystore sync should complete")
+
+	// Let periodic reprovide fire several times.
+	time.Sleep(1 * time.Second)
+
+	// Kick off `ipfs pin ls --stream` against the live RPC. The
+	// server-side channel is held by the pinner's streamIndex
+	// goroutine; when StopDaemon below tears down the keystore and
+	// datastore, the HTTP stream closes under the CLI, which must
+	// exit cleanly with a meaningful error (no panic, no hang).
+	pinLsDone := make(chan *harness.RunResult, 1)
+	go func() {
+		pinLsDone <- node.RunIPFS("pin", "ls", "--stream")
+	}()
+	// Brief delay so the pin ls RPC has started streaming.
+	time.Sleep(100 * time.Millisecond)
+
+	node.StopDaemon()
+
+	// --- Daemon-side assertions ---
+
+	daemonLog := node.Daemon.Stderr.String()
+
+	// Scan for the specific bug pattern: an Error-level line from
+	// the provider subsystem about "keystore sync" whose err field
+	// is the shutdown-caused "keystore is closed" or "context
+	// canceled". The fix routes those to Debug; only unrelated
+	// errors (e.g. "reset already in progress" from test-induced
+	// overlap) remain at Error and are ignored by this check.
+	for line := range strings.SplitSeq(daemonLog, "\n") {
+		if !strings.Contains(line, "\tERROR\t") {
+			continue
+		}
+		if !strings.Contains(line, "provider keystore sync") {
+			continue
+		}
+		if strings.Contains(line, `"err": "keystore is closed"`) ||
+			strings.Contains(line, `"err": "context canceled"`) {
+			t.Errorf("shutdown-caused keystore sync error should be logged at Debug, got Error:\n%s", line)
+		}
+	}
+
+	// --- Client-side assertions (ipfs pin ls --stream) ---
+
+	var pinLs *harness.RunResult
+	select {
+	case pinLs = <-pinLsDone:
+	case <-time.After(15 * time.Second):
+		t.Fatal("ipfs pin ls --stream did not return within 15s of daemon shutdown")
+	}
+
+	pinLsOut := pinLs.Stdout.String() + pinLs.Stderr.String()
+	require.NotContains(t, pinLsOut, "panic:",
+		"ipfs pin ls must not observe a daemon panic")
+	// Either the stream drained before shutdown (exit 0) or the
+	// server dropped it mid-stream (non-zero exit with a meaningful
+	// error message). Silent non-zero exits are confusing and fail.
+	if pinLs.ExitCode() != 0 {
+		require.NotEmpty(t, strings.TrimSpace(pinLs.Stderr.String()),
+			"pin ls exited non-zero but produced no error message")
+	}
+}
