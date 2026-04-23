@@ -7,6 +7,7 @@ This is a document for helping debug Kubo. Please add to it if you can!
 - [General performance debugging guidelines](#general-performance-debugging-guidelines)
 - [Table of Contents](#table-of-contents)
     - [Beginning](#beginning)
+    - [Known logger subsystems](#known-logger-subsystems)
     - [Analyzing the stack dump](#analyzing-the-stack-dump)
     - [Analyzing the CPU Profile](#analyzing-the-cpu-profile)
     - [Analyzing vars and memory statistics](#analyzing-vars-and-memory-statistics)
@@ -37,6 +38,23 @@ If you feel intrepid, you can dump this information and investigate it yourself:
 - system information
   - `ipfs diag sys > ipfs.sysinfo`
 
+
+### Known logger subsystems
+
+`GOLOG_LOG_LEVEL` matches subsystem names exactly (no prefix or wildcard matching beyond `*` for "all subsystems"). The same names work with the runtime command `ipfs log level <subsystem> <level>`. The list below covers the outbound provide/reprovide pipeline, which spans multiple packages and therefore multiple subsystems.
+
+| Subsystem | Source | Purpose |
+| --- | --- | --- |
+| `provider` | kubo `core/node`, boxo `provider` | Kubo provider orchestration (keystore lifecycle, strategy changes, reprovide cycle start/finish, throughput alarms) and boxo's legacy provider system (active when `Provide.DHT.SweepEnabled=false` or for non-DHT routers) |
+| `dht/provider` | `go-libp2p-kad-dht` | Sweep-based DHT provider (active when `Provide.DHT.SweepEnabled=true`, the default), including the buffered wrapper, keystore, and resettable keystore |
+| `dht/provider/lan` | `go-libp2p-kad-dht` (dual) | LAN half of the dual DHT provider; the WAN half reuses `dht/provider` |
+| `dsqueue` | `go-dsqueue` | Generic datastore queue used by the legacy provider queue |
+
+To see everything the provide system emits, for example at `debug` level:
+
+```shell
+GOLOG_LOG_LEVEL="provider=debug,dht/provider=debug,dht/provider/lan=debug" ipfs daemon
+```
 
 ### Analyzing the stack dump
 

@@ -76,6 +76,8 @@ GOLOG_LOG_LEVEL="error,core/server=debug" ipfs daemon
 
 Logging can also be configured at runtime, both globally and on a per-subsystem basis, with the `ipfs log` command.
 
+See [Known logger subsystems](./debug-guide.md#known-logger-subsystems) for subsystem names related to the provide/reprovide pipeline.
+
 ## `GOLOG_LOG_FMT`
 
 Specifies the log message format.  It supports the following values:

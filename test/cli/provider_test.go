@@ -1270,7 +1270,7 @@ func TestProviderUniqueDedupLogging(t *testing.T) {
 		nodes[0].StartDaemonWithReq(harness.RunRequest{
 			CmdOpts: []harness.CmdOpt{
 				harness.RunWithEnv(map[string]string{
-					"GOLOG_LOG_LEVEL": "error,dagwalker=info,core:constructor=info",
+					"GOLOG_LOG_LEVEL": "error,dagwalker=info,provider=info",
 				}),
 			},
 		}, "")
