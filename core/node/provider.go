@@ -851,10 +851,14 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					strategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 					providerLog.Infow("provider keystore sync started", "strategy", strategy)
 					if err := syncKeystore(ctx); err != nil {
-						if ctx.Err() == nil {
-							providerLog.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
-						} else {
+						// ErrClosed means the keystore was closed by the shutdown
+						// hook while this goroutine was still in flight: the
+						// OnStart ctx is not cancelled yet, so we classify the
+						// failure as shutdown explicitly.
+						if ctx.Err() != nil || errors.Is(err, keystore.ErrClosed) {
 							providerLog.Debugw("provider keystore sync interrupted by shutdown", "err", err, "strategy", strategy)
+						} else {
+							providerLog.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
 						}
 						return
 					}
@@ -875,7 +879,11 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 							return
 						case <-ticker.C:
 							if err := syncKeystore(gcCtx); err != nil {
-								providerLog.Errorw("provider keystore sync", "err", err)
+								if gcCtx.Err() != nil || errors.Is(err, keystore.ErrClosed) {
+									providerLog.Debugw("provider keystore sync interrupted by shutdown", "err", err)
+								} else {
+									providerLog.Errorw("provider keystore sync failed", "err", err)
+								}
 							}
 						}
 					}
