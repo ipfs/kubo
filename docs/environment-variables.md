@@ -117,7 +117,7 @@ Warning: Enabling tracing will likely affect performance.
 
 ## `IPFS_FUSE_DEBUG`
 
-When set to any non-empty value, enables verbose FUSE debug logging. Every FUSE operation (open, read, write, lookup, getattr, etc.) is logged to stderr with its arguments and return values. Useful for diagnosing mount issues or understanding what the kernel is requesting.
+When set to any non-empty value, logs every FUSE operation (open, read, write, lookup, getattr, etc.) to stderr with its arguments and return values. Useful for diagnosing mount issues or inspecting what the kernel requests.
 
 Default: not set (no debug logging)
 
@@ -319,8 +319,8 @@ Default: [160](https://github.com/libp2p/go-libp2p/blob/master/p2p/net/swarm/swa
 ## `TEST_DHT_STUB`
 
 Lifts WAN DHT filters so kubo can operate against DHT peers on
-loopback, enabling full end-to-end provide/findprovs/IPNS testing
-without public internet access. All DHT code paths are exercised:
+loopback, enabling end-to-end provide/findprovs/IPNS testing
+without public internet access. Exercises every DHT code path:
 dial, protocol negotiation, message serialization, routing table
 management.
 

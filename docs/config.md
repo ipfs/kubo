@@ -2124,16 +2124,16 @@ Controls which CIDs are announced to the content routing system. Valid strategie
 
 #### Strategy modifiers: `+unique` and `+entities`
 
-The `+unique` and `+entities` modifiers can be appended to `pinned`, `mfs`, or `pinned+mfs` strategies to optimize the reprovide cycle. They are incompatible with `"all"` and `"roots"`.
+Append `+unique` or `+entities` to `pinned`, `mfs`, or `pinned+mfs` to optimize the reprovide cycle. Neither works with `"all"` or `"roots"`.
 
-- **`+unique`** -- uses a bloom filter to deduplicate CIDs across recursive
-  pins that share sub-DAGs. Without this, a node with 1000 pins that share 99%
-  of their content re-traverses the shared blocks for each pin. With `+unique`,
-  shared subtrees are detected and skipped, reducing traversal from
-  O(pins * total_blocks) to O(unique_blocks). This also significantly reduces
-  the amount of CIDs sent to the routing system when similar datasets are
-  pinned multiple times.
-- **`+entities`** -- announces only entity roots (file roots, directory roots,
+- **`+unique`**: uses a bloom filter to deduplicate CIDs across recursive
+  pins that share sub-DAGs. Without it, a node with 1000 pins sharing 99%
+  of their content re-traverses the shared blocks for every pin. With `+unique`,
+  shared subtrees are skipped, cutting traversal from
+  O(pins * total_blocks) to O(unique_blocks). This also cuts the number of
+  CIDs sent to the routing system when similar datasets are pinned multiple
+  times.
+- **`+entities`**: announces only entity roots (file roots, directory roots,
   HAMT shard nodes) instead of every block. Internal file chunks are not
   announced. This significantly reduces the number of provider records for
   repositories with large files while keeping all files and directories
@@ -2147,11 +2147,11 @@ The `+unique` and `+entities` modifiers can be appended to `pinned`, `mfs`, or `
 
 **Suggested configurations:**
 
-- `"pinned+mfs+unique"` -- safe default for nodes with GC enabled, or desktop
+- `"pinned+mfs+unique"`: safe default for nodes with GC enabled, or desktop
   users who don't want to announce all blocks cached in the local repository.
   Handles pins of similar DAGs efficiently (e.g. versioned datasets where pins
   are added and removed over time).
-- `"pinned+mfs+entities"` -- same as above, but also skips internal file chunks
+- `"pinned+mfs+entities"`: same as above, but also skips internal file chunks
   for even fewer provider records. Use when the `+entities` trade-off (no
   chunk-level discoverability) is acceptable.
 
@@ -2559,7 +2559,7 @@ The minimum accepted value is `1000000` (1 in 1M). Below that the bloom
 filter becomes lossy enough to drop a meaningful fraction of CIDs from each
 reprovide cycle.
 
-Default: `4750000` (~1 false positive per 4.75M lookups, cost at ~4 bytes per CID)
+Default: `4750000` (~1 false positive per 4.75M lookups, ~4 bytes per CID)
 
 Type: `optionalInteger`
 

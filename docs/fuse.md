@@ -2,8 +2,8 @@
 
 **EXPERIMENTAL:** FUSE support is functional but still evolving. Please report issues at [kubo/issues](https://github.com/ipfs/kubo/issues).
 
-Kubo makes it possible to mount `/ipfs`, `/ipns` and `/mfs` namespaces in your OS,
-allowing arbitrary apps access to IPFS using standard filesystem operations.
+Kubo can mount `/ipfs`, `/ipns`, and `/mfs` namespaces in your OS,
+letting arbitrary apps access IPFS through standard filesystem operations.
 
 The underlying FUSE implementation uses [`hanwen/go-fuse`](https://github.com/hanwen/go-fuse).
 
@@ -58,7 +58,7 @@ After installation, open **System Settings > Privacy & Security** and allow the 
 Kubo automatically sets `volname`, `noapplexattr`, and `noappledouble` mount options on macOS:
 
 - `volname` shows the filesystem name (ipfs, ipns, mfs) in Finder instead of the generic "macfuse Volume 0"
-- `noapplexattr` prevents Finder from probing Apple-private extended attributes on every file access, reducing unnecessary FUSE traffic on network-backed mounts
+- `noapplexattr` stops Finder from probing Apple-private extended attributes on every file access, cutting FUSE traffic on network-backed mounts
 - `noappledouble` prevents macOS from creating `._` resource fork sidecar files, which would pollute the DAG with macOS-only metadata
 
 > [!NOTE]
@@ -150,8 +150,7 @@ ipfs.cid="bafkreifjjcie6lypi6ny7amxnfftagclbuxndqonfipmb64f2km2devei4"
 
 ## Mode and mtime
 
-By default, IPFS does not persist POSIX file mode or modification time. Most content on IPFS
-does not include this metadata.
+By default, IPFS does not persist POSIX mode or mtime, and most content on IPFS omits this metadata.
 
 When mode or mtime is absent, FUSE mounts use sensible defaults:
 
