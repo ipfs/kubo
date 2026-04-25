@@ -11,12 +11,14 @@ import (
 	gopath "path"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipfs/kubo/core/commands/e"
 
 	"github.com/cheggaaa/pb"
+	"github.com/dustin/go-humanize"
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/tar"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -91,6 +93,11 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return err
 		}
 
+		var numBlocks int64
+		if st, err := api.Dag().Stat(ctx, p); err == nil {
+			numBlocks = st.NumBlocks
+		}
+
 		res.SetLength(uint64(size))
 
 		archive, _ := req.Options[archiveOptionName].(bool)
@@ -116,7 +123,11 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			res.SetContentType("application/x-tar")
 		}
 
-		return res.Emit(reader)
+		return res.Emit(&getResponse{
+			Reader:    reader,
+			RootCID:   p.String(),
+			NumBlocks: numBlocks,
+		})
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
@@ -127,8 +138,16 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 				return err
 			}
 
-			outReader, ok := v.(io.Reader)
-			if !ok {
+			var outReader io.Reader
+			var rootCID string
+			var numBlocks int64
+			if gr, ok := v.(*getResponse); ok {
+				outReader = gr.Reader
+				rootCID = gr.RootCID
+				numBlocks = gr.NumBlocks
+			} else if r, ok := v.(io.Reader); ok {
+				outReader = r
+			} else {
 				return e.New(e.TypeErr(outReader, v))
 			}
 
@@ -142,6 +161,21 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			archive, _ := req.Options[archiveOptionName].(bool)
 			progress, _ := req.Options[progressOptionName].(bool)
 
+			if progress && rootCID != "" {
+				cidOnly := rootCID
+				if i := strings.LastIndex(rootCID, "/"); i >= 0 {
+					cidOnly = rootCID[i+1:]
+				}
+				fmt.Fprintf(os.Stderr, "Fetching %s\n", cidOnly)
+				payloadSize := int64(res.Length())
+				if numBlocks > 0 {
+					fmt.Fprintf(os.Stderr, "  Blocks: %d | Size: %s\n", numBlocks, humanize.IBytes(uint64(payloadSize)))
+				} else if payloadSize > 0 {
+					fmt.Fprintf(os.Stderr, "  Size: %s\n", humanize.IBytes(uint64(payloadSize)))
+				}
+				fmt.Fprint(os.Stderr, "\n")
+			}
+
 			gw := getWriter{
 				Out:         os.Stdout,
 				Err:         os.Stderr,
@@ -149,11 +183,18 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 				Compression: cmplvl,
 				Size:        int64(res.Length()),
 				Progress:    progress,
+				NumBlocks:   numBlocks,
 			}
 
 			return gw.Write(outReader, outPath)
 		},
 	},
+}
+
+type getResponse struct {
+	io.Reader
+	RootCID   string
+	NumBlocks int64
 }
 
 type clearlineReader struct {
@@ -164,8 +205,51 @@ type clearlineReader struct {
 func (r *clearlineReader) Read(p []byte) (n int, err error) {
 	n, err = r.Reader.Read(p)
 	if err == io.EOF {
-		// callback
-		fmt.Fprintf(r.out, "\033[2K\r") // clear progress bar line on EOF
+		fmt.Fprint(r.out, "\033[2K\r")
+	}
+	return
+}
+
+type blockTrackingReader struct {
+	io.Reader
+	bar         *pb.ProgressBar
+	totalBlocks int64
+	blocksRead  int64 // atomic
+	bytesRead   int64 // atomic
+	blockSize   int64 // = totalSize / totalBlocks
+}
+
+func newBlockTrackingReader(r io.Reader, totalSize, totalBlocks int64, bar *pb.ProgressBar) *blockTrackingReader {
+	blockSize := int64(1)
+	if totalBlocks > 0 && totalSize > 0 {
+		blockSize = totalSize / totalBlocks
+		if blockSize < 1 {
+			blockSize = 1
+		}
+	}
+	return &blockTrackingReader{
+		Reader:      r,
+		bar:         bar,
+		totalBlocks: totalBlocks,
+		blockSize:   blockSize,
+	}
+}
+
+func (r *blockTrackingReader) Read(p []byte) (n int, err error) {
+	n, err = r.Reader.Read(p)
+	if n > 0 && r.totalBlocks > 0 {
+		newBytes := atomic.AddInt64(&r.bytesRead, int64(n))
+		newBlocks := newBytes / r.blockSize
+		if newBlocks > r.totalBlocks {
+			newBlocks = r.totalBlocks
+		}
+		old := atomic.SwapInt64(&r.blocksRead, newBlocks)
+		if old != newBlocks {
+			r.bar.Prefix(fmt.Sprintf("  block %d / %d  ", newBlocks, r.totalBlocks))
+		}
+	}
+	if err == io.EOF && r.totalBlocks > 0 {
+		r.bar.Prefix(fmt.Sprintf("  block %d / %d  ", r.totalBlocks, r.totalBlocks))
 	}
 	return
 }
@@ -210,6 +294,7 @@ type getWriter struct {
 	Compression int
 	Size        int64
 	Progress    bool
+	NumBlocks   int64
 }
 
 func (gw *getWriter) Write(r io.Reader, fpath string) error {
@@ -258,6 +343,10 @@ func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 	var progressCb func(int64) int64
 	if gw.Progress {
 		bar := makeProgressBar(gw.Err, gw.Size)
+		if gw.NumBlocks > 0 {
+			bar.Prefix(fmt.Sprintf("  block 0 / %d  ", gw.NumBlocks))
+			r = newBlockTrackingReader(r, gw.Size, gw.NumBlocks, bar)
+		}
 		bar.Start()
 		defer bar.Finish()
 		defer bar.Set64(gw.Size)
