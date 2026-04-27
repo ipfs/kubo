@@ -979,20 +979,88 @@ for opportunistically-cached content, etc.).
 The complementary cache for the *positive* path (block exists, look up its
 size) is [`Datastore.BlockKeyCacheSize`](#datastoreblockkeycachesize).
 
-#### Sizing
+#### How kubo's bloom filter is sized
 
-[hur.st/bloomfilter](https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7) generates
-graphs for various values; use it to pick `m` (in bits) for your expected
-number of blocks `n` and target false-positive rate `p`. The `BloomFilterSize`
-config value is `m / 8` (the kubo blockstore uses `k=7` hash functions).
+Kubo wires the underlying [`ipfs/bbloom`](https://github.com/ipfs/bbloom)
+filter with `k=7` hash positions. Two kubo-specific behaviors matter for
+sizing:
 
-Worked example: for `n=1,000,000` blocks at `p=1%` FPR, you need
-`m=9,592,955` bits, so `BloomFilterSize: 1199120`.
+1. **Power-of-two bit-count rounding.** bbloom rounds the requested bit
+   count up to the next power of two, so a `BloomFilterSize` value that is
+   not itself a power of two in bits silently allocates more memory than
+   configured. For example, `BloomFilterSize: 1199120` (~1.14 MiB)
+   actually allocates a `16,777,216`-bit (= 2 MiB) filter internally. For
+   predictable behavior, pick `BloomFilterSize` values that are
+   power-of-two byte counts: 1 MiB, 2 MiB, 4 MiB, ..., 256 MiB, 512 MiB,
+   1 GiB.
+2. **Fixed `k=7`.** With seven hash positions, FPR for a filter of `m`
+   bits and `n` inserted entries is `(1 - exp(-7n/m))^7`. Memory cost
+   is roughly ~1.2 bytes per entry at ~1% FPR, ~1.9 bytes per entry at
+   ~0.1% FPR, and ~2.8 bytes per entry at ~0.01% FPR.
 
-The filter is fixed-size and stops being useful once the number of inserted
-CIDs grows past its design `n`: the false-positive rate climbs and eventually
-saturates near 100%, at which point every "maybe" hits the datastore anyway.
-Resize the filter as your blockstore grows.
+#### Reference sizing
+
+Power-of-two `BloomFilterSize` values for common blockset sizes, with the
+FPR you can expect at the design point and at 2× growth:
+
+| Expected blocks (`n`) | `BloomFilterSize` | FPR at `n` | FPR at 2× `n` |
+|---:|---:|---:|---:|
+| 10,000,000  | `16777216`   (16 MiB)  | ~0.18% | ~5%  |
+| 25,000,000  | `33554432`   (32 MiB)  | ~0.58% | ~11% |
+| 50,000,000  | `67108864`   (64 MiB)  | ~0.58% | ~11% |
+| 100,000,000 | `134217728`  (128 MiB) | ~0.58% | ~11% |
+| 200,000,000 | `268435456`  (256 MiB) | ~0.58% | ~11% |
+| 500,000,000 | `1073741824` (1 GiB)   | ~0.07% | ~1.7% |
+
+For a tighter FPR at the design point, step up to the next power of two.
+
+The [hur.st/bloomfilter](https://hur.st/bloomfilter/?n=10e6&p=0.01&m=&k=7)
+calculator works as a reference for exploring `(n, p, m)` combinations
+(remember kubo uses `k=7`); just keep in mind that the `m` it suggests
+is the optimal-fit value, while bbloom rounds up to the next power of
+two on top of that.
+
+#### Saturation as the repo grows
+
+A bloom filter is fixed-size after creation. As more CIDs are inserted
+past its design `n`, the false-positive rate climbs steeply. Rough
+behavior with a filter sized for ~0.6% FPR at its design point:
+
+- At `n`: ~0.6% FPR. Every "definitely not" reliably saves a datastore
+  lookup.
+- At ~`2 × n`: ~11% FPR. Most negatives still save lookups, but tail
+  latency rises because each "maybe" still hits the datastore.
+- At ~`4 × n`: ~58% FPR. Most "maybe" answers fall through. The filter
+  is mostly paying CPU and RAM cost without short-circuiting much.
+- At ~`8 × n` or more: above ~95% FPR. Effectively saturated. The
+  filter answers "maybe" for nearly every CID and provides no benefit.
+
+Plan the filter for **expected steady-state size, not current size**, and
+re-tune when you cross the design point. There is no in-place way to
+grow a bloom filter; raising `BloomFilterSize` and restarting the daemon
+rebuilds it from scratch.
+
+#### Risks of an undersized filter
+
+A poorly-sized filter is **never a correctness issue**. Bloom filters
+have no false negatives, so blocks are never falsely reported missing.
+The risks are operational:
+
+- **Wasted RAM and CPU.** Every `Has()` runs the seven-position lookup.
+  Once the filter saturates those cycles are paid with nothing to show
+  for them.
+- **Silent regression as the pinset grows.** A filter sized for last
+  year's data can drift past the saturation threshold without any
+  metric screaming "your filter is useless"; you just stop seeing the
+  negative-`Has` short-circuit benefit.
+- **Recurring startup tax.** The filter is rebuilt on every daemon
+  restart (see below). On slow disks this is minutes of `AllKeysChan`
+  walking, paid in full even if the resulting filter is too small to
+  help.
+
+Quick health check: if `BloomFilterSize` divided by your current block
+count is much below `1` byte/block, the filter is past its design
+point. Below ~`0.5` bytes/block it is effectively saturated.
 
 #### Startup cost
 
