@@ -973,15 +973,14 @@ The bloom filter answers "does the blockstore *not* have this CID?" from RAM
 without touching the datastore. A negative answer is exact (no false
 negatives, so blocks are never falsely reported missing); a positive answer
 is probabilistic and falls through to the underlying blockstore for
-verification. The probability that the filter says "maybe present" for a CID
-that is not actually in the blockstore is its **false-positive rate (FPR)**.
-A false positive costs one wasted datastore lookup, no more; it never causes
-data loss or incorrect retrieval. The smaller the FPR, the larger the
-fraction of inbound `Has()` calls the filter can answer from RAM alone.
+verification. The chance of a false "maybe present" is the filter's
+**false-positive rate (FPR)**. A false positive costs one wasted datastore
+lookup; it never causes data loss or incorrect retrieval. The lower the FPR,
+the more `Has()` calls the filter answers from RAM alone.
 
-This caching is most useful on nodes that respond to many bitswap wantlists
-for content they don't host (public gateways, peers asking for
-opportunistically-cached content, etc.).
+This cache pays off most on nodes that field many requests for content they
+don't host: public gateways, mirrors, and peers asked to serve
+opportunistically-cached blocks.
 
 The complementary cache for the *positive* path (block exists, look up its
 size) is [`Datastore.BlockKeyCacheSize`](#datastoreblockkeycachesize).
@@ -1001,9 +1000,11 @@ sizing:
    power-of-two byte counts: 1 MiB, 2 MiB, 4 MiB, ..., 256 MiB, 512 MiB,
    1 GiB.
 2. **Fixed `k=7`.** With seven hash positions, FPR for a filter of `m`
-   bits and `n` inserted entries is `(1 - exp(-7n/m))^7`. Memory cost
-   is roughly ~1.2 bytes per entry at ~1% FPR, ~1.9 bytes per entry at
-   ~0.1% FPR, and ~2.8 bytes per entry at ~0.01% FPR.
+   bits and `n` inserted entries is `(1 - exp(-7n/m))^7`. To hit a
+   target FPR, budget roughly ~1.8 bytes per entry at ~1% FPR, ~2.8
+   bytes per entry at ~0.1% FPR, and ~4.2 bytes per entry at ~0.01%
+   FPR. These figures already include the average ~1.5x penalty from
+   the power-of-two rounding above; the worst case is ~2x.
 
 #### Reference sizing
 
@@ -1012,12 +1013,11 @@ FPR you can expect at the design point and at 2× growth:
 
 | Expected blocks (`n`) | `BloomFilterSize` | FPR at `n` | FPR at 2× `n` |
 |---:|---:|---:|---:|
-| 10,000,000  | `16777216`   (16 MiB)  | ~0.18% | ~5%  |
-| 25,000,000  | `33554432`   (32 MiB)  | ~0.58% | ~11% |
-| 50,000,000  | `67108864`   (64 MiB)  | ~0.58% | ~11% |
-| 100,000,000 | `134217728`  (128 MiB) | ~0.58% | ~11% |
-| 200,000,000 | `268435456`  (256 MiB) | ~0.58% | ~11% |
-| 500,000,000 | `1073741824` (1 GiB)   | ~0.07% | ~1.7% |
+| 10,000,000  | `16777216`  (16 MiB)  | ~0.18% | ~5%  |
+| 25,000,000  | `33554432`  (32 MiB)  | ~0.58% | ~11% |
+| 50,000,000  | `67108864`  (64 MiB)  | ~0.58% | ~11% |
+| 100,000,000 | `134217728` (128 MiB) | ~0.58% | ~11% |
+| 200,000,000 | `268435456` (256 MiB) | ~0.58% | ~11% |
 
 For a tighter FPR at the design point, step up to the next power of two.
 
@@ -1042,10 +1042,10 @@ behavior with a filter sized for ~0.6% FPR at its design point:
 - At ~`8 × n` or more: above ~95% FPR. Effectively saturated. The
   filter answers "maybe" for nearly every CID and provides no benefit.
 
-Plan the filter for **expected steady-state size, not current size**, and
-re-tune when you cross the design point. There is no in-place way to
-grow a bloom filter; raising `BloomFilterSize` and restarting the daemon
-rebuilds it from scratch.
+Size for **expected steady-state, not today's count**, and re-tune after
+crossing the design point. Bloom filters cannot grow in place; raising
+`BloomFilterSize` and restarting the daemon rebuilds the filter from
+scratch.
 
 #### Risks of an undersized filter
 
@@ -1053,31 +1053,29 @@ A poorly-sized filter is **never a correctness issue**. Bloom filters
 have no false negatives, so blocks are never falsely reported missing.
 The risks are operational:
 
-- **Wasted RAM and CPU.** Every `Has()` runs the seven-position lookup.
-  Once the filter saturates those cycles are paid with nothing to show
-  for them.
+- **Wasted RAM and CPU.** Every `Has()` still runs all seven hash
+  positions. Once the filter saturates, those cycles return nothing.
 - **Silent regression as the pinset grows.** A filter sized for last
-  year's data can drift past the saturation threshold without any
-  metric screaming "your filter is useless"; you just stop seeing the
-  negative-`Has` short-circuit benefit.
-- **Recurring startup tax.** The filter is rebuilt on every daemon
-  restart (see below). On slow disks this is minutes of `AllKeysChan`
-  walking, paid in full even if the resulting filter is too small to
-  help.
+  year's data can drift past saturation without warning; the
+  negative-`Has` short-circuit benefit just quietly disappears.
+- **Recurring startup tax.** The filter rebuilds on every daemon
+  restart (see below). On slow disks this means minutes of
+  `AllKeysChan` walking, paid in full even when the resulting filter
+  is too small to help.
 
-Quick health check: if `BloomFilterSize` divided by your current block
-count is much below `1` byte/block, the filter is past its design
-point. Below ~`0.5` bytes/block it is effectively saturated.
+Quick health check: divide `BloomFilterSize` by your current block count.
+Below ~`1` byte/block the filter is past its design point; below
+~`0.5` bytes/block it is effectively saturated.
 
 #### Startup cost
 
-The filter is rebuilt on every daemon start by walking all datastore keys
-(`AllKeysChan`). On very large blockstores or slow disks this can take many
-minutes, during which `Has()` falls through to the datastore and the filter
-provides no benefit. The filter is not persisted across restarts. Datastores
-that cannot enumerate keys without reading values (block content) make this
-much more expensive; flatfs and pebble both support keys-only iteration, so
-the rebuild cost is proportional to the keyset, not to data volume.
+The filter is not persisted across restarts. Every daemon start rebuilds it
+by walking all datastore keys (`AllKeysChan`). On very large blockstores or
+slow disks this can take many minutes, during which `Has()` falls through
+to the datastore and the filter provides no benefit. Datastores that cannot
+enumerate keys without reading values (block content) pay even more here;
+flatfs and pebble both support keys-only iteration, so the rebuild cost
+scales with the keyset, not data volume.
 
 Default: `0` (disabled)
 
@@ -1114,22 +1112,22 @@ block's size, which is the dominant cost on bitswap servers responding to peer
 wantlists.
 
 The cache uses a [Two-Queue (2Q) replacement policy](https://pkg.go.dev/github.com/hashicorp/golang-lru/v2#TwoQueueCache):
-items have to be touched twice before they get promoted to the frequently-used
-tier. A long one-shot scan (reprovider walking the blockstore, GC, `ipfs repo
-verify`) does not evict the hot entries that bitswap is repeatedly serving.
+an entry must be touched twice before it is promoted to the frequently-used
+tier. A long one-shot scan (reprovider, GC, `ipfs repo verify`) therefore
+does not evict the hot entries that bitswap repeatedly serves.
 
 #### Sizing
 
-Memory usage is approximately the entry count times the per-entry overhead of
-the 2Q cache, the multihash key bytes, and the cached value. As a rough
-estimate, budget ~200 bytes per entry, so `1048576` (1M entries) is on the
-order of ~200 MB resident. The cache only needs to cover your **hot working
-set** of CIDs (the ones repeatedly hit by inbound bitswap, gateway, or
-DAG-resolution traffic), not the entire blockstore.
+Memory usage is roughly the entry count times the per-entry overhead, which
+combines 2Q bookkeeping, the multihash key bytes, and the cached value. As a
+rough estimate, budget ~200 bytes per entry, so `1048576` (1M entries) is on
+the order of ~200 MB resident. The cache only needs to cover the **hot
+working set** of CIDs (the ones repeatedly hit by inbound bitswap, gateway,
+or DAG-resolution traffic), not the entire blockstore.
 
-The default of `65536` is sized for small dev/desktop nodes. Operators running
-public gateways, pinning clusters, or any node serving non-trivial bitswap
-traffic should size this against the active working set, see
+The default of `65536` is sized for small dev/desktop nodes. Operators
+running public gateways, pinning clusters, or any node serving non-trivial
+bitswap traffic should size this against the active working set. See
 [`Datastore.BloomFilterSize`](#datastorebloomfiltersize) for the
 complementary negative-`Has()` short-circuit that pairs well with this cache.
 

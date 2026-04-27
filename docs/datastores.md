@@ -45,10 +45,10 @@ files in that shard.
 
 Two depths in common use:
 
-| `shardFunc`              | Shard count | At 60M blocks | Notes                                    |
-|--------------------------|------------:|--------------:|------------------------------------------|
-| `next-to-last/2`         | ~1,024      | ~58k files/dir| default; fine for small/medium nodes     |
-| `next-to-last/3`         | ~32,768     | ~1.8k files/dir| recommended for large pinning/gateway nodes |
+| `shardFunc`              | Shard count | At 60M blocks   | Notes                                       |
+|--------------------------|------------:|----------------:|---------------------------------------------|
+| `next-to-last/2`         | ~1,024      | ~58k files/dir  | default; fine for small/medium nodes        |
+| `next-to-last/3`         | ~32,768     | ~1.8k files/dir | recommended for large pinning/gateway nodes |
 
 For nodes expected to grow past a few million blocks (most pinning clusters,
 public gateways, mirrors), prefer `next-to-last/3`. The deeper sharding keeps
@@ -59,10 +59,10 @@ rebuild on startup, and `Provide.Strategy=all` reprovide cycles). On nodes
 backed by rotational disks the difference can be the gap between healthy
 operation and IOPS-saturated iowait.
 
-The shard depth is fixed at `ipfs init` time. Existing repos cannot be
-re-sharded in place; migrating to a different depth requires exporting and
-re-importing the blockstore, so pick conservatively for the expected steady
-state of the node.
+The shard depth is fixed at `ipfs init` time. Kubo ships no in-place
+re-sharding tool, so switching depth on an existing repo means exporting
+and re-importing the blockstore. Pick conservatively for the expected
+steady state of the node.
 
 ## levelds
 
