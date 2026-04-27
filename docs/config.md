@@ -966,25 +966,43 @@ Type: `bool`
 
 ### `Datastore.BloomFilterSize`
 
-A number representing the size in bytes of the blockstore's [bloom
-filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents
-the feature is disabled.
+The size in **bytes** of the blockstore's [bloom filter](https://en.wikipedia.org/wiki/Bloom_filter).
+A value of `0` disables the feature.
 
-This site generates useful graphs for various bloom filter values:
-<https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7> You may use it to find a
-preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to
-convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the
-config file. For example, for 1,000,000 blocks, expecting a 1% false-positive
-rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize`
-we'd want to use 1199120 bytes. As of writing, [7 hash
-functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22)
-are used, so the constant `k` is 7 in the formula.
+The bloom filter answers "does the blockstore *not* have this CID?" from RAM
+without touching the datastore. A negative answer is exact (no false negatives);
+a positive answer is probabilistic and falls through to the underlying
+blockstore for verification. This is most useful on nodes that respond to many
+bitswap wantlists for content they don't host (public gateways, peers asking
+for opportunistically-cached content, etc.).
 
-Enabling the BloomFilter can provide performance improvements specially when
-responding to many requests for inexistent blocks. It however requires a full
-sweep of all the datastore keys on daemon start. On very large datastores this
-can be a very taxing operation, particularly if the datastore does not support
-querying existing keys without reading their values at the same time (blocks).
+The complementary cache for the *positive* path (block exists, look up its
+size) is [`Datastore.BlockKeyCacheSize`](#datastoreblockkeycachesize).
+
+#### Sizing
+
+[hur.st/bloomfilter](https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7) generates
+graphs for various values; use it to pick `m` (in bits) for your expected
+number of blocks `n` and target false-positive rate `p`. The `BloomFilterSize`
+config value is `m / 8` (the kubo blockstore uses `k=7` hash functions).
+
+Worked example: for `n=1,000,000` blocks at `p=1%` FPR, you need
+`m=9,592,955` bits, so `BloomFilterSize: 1199120`.
+
+The filter is fixed-size and stops being useful once the number of inserted
+CIDs grows past its design `n`: the false-positive rate climbs and eventually
+saturates near 100%, at which point every "maybe" hits the datastore anyway.
+Resize the filter as your blockstore grows.
+
+#### Startup cost
+
+The filter is rebuilt on every daemon start by walking all datastore keys
+(`AllKeysChan`). On very large blockstores or slow disks this can take many
+minutes, during which `Has()` falls through to the datastore and the filter
+provides no benefit. The filter is not persisted across restarts. Datastores
+that cannot enumerate keys without reading values (block content) make this
+much more expensive; flatfs and pebble both support keys-only iteration, so
+the rebuild cost is proportional to the keyset, not to data volume.
 
 Default: `0` (disabled)
 
@@ -1011,16 +1029,38 @@ Type: `bool`
 
 ### `Datastore.BlockKeyCacheSize`
 
-A number representing the maximum size in bytes of the blockstore's Two-Queue
-cache, which caches block-cids and their block-sizes. Use `0` to disable.
+The maximum **number of entries** held in the blockstore's Two-Queue cache. The
+cache stores per-CID metadata (existence and block size) but never block
+content. Use `0` to disable.
 
-This cache, once primed, can greatly speed up operations like `ipfs repo stat`
-as there is no need to read full blocks to know their sizes. Size should be
-adjusted depending on the number of CIDs on disk (`NumObjects in`ipfs repo stat`).
+A cache hit answers `Has` and `GetSize` from RAM and skips the underlying
+datastore lookup. This includes the per-block `os.Stat` flatfs does to learn a
+block's size, which is the dominant cost on bitswap servers responding to peer
+wantlists.
 
-Default: `65536` (64KiB)
+The cache uses a [Two-Queue (2Q) replacement policy](https://pkg.go.dev/github.com/hashicorp/golang-lru/v2#TwoQueueCache):
+items have to be touched twice before they get promoted to the frequently-used
+tier. A long one-shot scan (reprovider walking the blockstore, GC, `ipfs repo
+verify`) does not evict the hot entries that bitswap is repeatedly serving.
 
-Type: `optionalInteger` (non-negative, bytes)
+#### Sizing
+
+Memory usage is approximately the entry count times the per-entry overhead of
+the 2Q cache, the multihash key bytes, and the cached value. As a rough
+estimate, budget ~200 bytes per entry, so `1048576` (1M entries) is on the
+order of ~200 MB resident. The cache only needs to cover your **hot working
+set** of CIDs (the ones repeatedly hit by inbound bitswap, gateway, or
+DAG-resolution traffic), not the entire blockstore.
+
+The default of `65536` is sized for small dev/desktop nodes. Operators running
+public gateways, pinning clusters, or any node serving non-trivial bitswap
+traffic should size this against the active working set, see
+[`Datastore.BloomFilterSize`](#datastorebloomfiltersize) for the
+complementary negative-`Has()` short-circuit that pairs well with this cache.
+
+Default: `65536` (entries)
+
+Type: `optionalInteger` (non-negative, number of entries)
 
 ### `Datastore.Spec`
 
