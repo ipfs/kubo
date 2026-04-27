@@ -970,11 +970,18 @@ The size in **bytes** of the blockstore's [bloom filter](https://en.wikipedia.or
 A value of `0` disables the feature.
 
 The bloom filter answers "does the blockstore *not* have this CID?" from RAM
-without touching the datastore. A negative answer is exact (no false negatives);
-a positive answer is probabilistic and falls through to the underlying
-blockstore for verification. This is most useful on nodes that respond to many
-bitswap wantlists for content they don't host (public gateways, peers asking
-for opportunistically-cached content, etc.).
+without touching the datastore. A negative answer is exact (no false
+negatives, so blocks are never falsely reported missing); a positive answer
+is probabilistic and falls through to the underlying blockstore for
+verification. The probability that the filter says "maybe present" for a CID
+that is not actually in the blockstore is its **false-positive rate (FPR)**.
+A false positive costs one wasted datastore lookup, no more; it never causes
+data loss or incorrect retrieval. The smaller the FPR, the larger the
+fraction of inbound `Has()` calls the filter can answer from RAM alone.
+
+This caching is most useful on nodes that respond to many bitswap wantlists
+for content they don't host (public gateways, peers asking for
+opportunistically-cached content, etc.).
 
 The complementary cache for the *positive* path (block exists, look up its
 size) is [`Datastore.BlockKeyCacheSize`](#datastoreblockkeycachesize).
