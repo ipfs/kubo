@@ -88,6 +88,14 @@ func makeAddrsFactory(announce []string, appendAnnounce []string, noAnnounce []s
 
 		var out []ma.Multiaddr
 		for _, maddr := range addrs {
+			// Drop empty multiaddrs. Since go-multiaddr v0.15 made
+			// Multiaddr a slice type, a zero-value Multiaddr encodes to
+			// zero bytes and would otherwise reach the host's signed peer
+			// record, where peers render it as "/" and reject the address.
+			// See https://github.com/libp2p/js-libp2p/issues/3478#issuecomment-4322093929
+			if len(maddr) == 0 {
+				continue
+			}
 			// check for exact matches
 			ok := noAnnAddrs[string(maddr.Bytes())]
 			// check for /ipcidr matches
