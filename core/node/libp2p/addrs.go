@@ -12,9 +12,11 @@ import (
 	"github.com/ipfs/kubo/config"
 	p2pforge "github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p/core/event"
 	"github.com/libp2p/go-libp2p/core/host"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
 
 	"github.com/caddyserver/certmagic"
@@ -33,6 +35,172 @@ func AddrFilters(filters []string) func() (*ma.Filters, Libp2pOpts, error) {
 			filter.AddFilter(*f, ma.ActionDeny)
 		}
 		return filter, opts, nil
+	}
+}
+
+// Sources for deadListenerFinding.Source.
+const (
+	deadListenerSourceAddrFilters = "Swarm.AddrFilters"
+	deadListenerSourceNoAnnounce  = "Addresses.NoAnnounce"
+)
+
+// deadListenerFinding is one resolved listener killed by a CIDR rule:
+// `Swarm.AddrFilters` (gater RSTs inbound) or `Addresses.NoAnnounce`
+// (listener never advertised).
+type deadListenerFinding struct {
+	Listener string // resolved listen multiaddr (interface-bound)
+	Source   string // deadListenerSourceAddrFilters or deadListenerSourceNoAnnounce
+	Rule     string // matching CIDR rule from Source
+}
+
+// findDeadListeners returns one finding per (listener, rule, source)
+// triple whose IP component falls inside a CIDR in addrFilters or
+// noAnnounce.
+//
+// listenAddrs must be already-resolved interface addresses (output of
+// `host.Network().InterfaceListenAddresses()`). Without resolution, the
+// unspecified address itself can match a broad filter (`::` is in
+// `::/3`) even when the listener accepts globally-routable peers.
+//
+// NoAnnounce matches on loopback are skipped: stripping loopback from
+// identify and DHT records is normal operator intent, not a bug.
+// AddrFilters matches on loopback are always reported, since that is
+// the misconfiguration this check exists to catch.
+//
+// Listeners without an IP component (`/dns`, `/dnsaddr`) and
+// unparseable rules are skipped silently.
+func findDeadListeners(listenAddrs []ma.Multiaddr, addrFilters []string, noAnnounce []string) []deadListenerFinding {
+	check := func(source string, rules []string) []deadListenerFinding {
+		var out []deadListenerFinding
+		for _, r := range rules {
+			mask, err := mamask.NewMask(r)
+			if err != nil {
+				// Malformed CIDR (caught upstream for AddrFilters) or
+				// an exact-match multiaddr in NoAnnounce. Skip either way.
+				continue
+			}
+			f := ma.NewFilters()
+			f.AddFilter(*mask, ma.ActionDeny)
+			for _, l := range listenAddrs {
+				if !f.AddrBlocked(l) {
+					continue
+				}
+				if source == deadListenerSourceNoAnnounce && isLoopbackMultiaddr(l) {
+					// Suppressing loopback announcement is operator-intent,
+					// not a misconfiguration.
+					continue
+				}
+				out = append(out, deadListenerFinding{
+					Listener: l.String(),
+					Source:   source,
+					Rule:     r,
+				})
+			}
+		}
+		return out
+	}
+
+	findings := check(deadListenerSourceAddrFilters, addrFilters)
+	findings = append(findings, check(deadListenerSourceNoAnnounce, noAnnounce)...)
+	return findings
+}
+
+// isLoopbackMultiaddr reports whether m's IP component is loopback
+// (`127.0.0.0/8` or `::1`). Returns false if m has no IP component.
+func isLoopbackMultiaddr(m ma.Multiaddr) bool {
+	ip, err := manet.ToIP(m)
+	if err != nil {
+		return false
+	}
+	return ip.IsLoopback()
+}
+
+// logDeadListenerFinding writes one ERROR line per finding, naming
+// the listener, the matching CIDR rule, and where to remove it from.
+// Each line stands alone so operators can grep and act on it.
+func logDeadListenerFinding(f deadListenerFinding) {
+	switch f.Source {
+	case deadListenerSourceAddrFilters:
+		log.Errorf(
+			"Addresses.Swarm listener %q matches Swarm.AddrFilters rule %q, "+
+				"so Kubo rejects every incoming connection to it. Remove %q "+
+				"from Swarm.AddrFilters to allow connections to this listener.",
+			f.Listener, f.Rule, f.Rule,
+		)
+	case deadListenerSourceNoAnnounce:
+		log.Errorf(
+			"Addresses.Swarm listener %q matches Addresses.NoAnnounce rule %q, "+
+				"so Kubo will not advertise it to other peers. Remove %q from "+
+				"Addresses.NoAnnounce to advertise this listener.",
+			f.Listener, f.Rule, f.Rule,
+		)
+	}
+}
+
+// MonitorDeadListeners runs findDeadListeners at startup and on every
+// EvtLocalAddressesUpdated. Listen addresses change at runtime (NAT
+// mapping, new interface, AutoTLS cert), so a one-shot check would
+// miss listeners that appear later.
+//
+// Findings are deduplicated against the previous run: a stable
+// misconfiguration is logged once.
+//
+// If subscribing to the event bus fails, the runtime monitor is
+// disabled and only the startup check runs. The check is diagnostic
+// and must never abort node startup.
+func MonitorDeadListeners(addrFilters []string, noAnnounce []string) func(fx.Lifecycle, host.Host) error {
+	return func(lc fx.Lifecycle, h host.Host) error {
+		seen := make(map[deadListenerFinding]struct{})
+		runCheck := func() {
+			listenAddrs, err := h.Network().InterfaceListenAddresses()
+			if err != nil {
+				log.Warnf("dead-listener check: read InterfaceListenAddresses: %s", err)
+				return
+			}
+			next := make(map[deadListenerFinding]struct{})
+			for _, f := range findDeadListeners(listenAddrs, addrFilters, noAnnounce) {
+				next[f] = struct{}{}
+				if _, ok := seen[f]; ok {
+					continue
+				}
+				logDeadListenerFinding(f)
+			}
+			seen = next
+		}
+
+		// Startup check, always runs even if the runtime monitor below
+		// cannot be wired up.
+		runCheck()
+
+		sub, err := h.EventBus().Subscribe(new(event.EvtLocalAddressesUpdated))
+		if err != nil {
+			log.Errorf("dead-listener check: subscribe to EvtLocalAddressesUpdated failed (%s); runtime monitor disabled, startup check already ran", err)
+			return nil
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		lc.Append(fx.Hook{
+			OnStop: func(_ context.Context) error {
+				cancel()
+				return nil
+			},
+		})
+
+		go func() {
+			defer sub.Close()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case _, ok := <-sub.Out():
+					if !ok {
+						return
+					}
+					runCheck()
+				}
+			}
+		}()
+		return nil
 	}
 }
 
