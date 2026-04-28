@@ -340,7 +340,9 @@ var _ confirmedAddrsHost = (*basichost.BasicHost)(nil)
 // Resolution logic:
 //   - If Announce is set, use it as a static override (no dynamic resolution).
 //   - Otherwise, prefer AutoNAT V2 confirmed reachable addresses when available,
-//     falling back to static Swarm addresses (filtered by NoAnnounce).
+//     falling back to host.Addrs() which resolves 0.0.0.0/:: Swarm binds to
+//     concrete interface addresses and applies the libp2p AddrsFactory
+//     (Addresses.NoAnnounce CIDR filters and Swarm.AddrFilters).
 //   - AppendAnnounce addresses are always appended.
 func httpRouterAddrFunc(h host.Host, cfgAddrs config.Addresses) func() []ma.Multiaddr {
 	appendAddrs := parseMultiaddrs(cfgAddrs.AppendAnnounce)
@@ -350,23 +352,6 @@ func httpRouterAddrFunc(h host.Host, cfgAddrs config.Addresses) func() []ma.Mult
 		staticAddrs := slices.Concat(parseMultiaddrs(cfgAddrs.Announce), appendAddrs)
 		return func() []ma.Multiaddr { return staticAddrs }
 	}
-
-	// Precompute fallback: Swarm minus NoAnnounce plus AppendAnnounce.
-	fallbackStrs := cfgAddrs.Swarm
-	if len(cfgAddrs.NoAnnounce) > 0 {
-		noAnnounce := map[string]struct{}{}
-		for _, a := range cfgAddrs.NoAnnounce {
-			noAnnounce[a] = struct{}{}
-		}
-		filtered := make([]string, 0, len(fallbackStrs))
-		for _, a := range fallbackStrs {
-			if _, skip := noAnnounce[a]; !skip {
-				filtered = append(filtered, a)
-			}
-		}
-		fallbackStrs = filtered
-	}
-	fallbackResult := slices.Concat(parseMultiaddrs(fallbackStrs), appendAddrs)
 
 	ch, hasConfirmed := h.(confirmedAddrsHost)
 	return func() []ma.Multiaddr {
@@ -379,7 +364,14 @@ func httpRouterAddrFunc(h host.Host, cfgAddrs config.Addresses) func() []ma.Mult
 				return slices.Concat(reachable, appendAddrs)
 			}
 		}
-		return fallbackResult
+		// Fallback: host.Addrs() resolves wildcard binds (0.0.0.0, ::) to
+		// concrete interface addresses and applies the libp2p AddrsFactory,
+		// which is where Addresses.NoAnnounce CIDR filtering happens.
+		hostAddrs := h.Addrs()
+		if len(appendAddrs) == 0 {
+			return hostAddrs
+		}
+		return slices.Concat(hostAddrs, appendAddrs)
 	}
 }
 

@@ -19,6 +19,9 @@
   - [`IPFS_CONTENT_BLOCKING_DISABLE`](#ipfs_content_blocking_disable)
   - [`IPFS_WAIT_REPO_LOCK`](#ipfs_wait_repo_lock)
   - [`IPFS_TELEMETRY`](#ipfs_telemetry)
+  - [`HTTPS_PROXY`](#https_proxy)
+  - [`HTTP_PROXY`](#http_proxy)
+  - [`NO_PROXY`](#no_proxy)
   - [`LIBP2P_TCP_REUSEPORT`](#libp2p_tcp_reuseport)
   - [`LIBP2P_TCP_MUX`](#libp2p_tcp_mux)
   - [`LIBP2P_MUX_PREFS`](#libp2p_mux_prefs)
@@ -73,6 +76,8 @@ GOLOG_LOG_LEVEL="error,core/server=debug" ipfs daemon
 
 Logging can also be configured at runtime, both globally and on a per-subsystem basis, with the `ipfs log` command.
 
+See [Known logger subsystems](./debug-guide.md#known-logger-subsystems) for subsystem names related to the provide/reprovide pipeline.
+
 ## `GOLOG_LOG_FMT`
 
 Specifies the log message format.  It supports the following values:
@@ -112,7 +117,7 @@ Warning: Enabling tracing will likely affect performance.
 
 ## `IPFS_FUSE_DEBUG`
 
-When set to any non-empty value, enables verbose FUSE debug logging. Every FUSE operation (open, read, write, lookup, getattr, etc.) is logged to stderr with its arguments and return values. Useful for diagnosing mount issues or understanding what the kernel is requesting.
+When set to any non-empty value, logs every FUSE operation (open, read, write, lookup, getattr, etc.) to stderr with its arguments and return values. Useful for diagnosing mount issues or inspecting what the kernel requests.
 
 Default: not set (no debug logging)
 
@@ -217,6 +222,50 @@ Example:
 export IPFS_TELEMETRY="off"
 ```
 
+## `HTTPS_PROXY`
+
+Proxy for outbound `https://` HTTP requests and `/wss` libp2p WebSocket peer dials. Kubo relies on Go's `http.ProxyFromEnvironment`, which is honored by every HTTP client in the default code paths:
+
+- `ipfs` CLI talking to a remote daemon over [Kubo RPC](https://docs.ipfs.tech/reference/kubo/rpc/).
+- Programmatic [Kubo RPC](https://docs.ipfs.tech/reference/kubo/rpc/) client (`client/rpc`) used by third-party Go applications.
+- `ipfs update` downloader fetching release binaries and checksums from GitHub.
+- Delegated HTTP routing configured via [`Routing.DelegatedRouters`](config.md#routingdelegatedrouters).
+- HTTP block retrieval used by Bitswap against [Trustless Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/).
+- AutoConf fetch of network bootstrap defaults ([`AutoConf.URL`](config.md#autoconfurl)).
+- AutoTLS ACME cert issuance via [`certmagic`](https://github.com/caddyserver/certmagic): both the challenge broker request to `p2p-forge` and the ACME flow to the configured CA (Let's Encrypt by default).
+- go-libp2p WebSocket transport for `/wss` outbound peer dials (`gorilla/websocket` `DefaultDialer`).
+
+Accepted forms:
+
+- `http://host:port`: plain HTTP proxy; TLS targets tunnel through `CONNECT`. Works for both `https://` and `wss://`.
+- `https://host:port`: proxy itself is reached over TLS. Requires Kubo 0.41 or newer.
+- Basic auth is supported: `http://user:pass@host:port`.
+
+Example:
+
+```console
+HTTPS_PROXY=http://proxy.local:8080 ipfs daemon
+```
+
+Scope:
+
+- Outbound only. Inbound listeners (`/ws`, `/wss`, gateway, RPC) are not affected.
+- Direct libp2p transports (TCP, QUIC, WebTransport, WebRTC) do not use a proxy.
+
+## `HTTP_PROXY`
+
+Same as [`HTTPS_PROXY`](#https_proxy), applied to `http://` URLs and `/ws` libp2p WebSocket peer dials.
+
+## `NO_PROXY`
+
+Comma-separated list of host names, domain suffixes (prefixed with a dot), or CIDR blocks that bypass [`HTTP_PROXY`](#http_proxy) and [`HTTPS_PROXY`](#https_proxy).
+
+Example:
+
+```console
+NO_PROXY="localhost,127.0.0.1,.internal" HTTPS_PROXY=http://proxy.local:8080 ipfs daemon
+```
+
 ## `LIBP2P_TCP_REUSEPORT`
 
 Kubo tries to reuse the same source port for all connections to improve NAT
@@ -270,8 +319,8 @@ Default: [160](https://github.com/libp2p/go-libp2p/blob/master/p2p/net/swarm/swa
 ## `TEST_DHT_STUB`
 
 Lifts WAN DHT filters so kubo can operate against DHT peers on
-loopback, enabling full end-to-end provide/findprovs/IPNS testing
-without public internet access. All DHT code paths are exercised:
+loopback, enabling end-to-end provide/findprovs/IPNS testing
+without public internet access. Exercises every DHT code path:
 dial, protocol negotiation, message serialization, routing table
 management.
 
