@@ -25,9 +25,9 @@ import (
 	"github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-unixfsnode"
+	config "github.com/ipfs/kubo/config"
 	gocarv2 "github.com/ipld/go-car/v2"
 	dagpb "github.com/ipld/go-codec-dagpb"
-	config "github.com/ipfs/kubo/config"
 	madns "github.com/multiformats/go-multiaddr-dns"
 )
 
