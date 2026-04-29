@@ -128,6 +128,7 @@ func (f *HttpFetcher) resolveIPNS(ctx context.Context, name ipns.Name) (path.Pat
 	if err != nil {
 		return path.ImmutablePath{}, err
 	}
+	defer rc.Close()
 
 	rc = NewLimitReadCloser(rc, int64(ipns.MaxRecordSize))
 	rawRecord, err := io.ReadAll(rc)
