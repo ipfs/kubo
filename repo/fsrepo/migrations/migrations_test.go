@@ -310,10 +310,8 @@ func TestGetMigrationFetcher(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rf, ok := f.(*RetryFetcher); !ok {
-		t.Fatal("expected RetryFetcher")
-	} else if _, ok := rf.Fetcher.(*HttpFetcher); !ok {
-		t.Fatal("expected HttpFetcher")
+	if _, ok := f.(*HttpFetcher); !ok {
+		t.Fatalf("expected HttpFetcher, got %T", f)
 	}
 
 	downloadSources = []string{"ipfs"}
@@ -327,10 +325,12 @@ func TestGetMigrationFetcher(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rf, ok := f.(*RetryFetcher); !ok {
-		t.Fatal("expected RetryFetcher")
-	} else if _, ok := rf.Fetcher.(*HttpFetcher); !ok {
-		t.Fatal("expected HttpFetcher")
+	mf, ok := f.(*MultiFetcher)
+	if !ok {
+		t.Fatal("expected MultiFetcher for HTTPS alias expansion")
+	}
+	if mf.Len() != len(defaultMigrationGateways) {
+		t.Fatalf("expected %d fetchers from HTTPS alias, got %d", len(defaultMigrationGateways), mf.Len())
 	}
 
 	downloadSources = []string{"IPFS", "HTTPS"}
@@ -344,12 +344,12 @@ func TestGetMigrationFetcher(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mf, ok := f.(*MultiFetcher)
+	mf, ok = f.(*MultiFetcher)
 	if !ok {
 		t.Fatal("expected MultiFetcher")
 	}
-	if mf.Len() != 2 {
-		t.Fatal("expected 2 fetchers in MultiFetcher")
+	if mf.Len() != len(defaultMigrationGateways)+1 {
+		t.Fatalf("expected %d fetchers in MultiFetcher, got %d", len(defaultMigrationGateways)+1, mf.Len())
 	}
 
 	downloadSources = nil
