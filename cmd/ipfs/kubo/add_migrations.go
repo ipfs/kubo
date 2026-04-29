@@ -36,7 +36,7 @@ func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.
 			if err != nil {
 				return err
 			}
-		case *migrations.HttpFetcher, *migrations.RetryFetcher: // https://github.com/ipfs/kubo/issues/8780
+		case *migrations.HttpFetcher: // https://github.com/ipfs/kubo/issues/8780
 			// Add the downloaded migration files directly
 			if migrations.DownloadDirectory != "" {
 				var paths []string

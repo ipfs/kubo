@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	gopath "path"
 	"strings"
+	"time"
 
 	"github.com/ipfs/boxo/blockservice"
 	"github.com/ipfs/boxo/blockstore"
@@ -25,15 +27,71 @@ import (
 	"github.com/ipfs/go-unixfsnode"
 	gocarv2 "github.com/ipld/go-car/v2"
 	dagpb "github.com/ipld/go-codec-dagpb"
+	config "github.com/ipfs/kubo/config"
 	madns "github.com/multiformats/go-multiaddr-dns"
 )
 
 const (
-	// default is different name than ipfs.io which is being blocked by some ISPs
+	// defaultGatewayURL is used when no gateway is configured. Some ISPs
+	// block ipfs.io, so we use a different hostname.
 	defaultGatewayURL = "https://trustless-gateway.link"
 	// Default maximum download size.
 	defaultFetchLimit = 1024 * 1024 * 512
+
+	// Sized for users on slow / high-latency networks (e.g. VPNs through
+	// congested links): a 3-RTT TLS handshake at 1-2s RTT plus packet
+	// loss can legitimately approach 10s. 15s leaves headroom while
+	// still failing fast against truly dead gateways.
+	dialTimeout         = 15 * time.Second
+	tlsHandshakeTimeout = 15 * time.Second
 )
+
+// defaultMigrationGateways lists the public trustless gateways tried in order
+// when Migration.DownloadSources expands the "HTTPS" alias. Each entry was
+// verified on 2026-04-29 to serve application/vnd.ipld.car for the migration
+// distribution path with ?format=car, from an independent backend (not a
+// cross-domain redirect to another entry on this list). Source list:
+// https://github.com/ipfs/public-gateway-checker/blob/main/gateways.json
+// (rendered at https://ipfs.github.io/public-gateway-checker/).
+//
+// Including third-party community gateways here is safe: we request CAR
+// archives and the local CAR reader verifies the multihash of every block
+// against the requested CID before any byte is used, so a malicious or
+// misconfigured gateway cannot substitute different content. Trust is in
+// the hash, not the operator.
+//
+// trustless-gateway.link is tried first as the long-standing default; the
+// remaining entries are ordered by typical response speed and serve as
+// fallbacks if it is blocked or unreachable.
+var defaultMigrationGateways = []string{
+	"https://trustless-gateway.link",
+	"https://gateway.pinata.cloud",
+	"https://ipfs.filebase.io",
+	"https://4everland.io",
+	"https://dget.top",
+}
+
+// migrationHTTPClient is the HTTP client for migration downloads. Its timeouts
+// fail fast on unreachable or stalled gateways so MultiFetcher can rotate.
+var migrationHTTPClient = &http.Client{
+	Transport: &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout: dialTimeout,
+		}).DialContext,
+		TLSHandshakeTimeout: tlsHandshakeTimeout,
+		// ResponseHeaderTimeout matches boxo's server-side
+		// DefaultRetrievalTimeout (re-exported via Kubo config): a healthy
+		// gateway returns the first byte within this budget or 504s.
+		// Mirroring it avoids drift if boxo retunes.
+		ResponseHeaderTimeout: config.DefaultRetrievalTimeout,
+		IdleConnTimeout:       90 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		ForceAttemptHTTP2:     true,
+	},
+	// No overall Timeout: cancellation flows from the request context, so
+	// streaming bodies run to completion under context control.
+}
 
 // HttpFetcher fetches files over HTTP using verifiable CAR archives.
 type HttpFetcher struct { //nolint
@@ -87,7 +145,7 @@ func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error
 		return nil, fmt.Errorf("path could not be resolved: %w", err)
 	}
 
-	rc, err := f.httpRequest(ctx, imPath, "application/vnd.ipld.car")
+	rc, err := f.httpRequest(ctx, imPath, "application/vnd.ipld.car", "car")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch CAR: %w", err)
 	}
@@ -124,7 +182,7 @@ func (f *HttpFetcher) resolvePath(ctx context.Context, pathStr string) (path.Imm
 }
 
 func (f *HttpFetcher) resolveIPNS(ctx context.Context, name ipns.Name) (path.Path, error) {
-	rc, err := f.httpRequest(ctx, name.AsPath(), "application/vnd.ipfs.ipns-record")
+	rc, err := f.httpRequest(ctx, name.AsPath(), "application/vnd.ipfs.ipns-record", "ipns-record")
 	if err != nil {
 		return path.ImmutablePath{}, err
 	}
@@ -158,8 +216,15 @@ func (f *HttpFetcher) resolveDNSLink(ctx context.Context, p path.Path) (path.Pat
 	return res.Path, nil
 }
 
-func (f *HttpFetcher) httpRequest(ctx context.Context, p path.Path, accept string) (io.ReadCloser, error) {
+func (f *HttpFetcher) httpRequest(ctx context.Context, p path.Path, accept, format string) (io.ReadCloser, error) {
 	url := f.gateway + p.String()
+	// Pass the format hint as both an Accept header and a ?format= query
+	// parameter. The trustless gateway spec defines both as valid
+	// signaling mechanisms, and some gateway implementations honor one
+	// but not the other; sending both maximizes compatibility.
+	if format != "" {
+		url += "?format=" + format
+	}
 	fmt.Printf("Fetching with HTTP: %q\n", url)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -171,9 +236,9 @@ func (f *HttpFetcher) httpRequest(ctx context.Context, p path.Path, accept strin
 		req.Header.Set("User-Agent", f.userAgent)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := migrationHTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("http.DefaultClient.Do error: %w", err)
+		return nil, fmt.Errorf("migration http request error: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
