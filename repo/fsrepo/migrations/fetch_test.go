@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -155,6 +157,28 @@ func TestFetchBinary(t *testing.T) {
 	_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v1.0.0", "not-such-bin", tmpDir)
 	if err == nil || err.Error() != "no binary found in archive" {
 		t.Error("expected 'no binary found in archive' error")
+	}
+}
+
+// TestHttpFetcherUserAgent guards against a regression where NewHttpFetcher
+// accepts a userAgent parameter but forgets to store it on the struct,
+// silently sending Go's default "Go-http-client/1.1" instead of the
+// migration agent string.
+func TestHttpFetcherUserAgent(t *testing.T) {
+	const wantUA = "kubo/migration"
+
+	var gotUA string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotUA = r.Header.Get("User-Agent")
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	fetcher := NewHttpFetcher("/ipfs/bafyreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy", srv.URL, wantUA, 0)
+	_, _ = fetcher.Fetch(t.Context(), "/anything")
+
+	if gotUA != wantUA {
+		t.Fatalf("User-Agent: got %q, want %q", gotUA, wantUA)
 	}
 }
 

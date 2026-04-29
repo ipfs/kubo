@@ -52,9 +52,10 @@ var _ Fetcher = (*HttpFetcher)(nil)
 // Specifying 0 for fetchLimit sets the default, -1 means no limit.
 func NewHttpFetcher(distPath, gateway, userAgent string, fetchLimit int64) *HttpFetcher { //nolint
 	f := &HttpFetcher{
-		distPath: LatestIpfsDist,
-		gateway:  defaultGatewayURL,
-		limit:    defaultFetchLimit,
+		distPath:  LatestIpfsDist,
+		gateway:   defaultGatewayURL,
+		limit:     defaultFetchLimit,
+		userAgent: userAgent,
 	}
 
 	if distPath != "" {
