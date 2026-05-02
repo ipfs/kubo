@@ -9,7 +9,7 @@ require (
 	github.com/caddyserver/certmagic v0.23.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/ceramicnetwork/go-dag-jose v0.1.1
-	github.com/cheggaaa/pb v1.0.29
+	github.com/cheggaaa/pb v2.0.7+incompatible
 	github.com/cockroachdb/pebble/v2 v2.1.4
 	github.com/coreos/go-systemd/v22 v22.7.0
 	github.com/dustin/go-humanize v1.0.1
@@ -126,7 +126,6 @@ require (
 	github.com/dgraph-io/ristretto v0.0.2 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dunglas/httpsfv v1.1.0 // indirect
-	github.com/fatih/color v1.15.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/filecoin-project/go-clock v0.1.0 // indirect
 	github.com/flynn/noise v1.1.0 // indirect
@@ -180,7 +179,6 @@ require (
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mholt/acmez/v3 v3.1.2 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect
@@ -223,7 +221,6 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/quic-go/webtransport-go v0.10.0 // indirect
-	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/rs/cors v1.11.1 // indirect
 	github.com/slok/go-http-metrics v0.13.0 // indirect
@@ -267,6 +264,12 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20260209200024-4cfbd4190f57 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260217215200-42d3e9bedb6d // indirect
 	google.golang.org/grpc v1.79.3 // indirect
+	gopkg.in/VividCortex/ewma.v1 v1.1.1 // indirect
+	gopkg.in/cheggaaa/pb.v2 v2.0.7 // indirect
+	gopkg.in/fatih/color.v1 v1.7.0 // indirect
+	gopkg.in/mattn/go-colorable.v0 v0.1.0 // indirect
+	gopkg.in/mattn/go-isatty.v0 v0.0.4 // indirect
+	gopkg.in/mattn/go-runewidth.v0 v0.0.4 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
