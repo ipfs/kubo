@@ -492,8 +492,8 @@ github.com/ipfs/go-peertaskqueue v0.8.3 h1:tBPpGJy+A92RqtRFq5amJn0Uuj8Pw8tXi0X3e
 github.com/ipfs/go-peertaskqueue v0.8.3/go.mod h1:OqVync4kPOcXEGdj/LKvox9DCB5mkSBeXsPczCxLtYA=
 github.com/ipfs/go-test v0.3.0 h1:0Y4Uve3tp9HI+2lIJjfOliOrOgv/YpXg/l1y3P4DEYE=
 github.com/ipfs/go-test v0.3.0/go.mod h1:JK+U8pRpATZb7lsYNSJlCj3WYB3cFfWIbI6nWRM/GFk=
-github.com/ipfs/go-unixfsnode v1.10.3 h1:c8sJjuGNkxXAQH75P+f5ngPda/9T+DrboVA0TcDGvGI=
-github.com/ipfs/go-unixfsnode v1.10.3/go.mod h1:2Jlc7DoEwr12W+7l8Hr6C7XF4NHST3gIkqSArLhGSxU=
+github.com/ipfs/go-unixfsnode v1.10.4 h1:cMmMyOrSjQkPVQbQvt8trErIn6jhayNf9pBA9oOwfxY=
+github.com/ipfs/go-unixfsnode v1.10.4/go.mod h1:Vu1e/s7ToALBBRo38sJ8DwUVWmSeQMTdxk5/rcHl7d0=
 github.com/ipfs/hang-fds v0.1.0 h1:deBiFlWHsVGzJ0ZMaqscEqRM1r2O1rFZ59UiQXb1Xko=
 github.com/ipfs/hang-fds v0.1.0/go.mod h1:29VLWOn3ftAgNNgXg/al7b11UzuQ+w7AwtCGcTaWkbM=
 github.com/ipfs/iptb v1.4.1 h1:faXd3TKGPswbHyZecqqg6UfbES7RDjTKQb+6VFPKDUo=
