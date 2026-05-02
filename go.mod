@@ -54,7 +54,7 @@ require (
 	github.com/libp2p/go-libp2p-http v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.39.1
 	github.com/libp2p/go-libp2p-kbucket v0.8.0
-	github.com/libp2p/go-libp2p-pubsub v0.15.0
+	github.com/libp2p/go-libp2p-pubsub v0.16.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
 	github.com/libp2p/go-libp2p-record v0.3.1
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.5
