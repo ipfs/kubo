@@ -3225,6 +3225,9 @@ so that a range is neither advertised nor dialed.
 > [`server` profile](#server-profile) section for the full list and for
 > optional entries operators may add manually.
 
+> [!CAUTION]
+> If an [`Addresses.Swarm`](#addressesswarm) listener (for example a manually configured `/ip4/127.0.0.1/tcp/.../ws` fronted by a local nginx or Caddy reverse proxy) is covered by an entry in this list, Kubo rejects every incoming connection to it, so the proxy cannot reach Kubo. Kubo logs an ERROR at startup naming the offending rule. Remove the rule from `Swarm.AddrFilters` to allow the listener; keep it in [`Addresses.NoAnnounce`](#addressesnoannounce) if you still want to suppress its announcement.
+
 Default: `[]`
 
 Type: `array[string]`
@@ -4300,6 +4303,7 @@ Or skip the profile and populate those fields manually.
 | Link-local IPv6 peering                            | `/ip6/fe80::/ipcidr/10`      |
 | Multiple daemons peering over `127.0.0.1`          | `/ip4/127.0.0.0/ipcidr/8`    |
 | Multiple daemons peering over IPv6 loopback `::1`  | `/ip6/::1/ipcidr/128` and `/ip6/::/ipcidr/3` |
+| Local reverse proxy fronting a `/ws` (or other libp2p) listener on `127.0.0.1` | `/ip4/127.0.0.0/ipcidr/8` from `Swarm.AddrFilters` only (keep it in `Addresses.NoAnnounce`); also drop `/ip6/::1/ipcidr/128` and `/ip6/::/ipcidr/3` from `Swarm.AddrFilters` if the proxy uses IPv6 loopback |
 | [Yggdrasil] mesh peering (`200::/8`, `300::/8`)    | `/ip6/::/ipcidr/3`           |
 | NAT64 (`64:ff9b::/96`) reachability                | `/ip6/::/ipcidr/3`           |
 
