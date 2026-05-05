@@ -209,6 +209,19 @@ func ValidateProvideConfig(cfg *Provide) error {
 		if interval < 0 {
 			return fmt.Errorf("Provide.DHT.Interval must be non-negative, got %v", interval)
 		}
+		// Provide.DHT.Interval=0 used to disable the entire provide system as a
+		// side effect. It now disables only the periodic reprovide schedule:
+		// new CIDs still announce via fast-provide-root and 'ipfs provide once'.
+		// Operators upgrading from earlier kubo versions must opt in to one of
+		// the two semantics by setting Provide.Enabled explicitly:
+		//   - Provide.Enabled=false fully disables providing (the old behaviour).
+		//   - Provide.Enabled=true keeps ad-hoc providing while disabling the
+		//     periodic reprovide schedule.
+		if interval == 0 && cfg.Enabled == Default {
+			return fmt.Errorf("Provide.DHT.Interval=0 no longer disables the provide system on its own; set Provide.Enabled explicitly: " +
+				"Provide.Enabled=false to fully disable providing, or Provide.Enabled=true to keep ad-hoc 'ipfs provide once' " +
+				"and fast-provide-root working while skipping the periodic reprovide schedule")
+		}
 	}
 
 	// Validate MaxWorkers
