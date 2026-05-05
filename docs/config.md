@@ -2356,14 +2356,21 @@ interval (common with large datasets), the next cycle is skipped and provider
 records may expire.
 
 - If unset, it uses the implicit safe default.
-- If set to the value `"0"` it will disable content reproviding to DHT.
+- If set to `"0"`, the periodic reprovide schedule is disabled. New CIDs are
+  still announced immediately via fast-provide-root and `ipfs provide once`.
 
 > [!CAUTION]
-> Disabling this will prevent other nodes from discovering your content via the DHT.
-> Your node will stop announcing data to the DHT, making it
-> inaccessible unless peers connect to you directly. Since provider
-> records expire after `amino.DefaultProvideValidity`, your content will become undiscoverable
-> after this period.
+> `Interval=0` disables only the periodic refresh, not announcements of new
+> content. Once provider records expire after `amino.DefaultProvideValidity`,
+> the affected CIDs become undiscoverable to peers that did not retrieve them
+> within that window. To fully disable providing, set
+> [`Provide.Enabled=false`](#provideenabled) instead.
+
+> [!IMPORTANT]
+> When `Interval=0`, [`Provide.Enabled`](#provideenabled) must be set
+> explicitly. The daemon refuses to start otherwise. This prevents silent
+> behaviour change on upgrade for operators who previously relied on
+> `Interval=0` as a master kill-switch.
 
 Default: `22h`
 
