@@ -258,28 +258,24 @@ a final count is printed at the end.
 			return walkErr
 		}
 
-		// Process argv args first.
-		for _, arg := range req.Arguments {
+		args := argumentIterator{req.Arguments, req.BodyArgs()}
+		for {
+			arg, ok := args.next()
+			if !ok {
+				break
+			}
 			if err := processRoot(arg); err != nil {
 				return err
 			}
 		}
-		// Then stream from stdin (BodyArgs returns nil when no stdin).
-		stdin := req.BodyArgs()
-		if stdin == nil {
-			return nil
-		}
-		for stdin.Scan() {
-			if err := processRoot(stdin.Argument()); err != nil {
-				return err
-			}
-		}
-		return stdin.Err()
+		return args.err()
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
-			// For non-text encoders, forward events untouched so JSON/XML
-			// consumers see one record per CID as it arrives.
+			// In text mode we render the running counter and final summary
+			// directly to stderr/stdout, bypassing the encoder so the TTY
+			// redraw works. For other encoders (json, xml) we must let the
+			// encoder serialize each event, so forward the stream as-is.
 			if enc, _ := res.Request().Options[cmds.EncLong].(string); enc != "" && enc != cmds.Text {
 				return cmds.Copy(re, res)
 			}
@@ -298,6 +294,7 @@ a final count is printed at the end.
 					return err
 				}
 				if _, ok := v.(*ProvideOnceEvent); !ok {
+					log.Errorf("provide once postrun: received unexpected type %T", v)
 					continue
 				}
 				count++
