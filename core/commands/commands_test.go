@@ -173,6 +173,7 @@ func TestCommands(t *testing.T) {
 		"/ping",
 		"/provide",
 		"/provide/clear",
+		"/provide/once",
 		"/provide/stat",
 		"/pubsub",
 		"/pubsub/ls",
