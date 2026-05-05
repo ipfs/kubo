@@ -149,6 +149,19 @@ var provideRefRoutingCmd = &cmds.Command{
 'ipfs routing provide' has moved to 'ipfs provide once'. This command keeps
 its existing behavior so existing scripts continue to work, but will be
 removed in a future release.
+
+Compared to 'ipfs provide once', this command:
+
+- Buffers all CIDs from arguments and stdin before doing any work,
+  instead of streaming them as they arrive.
+- Emits no per-CID output: there is no JSON event stream and the -v
+  flag's per-peer events do not actually propagate to the encoder.
+- With -r, re-walks subtrees shared between roots and re-announces
+  shared blocks; 'ipfs provide once' deduplicates across all inputs.
+- Issues an extra synchronous DHT lookup per CID on top of the
+  provider system, which defeats sweep batching.
+
+Prefer 'ipfs provide once' for new scripts and any large input.
 `,
 	},
 
