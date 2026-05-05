@@ -357,6 +357,37 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 		expectProviders(t, c3, publisher.PeerID().String(), nodes[1:]...)
 	})
 
+	t.Run("ipfs provide once deduplicates repeated CIDs", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 1, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		publisher := nodes[0]
+		c1 := publisher.IPFSAddStr(uniq("dedup 1"), "--pin=false")
+		c2 := publisher.IPFSAddStr(uniq("dedup 2"), "--pin=false")
+
+		// 4 args, 2 unique CIDs. The repeated ones should not produce
+		// extra events on the wire.
+		res := publisher.RunIPFS("provide", "once", "--enc=json", c1, c2, c1, c2)
+		assert.Equal(t, 0, res.ExitCode())
+
+		var queued []string
+		for line := range strings.Lines(res.Stdout.String()) {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			var ev struct{ Queued string }
+			require.NoError(t, json.Unmarshal([]byte(line), &ev))
+			queued = append(queued, ev.Queued)
+		}
+		assert.ElementsMatch(t, []string{c1, c2}, queued, "duplicates should be filtered")
+	})
+
 	t.Run("ipfs provide once --enc=json streams one event per CID", func(t *testing.T) {
 		t.Parallel()
 

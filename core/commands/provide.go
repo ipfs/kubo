@@ -159,6 +159,9 @@ CIDs must already exist in the local blockstore. Periodic re-announcement
 follows Provide.Strategy and Provide.DHT.Interval; this command does not
 change either.
 
+CIDs are deduplicated across arguments, stdin, and DAG walks: each unique
+CID is announced exactly once per invocation.
+
 OUTPUT:
 
 Output is streamed as each CID is queued. With --enc=json, one
@@ -194,6 +197,11 @@ a final count is printed at the end.
 
 		recursive, _ := req.Options[recursiveOptionName].(bool)
 
+		// seen deduplicates across all roots and recursive walks, so a CID
+		// shared by multiple roots (or repeated in argv/stdin) is announced
+		// exactly once per invocation.
+		seen := cid.NewSet()
+
 		// announce queues a single CID into the provide system and emits one
 		// event for it. Errors propagate to the caller.
 		announce := func(c cid.Cid) error {
@@ -219,6 +227,9 @@ a final count is printed at the end.
 			}
 
 			if !recursive {
+				if !seen.Visit(c) {
+					return nil
+				}
 				return announce(c)
 			}
 
@@ -227,10 +238,11 @@ a final count is printed at the end.
 			// after we've already failed.
 			ctx, cancel := context.WithCancel(req.Context)
 			defer cancel()
-			set := cid.NewSet()
 			var visitErr error
 			walkErr := dag.Walk(ctx, dag.GetLinksDirect(nd.DAG), c, func(child cid.Cid) bool {
-				if !set.Visit(child) {
+				// Skip subtrees we've already walked from a previous root or
+				// argument: returning false stops descent into this node.
+				if !seen.Visit(child) {
 					return false
 				}
 				if err := announce(child); err != nil {
