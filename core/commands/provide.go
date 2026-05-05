@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	humanize "github.com/dustin/go-humanize"
+	"github.com/ipfs/boxo/dag/walker"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	boxoprovider "github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
@@ -199,8 +200,14 @@ a final count is printed at the end.
 
 		// seen deduplicates across all roots and recursive walks, so a CID
 		// shared by multiple roots (or repeated in argv/stdin) is announced
-		// exactly once per invocation.
-		seen := cid.NewSet()
+		// exactly once per invocation. The bloom autoscales as more CIDs
+		// arrive, keeping memory bounded for arbitrarily large inputs at
+		// the cost of a small false-positive rate (default ~1 in 4.75M)
+		// that may cause an occasional CID to be skipped.
+		seen, err := walker.NewBloomTracker(walker.MinBloomCapacity, walker.DefaultBloomFPRate)
+		if err != nil {
+			return err
+		}
 
 		// announce queues a single CID into the provide system and emits one
 		// event for it. Errors propagate to the caller.
