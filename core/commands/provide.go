@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -17,7 +18,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
-	mh "github.com/multiformats/go-multihash"
+	"golang.org/x/term"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	"github.com/libp2p/go-libp2p-kad-dht/provider"
 	"github.com/libp2p/go-libp2p-kad-dht/provider/buffered"
@@ -127,8 +128,9 @@ See: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
 	},
 }
 
-type provideOnceResult struct {
-	Queued int
+// ProvideOnceEvent is emitted once per CID announced by 'ipfs provide once'.
+type ProvideOnceEvent struct {
+	Queued string
 }
 
 var provideOnceCmd = &cmds.Command{
@@ -137,12 +139,13 @@ var provideOnceCmd = &cmds.Command{
 		Tagline: "Announce CIDs to the routing system on demand.",
 		ShortDescription: `
 Submits provider records for the given CIDs through the provide system,
-in addition to the regular reprovide schedule.
+in addition to the regular reprovide schedule. CIDs can be passed as
+arguments or streamed from stdin (one per line).
 
 The default sweep provider (Provide.DHT.SweepEnabled=true) submits the CIDs
-to its burst-provide queue. The command returns once the CIDs are queued;
-dedicated burst workers publish the records to the DHT. Use 'ipfs provide
-stat' to monitor progress.
+to its burst-provide queue and returns as each CID is queued; dedicated
+burst workers publish the records to the DHT. Use 'ipfs provide stat' to
+monitor progress.
 
 The legacy provider (Provide.DHT.SweepEnabled=false) queues the CIDs for
 its serial worker pool, which publishes one CID at a time and may take
@@ -155,6 +158,13 @@ is only useful with selective strategies like 'roots' or 'pinned+entities'.
 CIDs must already exist in the local blockstore. Periodic re-announcement
 follows Provide.Strategy and Provide.DHT.Interval; this command does not
 change either.
+
+OUTPUT:
+
+Output is streamed as each CID is queued. With --enc=json, one
+{"Queued": "<cid>"} object is emitted per line. With the text encoder
+(default) on a terminal, a single line shows the running count; on a pipe,
+a final count is printed at the end.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -181,12 +191,21 @@ change either.
 		if len(nd.PeerHost.Network().Conns()) == 0 && !cfg.HasHTTPProviderConfigured() {
 			return errors.New("cannot provide: no connected peers")
 		}
-		if err := req.ParseBodyArgs(); err != nil {
-			return err
+
+		recursive, _ := req.Options[recursiveOptionName].(bool)
+
+		// announce queues a single CID into the provide system and emits one
+		// event for it. Errors propagate to the caller.
+		announce := func(c cid.Cid) error {
+			if err := nd.Provider.StartProviding(true, c.Hash()); err != nil {
+				return err
+			}
+			return res.Emit(&ProvideOnceEvent{Queued: c.String()})
 		}
 
-		roots := make([]cid.Cid, 0, len(req.Arguments))
-		for _, arg := range req.Arguments {
+		// processRoot validates a root CID against the local blockstore and
+		// announces either just that CID or every block reachable from it.
+		processRoot := func(arg string) error {
 			c, err := cid.Decode(arg)
 			if err != nil {
 				return fmt.Errorf("invalid CID %q: %w", arg, err)
@@ -198,34 +217,96 @@ change either.
 			if !has {
 				return fmt.Errorf("block %s not found locally, cannot provide", c)
 			}
-			roots = append(roots, c)
+
+			if !recursive {
+				return announce(c)
+			}
+
+			// Stream per-block: visit emits as it walks. Cancel the walk on
+			// the first announce error so we don't keep fetching DAG nodes
+			// after we've already failed.
+			ctx, cancel := context.WithCancel(req.Context)
+			defer cancel()
+			set := cid.NewSet()
+			var visitErr error
+			walkErr := dag.Walk(ctx, dag.GetLinksDirect(nd.DAG), c, func(child cid.Cid) bool {
+				if !set.Visit(child) {
+					return false
+				}
+				if err := announce(child); err != nil {
+					visitErr = err
+					cancel()
+					return false
+				}
+				return true
+			})
+			if visitErr != nil {
+				return visitErr
+			}
+			return walkErr
 		}
 
-		keys := roots
-		if rec, _ := req.Options[recursiveOptionName].(bool); rec {
-			set := cid.NewSet()
-			for _, c := range roots {
-				if err := dag.Walk(req.Context, dag.GetLinksDirect(nd.DAG), c, set.Visit); err != nil {
+		// Process argv args first.
+		for _, arg := range req.Arguments {
+			if err := processRoot(arg); err != nil {
+				return err
+			}
+		}
+		// Then stream from stdin (BodyArgs returns nil when no stdin).
+		stdin := req.BodyArgs()
+		if stdin == nil {
+			return nil
+		}
+		for stdin.Scan() {
+			if err := processRoot(stdin.Argument()); err != nil {
+				return err
+			}
+		}
+		return stdin.Err()
+	},
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			// For non-text encoders, forward events untouched so JSON/XML
+			// consumers see one record per CID as it arrives.
+			if enc, _ := res.Request().Options[cmds.EncLong].(string); enc != "" && enc != cmds.Text {
+				return cmds.Copy(re, res)
+			}
+
+			useTTY := term.IsTerminal(int(os.Stderr.Fd()))
+			var count int
+			for {
+				v, err := res.Next()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					if useTTY && count > 0 {
+						fmt.Fprintln(os.Stderr)
+					}
 					return err
 				}
+				if _, ok := v.(*ProvideOnceEvent); !ok {
+					continue
+				}
+				count++
+				if useTTY {
+					fmt.Fprintf(os.Stderr, "\rqueued %d CID(s) for immediate provide", count)
+				}
 			}
-			keys = set.Keys()
-		}
-
-		mhs := make([]mh.Multihash, len(keys))
-		for i, c := range keys {
-			mhs[i] = c.Hash()
-		}
-		if err := nd.Provider.StartProviding(true, mhs...); err != nil {
-			return err
-		}
-
-		return cmds.EmitOnce(res, &provideOnceResult{Queued: len(keys)})
+			if useTTY && count > 0 {
+				fmt.Fprintln(os.Stderr)
+			} else {
+				fmt.Fprintf(os.Stdout, "queued %d CID(s) for immediate provide\n", count)
+			}
+			return nil
+		},
 	},
-	Type: provideOnceResult{},
+	Type: ProvideOnceEvent{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(_ *cmds.Request, w io.Writer, r *provideOnceResult) error {
-			_, err := fmt.Fprintf(w, "queued %d CID(s) for immediate provide\n", r.Queued)
+		// Used when PostRun is not invoked (HTTP API consumers in text mode).
+		// One CID per line keeps the stream pipe-friendly.
+		cmds.Text: cmds.MakeTypedEncoder(func(_ *cmds.Request, w io.Writer, e *ProvideOnceEvent) error {
+			_, err := fmt.Fprintf(w, "%s\n", e.Queued)
 			return err
 		}),
 	},

@@ -328,6 +328,65 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 		expectProviders(t, c3, publisher.PeerID().String(), nodes[1:]...)
 	})
 
+	t.Run("ipfs provide once reads CIDs streamed from stdin", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		publisher := nodes[0]
+		c1 := publisher.IPFSAddStr(uniq("stdin 1"), "--pin=false")
+		c2 := publisher.IPFSAddStr(uniq("stdin 2"), "--pin=false")
+		c3 := publisher.IPFSAddStr(uniq("stdin 3"), "--pin=false")
+
+		res := publisher.Runner.Run(harness.RunRequest{
+			Path: publisher.IPFSBin,
+			Args: []string{"provide", "once"},
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithStdinStr(c1 + "\n" + c2 + "\n" + c3 + "\n"),
+			},
+		})
+		assert.Equal(t, 0, res.ExitCode(), "provide once with stdin should succeed")
+		assert.Contains(t, res.Stdout.Trimmed(), "queued 3 CID(s) for immediate provide")
+
+		expectProviders(t, c1, publisher.PeerID().String(), nodes[1:]...)
+		expectProviders(t, c2, publisher.PeerID().String(), nodes[1:]...)
+		expectProviders(t, c3, publisher.PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("ipfs provide once --enc=json streams one event per CID", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 1, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		publisher := nodes[0]
+		c1 := publisher.IPFSAddStr(uniq("json 1"), "--pin=false")
+		c2 := publisher.IPFSAddStr(uniq("json 2"), "--pin=false")
+
+		res := publisher.RunIPFS("provide", "once", "--enc=json", c1, c2)
+		assert.Equal(t, 0, res.ExitCode(), "provide once --enc=json should succeed")
+
+		// Parse one JSON object per non-empty line.
+		var queued []string
+		for line := range strings.Lines(res.Stdout.String()) {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			var ev struct{ Queued string }
+			require.NoError(t, json.Unmarshal([]byte(line), &ev), "each line must parse as JSON: %q", line)
+			queued = append(queued, ev.Queued)
+		}
+		assert.ElementsMatch(t, []string{c1, c2}, queued)
+	})
+
 	// Right now Provide and Reprovide are tied together
 	t.Run("Reprovide.Interval=0 disables announcement of new CID too", func(t *testing.T) {
 		t.Parallel()
