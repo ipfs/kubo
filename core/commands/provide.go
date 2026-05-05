@@ -160,8 +160,9 @@ CIDs must already exist in the local blockstore. Periodic re-announcement
 follows Provide.Strategy and Provide.DHT.Interval; this command does not
 change either.
 
-CIDs are deduplicated across arguments, stdin, and DAG walks: each unique
-CID is announced exactly once per invocation.
+CIDs are deduplicated across arguments, stdin, and DAG walks. Dedup uses
+a bloom filter, so at very large scale a small fraction of CIDs may be
+skipped (default rate ~1 in 4.75M).
 
 OUTPUT:
 
@@ -287,6 +288,9 @@ a final count is printed at the end.
 				return cmds.Copy(re, res)
 			}
 
+			// Text mode: render directly to stderr/stdout below. Do not
+			// call re.Emit from this branch, or output will race with the
+			// running counter.
 			isTTY := term.IsTerminal(int(os.Stderr.Fd()))
 			var count int
 			for {

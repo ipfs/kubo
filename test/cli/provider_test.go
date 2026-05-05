@@ -235,6 +235,22 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 		assert.Equal(t, 0, res.ExitCode(), "Should succeed with exit code 0")
 	})
 
+	t.Run("Provide.Enabled=false disables ipfs provide once", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", false)
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+		res := nodes[0].RunIPFS("provide", "once", cid)
+		assert.Contains(t, res.Stderr.Trimmed(), "cannot provide: Provide.Enabled is false")
+		assert.Equal(t, 1, res.ExitCode())
+
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
+
 	t.Run("ipfs provide once announces a CID and finds providers", func(t *testing.T) {
 		t.Parallel()
 
