@@ -11,10 +11,13 @@ import (
 	"unicode/utf8"
 
 	humanize "github.com/dustin/go-humanize"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
 	boxoprovider "github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	mh "github.com/multiformats/go-multihash"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	"github.com/libp2p/go-libp2p-kad-dht/provider"
 	"github.com/libp2p/go-libp2p-kad-dht/provider/buffered"
@@ -52,10 +55,9 @@ Control providing operations.
 
 OVERVIEW:
 
-The provider system advertises content by publishing provider records,
-allowing other nodes to discover which peers have specific content.
-Content is reprovided periodically (every Provide.DHT.Interval)
-according to Provide.Strategy.
+The provider system publishes provider records so other peers can discover
+which nodes hold each CID. Content is reprovided periodically (every
+Provide.DHT.Interval) according to Provide.Strategy.
 
 CONFIGURATION:
 
@@ -63,12 +65,13 @@ Learn more: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
 
 SEE ALSO:
 
-For ad-hoc one-time provide, see 'ipfs routing provide'
+For ad-hoc immediate announcements, see 'ipfs provide once'.
 `,
 	},
 
 	Subcommands: map[string]*cmds.Command{
 		"clear": provideClearCmd,
+		"once":  provideOnceCmd,
 		"stat":  provideStatCmd,
 	},
 }
@@ -125,6 +128,110 @@ Learn: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
 			}
 
 			_, err := fmt.Fprintf(w, "removed %d items from provide queue\n", cleared)
+			return err
+		}),
+	},
+}
+
+type provideOnceResult struct {
+	Queued int
+}
+
+var provideOnceCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Announce CIDs to the routing system on demand.",
+		ShortDescription: `
+Submits provider records for the given CIDs through the provider system,
+in addition to the regular reprovide schedule.
+
+The default sweep provider (Provide.DHT.SweepEnabled=true) submits the CIDs
+to its burst-provide queue. The command returns once the CIDs are queued;
+dedicated burst workers publish the records to the DHT. Use 'ipfs provide
+stat' to monitor progress.
+
+The legacy provider (Provide.DHT.SweepEnabled=false) queues the CIDs for
+its serial worker pool, which publishes one CID at a time and may take
+significantly longer to complete.
+
+Use --recursive to walk the DAG and announce every reachable block. With
+the default Provide.Strategy=all, every block is already announced, so -r
+is only useful with selective strategies like 'roots' or 'pinned+entities'.
+
+CIDs must already exist in the local blockstore. Periodic re-announcement
+follows Provide.Strategy and Provide.DHT.Interval; this command does not
+change either.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("cid", true, true, "The CID(s) to announce.").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(recursiveOptionName, "r", "Recursively announce the entire DAG."),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+		if !nd.IsOnline {
+			return ErrNotOnline
+		}
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+		if !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
+			return errors.New("cannot provide: Provide.Enabled is false")
+		}
+		if len(nd.PeerHost.Network().Conns()) == 0 && !cfg.HasHTTPProviderConfigured() {
+			return errors.New("cannot provide: no connected peers")
+		}
+		if err := req.ParseBodyArgs(); err != nil {
+			return err
+		}
+
+		roots := make([]cid.Cid, 0, len(req.Arguments))
+		for _, arg := range req.Arguments {
+			c, err := cid.Decode(arg)
+			if err != nil {
+				return fmt.Errorf("invalid CID %q: %w", arg, err)
+			}
+			has, err := nd.Blockstore.Has(req.Context, c)
+			if err != nil {
+				return err
+			}
+			if !has {
+				return fmt.Errorf("block %s not found locally, cannot provide", c)
+			}
+			roots = append(roots, c)
+		}
+
+		keys := roots
+		if rec, _ := req.Options[recursiveOptionName].(bool); rec {
+			set := cid.NewSet()
+			for _, c := range roots {
+				if err := dag.Walk(req.Context, dag.GetLinksDirect(nd.DAG), c, set.Visit); err != nil {
+					return err
+				}
+			}
+			keys = set.Keys()
+		}
+
+		mhs := make([]mh.Multihash, len(keys))
+		for i, c := range keys {
+			mhs[i] = c.Hash()
+		}
+		if err := nd.Provider.StartProviding(true, mhs...); err != nil {
+			return err
+		}
+
+		return cmds.EmitOnce(res, &provideOnceResult{Queued: len(keys)})
+	},
+	Type: provideOnceResult{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(_ *cmds.Request, w io.Writer, r *provideOnceResult) error {
+			_, err := fmt.Fprintf(w, "queued %d CID(s) for immediate provide\n", r.Queued)
 			return err
 		}),
 	},

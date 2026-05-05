@@ -235,6 +235,40 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 		assert.Equal(t, 0, res.ExitCode(), "Should succeed with exit code 0")
 	})
 
+	t.Run("ipfs provide once announces a CID and finds providers", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			// "roots" so add-time providing is skipped and we know the
+			// announcement comes from `provide once`, not from ipfs add.
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(uniq("provide once"), "--pin=false")
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		res := nodes[0].RunIPFS("provide", "once", cid)
+		assert.Equal(t, 0, res.ExitCode(), "provide once should succeed")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("ipfs provide once errors when CID is not in local blockstore", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 1, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+		})
+		defer nodes.StopDaemons()
+
+		// CID for content the node has never seen.
+		missing := "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy"
+		res := nodes[0].RunIPFS("provide", "once", missing)
+		assert.Contains(t, res.Stderr.Trimmed(), "not found locally, cannot provide")
+		assert.Equal(t, 1, res.ExitCode())
+	})
+
 	// Right now Provide and Reprovide are tied together
 	t.Run("Reprovide.Interval=0 disables announcement of new CID too", func(t *testing.T) {
 		t.Parallel()
