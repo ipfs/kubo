@@ -276,14 +276,14 @@ removed in a future release.
 var reprovideRoutingCmd = &cmds.Command{
 	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
-		Tagline: "Trigger reprovider (legacy provider only).",
+		Tagline: "Trigger a reprovide cycle (legacy provider only).",
 		ShortDescription: `
-Trigger reprovider to announce our data to network.
+Forces the legacy provider to reprovide all locally stored CIDs that match
+Provide.Strategy.
 
-Only available with the legacy provider (Provide.DHT.SweepEnabled=false).
-Returns an error when Provide.DHT.SweepEnabled=true (the default).
-The sweep provider reprovides automatically on schedule.
-Use 'ipfs provide stat -a' to monitor reprovide progress.
+Only works when Provide.DHT.SweepEnabled=false. With the default sweep
+provider, reproviding is continuous and scheduled, so this command returns
+an error. Use 'ipfs provide stat --all' to monitor sweep progress.
 `,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -308,7 +308,7 @@ Use 'ipfs provide stat -a' to monitor reprovide progress.
 		}
 		provideSys, ok := nd.Provider.(provider.Reprovider)
 		if !ok {
-			err := errors.New("invalid configuration: manual reprovide not available with sweep provider (Provide.DHT.SweepEnabled=true), use 'ipfs provide stat -a' to monitor automatic reprovide progress")
+			err := errors.New("manual reprovide is not available with the sweep provider; set Provide.DHT.SweepEnabled=false to use the legacy provider, or run 'ipfs provide stat --all' to monitor the sweep schedule")
 			log.Error(err)
 			return err
 		}
