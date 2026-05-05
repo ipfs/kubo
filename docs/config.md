@@ -2906,7 +2906,12 @@ Controls how your node discovers content and peers on the network.
   when reachable from the public internet.
 
 - **`autoclient`**: Same as `auto`, but never runs a DHT server.
-  Use this if your node is behind a firewall or NAT.
+  Use this if your node is behind a firewall or NAT, or if you run a
+  [content denylist](https://github.com/ipfs/kubo/blob/master/docs/content-blocking.md)
+  and do not want to store or serve routing records (provider records,
+  IPNS records) for denied keys on behalf of other peers. See
+  [Scope of denylists](https://github.com/ipfs/kubo/blob/master/docs/content-blocking.md#scope-of-denylists)
+  for why this matters.
 
 - **`dht`**: Uses only the Amino DHT (no HTTP routers). Automatically switches
   between client and server mode based on reachability.
