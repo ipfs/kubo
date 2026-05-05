@@ -235,19 +235,25 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 		assert.Equal(t, 0, res.ExitCode(), "Should succeed with exit code 0")
 	})
 
-	t.Run("ipfs provide once errors when Provide.DHT.Interval=0", func(t *testing.T) {
+	t.Run("ipfs provide once works when Provide.DHT.Interval=0", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
 			n.SetIPFSConfig("Provide.Enabled", true)
+			// No periodic reprovide schedule; provide once is the only
+			// way new content reaches peers in this configuration.
 			n.SetIPFSConfig("Provide.DHT.Interval", "0")
+			n.SetIPFSConfig("Provide.Strategy", "roots")
 		})
 		defer nodes.StopDaemons()
 
-		cid := nodes[0].IPFSAddStr(time.Now().String())
-		res := nodes[0].RunIPFS("provide", "once", cid)
-		assert.Contains(t, res.Stderr.Trimmed(), "Provide.DHT.Interval is 0")
-		assert.Equal(t, 1, res.ExitCode())
+		publisher := nodes[0]
+		cid := publisher.IPFSAddStr(uniq("interval=0"), "--pin=false")
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		res := publisher.RunIPFS("provide", "once", cid)
+		assert.Equal(t, 0, res.ExitCode(), "provide once should succeed with Interval=0")
+		expectProviders(t, cid, publisher.PeerID().String(), nodes[1:]...)
 	})
 
 	t.Run("Provide.Enabled=false disables ipfs provide once", func(t *testing.T) {
@@ -449,17 +455,19 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 		assert.ElementsMatch(t, []string{c1, c2}, queued)
 	})
 
-	// Right now Provide and Reprovide are tied together
-	t.Run("Reprovide.Interval=0 disables announcement of new CID too", func(t *testing.T) {
+	t.Run("Provide.DHT.Interval=0 keeps announcing new CIDs (fast-provide-root)", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
+			// Required: Interval=0 alone is rejected by the validator
+			// since the new semantic only disables the schedule.
+			n.SetIPFSConfig("Provide.Enabled", true)
 			n.SetIPFSConfig("Provide.DHT.Interval", "0")
 		})
 		defer nodes.StopDaemons()
 
 		cid := nodes[0].IPFSAddStr(time.Now().String())
-		expectNoProviders(t, cid, nodes[1:]...)
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
 	// `routing reprovide` is only available with the legacy provider.
@@ -469,19 +477,14 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 			t.Parallel()
 
 			nodes := initNodes(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.Enabled", true)
 				n.SetIPFSConfig("Provide.DHT.Interval", "0")
 			})
 			defer nodes.StopDaemons()
 
-			cid := nodes[0].IPFSAddStr(time.Now().String())
-
-			expectNoProviders(t, cid, nodes[1:]...)
-
 			res := nodes[0].RunIPFS("routing", "reprovide")
 			assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.DHT.Interval is set to '0'")
 			assert.Equal(t, 1, res.ExitCode())
-
-			expectNoProviders(t, cid, nodes[1:]...)
 		})
 
 		t.Run("Manual Reprovide trigger does not work when Provide system is disabled", func(t *testing.T) {

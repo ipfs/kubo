@@ -349,9 +349,11 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	isBitswapServerEnabled := cfg.Bitswap.ServerEnabled.WithDefault(config.DefaultBitswapServerEnabled)
 	isHTTPRetrievalEnabled := cfg.HTTPRetrieval.Enabled.WithDefault(config.DefaultHTTPRetrievalEnabled)
 
-	// The Provide system handles both new CID announcements and periodic re-announcements.
-	// Disabling is controlled by Provide.Enabled=false or setting Interval to 0.
-	isProviderEnabled := cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) && cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) != 0
+	// The Provide system handles both new CID announcements and periodic
+	// re-announcements. Provide.Enabled=false fully disables it.
+	// Provide.DHT.Interval=0 disables only the periodic reprovide schedule;
+	// new CIDs still announce via fast-provide-root and 'ipfs provide once'.
+	isProviderEnabled := cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled)
 
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),

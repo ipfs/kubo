@@ -817,6 +817,12 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		if _, ok := in.Provider.(*NoopProvider); ok {
 			return
 		}
+		// Skip keystore initialization in no-schedule mode (Interval=0).
+		// With no periodic reprovide, the keystore has no reader and the
+		// sync ticker would panic on a zero interval.
+		if reprovideInterval == 0 {
+			return
+		}
 
 		var (
 			cancel context.CancelFunc
