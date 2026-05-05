@@ -81,20 +81,14 @@ var provideClearCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Clear all CIDs from the provide queue.",
 		ShortDescription: `
-Clear all CIDs pending to be provided for the first time.
+Clears the provide queue: CIDs waiting to be advertised to the DHT for the
+first time. Does not affect content that is already being reprovided on
+schedule.
 
-BEHAVIOR:
+Kubo also clears the queue automatically on restart when it detects a
+change of Provide.Strategy.
 
-This command removes CIDs from the provide queue that are waiting to be
-advertised to the DHT for the first time. It does not affect content that
-is already being reprovided on schedule.
-
-AUTOMATIC CLEARING:
-
-Kubo will automatically clear the queue when it detects a change of
-Provide.Strategy upon a restart.
-
-Learn: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
+See: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
 `,
 	},
 	Options: []cmds.Option{
@@ -272,24 +266,21 @@ Returns statistics about the node's provider system.
 
 OVERVIEW:
 
-The provide system advertises content to the DHT by publishing provider
-records that map CIDs to your peer ID. These records expire after a fixed
-TTL to account for node churn, so content must be reprovided periodically
-to stay discoverable.
+The provider system publishes provider records mapping CIDs to your peer
+ID. Records expire after a fixed TTL, so the system reprovides them on a
+schedule to keep content discoverable.
 
 Two provider types exist:
 
-- Sweep provider: Divides the DHT keyspace into regions and systematically
-  sweeps through them over the reprovide interval. Batches CIDs allocated
+- Sweep provider (default): divides the DHT keyspace into regions and
+  sweeps through them over the reprovide interval. Batches CIDs that map
   to the same DHT servers, reducing lookups from N (one per CID) to a
-  small static number based on DHT size (~3k for 10k DHT servers). Spreads
-  work evenly over time to prevent resource spikes and ensure announcements
-  happen just before records expire.
+  small constant based on DHT size (~3k for 10k DHT servers). Spreads work
+  evenly over time and announces records just before they expire.
 
-- Legacy provider: Processes each CID individually with separate DHT
-  lookups. Attempts to reprovide all content as quickly as possible at the
-  start of each cycle. Works well for small datasets but struggles with
-  large collections.
+- Legacy provider: announces each CID with a separate DHT lookup. Tries
+  to reprovide all content as fast as possible at each cycle start. Fine
+  for small datasets, slow past a few thousand CIDs.
 
 Learn more:
 - Config: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide

@@ -2559,7 +2559,7 @@ Number of workers dedicated to burst provides. Only applies when `Provide.DHT.Sw
 
 Burst provides are triggered by:
 
-- Manual provide commands (`ipfs routing provide`)
+- Manual provide commands (`ipfs provide once`)
 - New content matching your `Provide.Strategy` (blocks from `ipfs add`, bitswap, or trustless gateway requests)
 - Catch-up reprovides after being disconnected/offline for a while
 
