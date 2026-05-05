@@ -55,7 +55,7 @@ Control providing operations.
 
 OVERVIEW:
 
-The provider system publishes provider records so other peers can discover
+The provide system publishes provider records so other peers can discover
 which nodes hold each CID. Content is reprovided periodically (every
 Provide.DHT.Interval) according to Provide.Strategy.
 
@@ -136,7 +136,7 @@ var provideOnceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Announce CIDs to the routing system on demand.",
 		ShortDescription: `
-Submits provider records for the given CIDs through the provider system,
+Submits provider records for the given CIDs through the provide system,
 in addition to the regular reprovide schedule.
 
 The default sweep provider (Provide.DHT.SweepEnabled=true) submits the CIDs
@@ -260,13 +260,13 @@ func extractSweepingProvider(prov any, useLAN bool) *provider.SweepingProvider {
 var provideStatCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Show statistics about the provider system",
+		Tagline: "Show statistics about the provide system",
 		ShortDescription: `
-Returns statistics about the node's provider system.
+Returns statistics about the node's provide system.
 
 OVERVIEW:
 
-The provider system publishes provider records mapping CIDs to your peer
+The provide system publishes provider records mapping CIDs to your peer
 ID. Records expire after a fixed TTL, so the system reprovides them on a
 schedule to keep content discoverable.
 
