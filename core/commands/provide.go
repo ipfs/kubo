@@ -193,6 +193,12 @@ a final count is printed at the end.
 		if !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
 			return errors.New("cannot provide: Provide.Enabled is false")
 		}
+		if cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0 {
+			// Interval=0 currently wires NoopProvider, so StartProviding
+			// would silently no-op. Fail loudly instead until the wiring
+			// is decoupled from the periodic schedule.
+			return errors.New("cannot provide: Provide.DHT.Interval is 0; set a non-zero value to enable the provide system")
+		}
 		if len(nd.PeerHost.Network().Conns()) == 0 && !cfg.HasHTTPProviderConfigured() {
 			return errors.New("cannot provide: no connected peers")
 		}
