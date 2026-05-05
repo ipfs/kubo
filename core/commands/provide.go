@@ -284,7 +284,7 @@ a final count is printed at the end.
 				return cmds.Copy(re, res)
 			}
 
-			useTTY := term.IsTerminal(int(os.Stderr.Fd()))
+			isTTY := term.IsTerminal(int(os.Stderr.Fd()))
 			var count int
 			for {
 				v, err := res.Next()
@@ -292,7 +292,7 @@ a final count is printed at the end.
 					break
 				}
 				if err != nil {
-					if useTTY && count > 0 {
+					if isTTY && count > 0 {
 						fmt.Fprintln(os.Stderr)
 					}
 					return err
@@ -301,11 +301,11 @@ a final count is printed at the end.
 					continue
 				}
 				count++
-				if useTTY {
+				if isTTY {
 					fmt.Fprintf(os.Stderr, "\rqueued %d CID(s) for immediate provide", count)
 				}
 			}
-			if useTTY && count > 0 {
+			if isTTY && count > 0 {
 				fmt.Fprintln(os.Stderr)
 			} else {
 				fmt.Fprintf(os.Stdout, "queued %d CID(s) for immediate provide\n", count)
