@@ -19,7 +19,6 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
-	"golang.org/x/term"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	"github.com/libp2p/go-libp2p-kad-dht/provider"
 	"github.com/libp2p/go-libp2p-kad-dht/provider/buffered"
@@ -28,6 +27,7 @@ import (
 	routing "github.com/libp2p/go-libp2p/core/routing"
 	"github.com/probe-lab/go-libdht/kad/key"
 	"golang.org/x/exp/constraints"
+	"golang.org/x/term"
 )
 
 const (
