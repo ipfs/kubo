@@ -142,9 +142,14 @@ const (
 )
 
 var provideRefRoutingCmd = &cmds.Command{
-	Status: cmds.Experimental,
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
-		Tagline: "Announce to the network that you are providing given values.",
+		Tagline: "Deprecated, use 'ipfs provide once' instead.",
+		ShortDescription: `
+'ipfs routing provide' has moved to 'ipfs provide once'. This command keeps
+its existing behavior so existing scripts continue to work, but will be
+removed in a future release.
+`,
 	},
 
 	Arguments: []cmds.Argument{
