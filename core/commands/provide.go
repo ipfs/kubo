@@ -139,9 +139,10 @@ var provideOnceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Announce CIDs to the routing system on demand.",
 		ShortDescription: `
-Submits provider records for the given CIDs through the provide system,
-in addition to the regular reprovide schedule. CIDs can be passed as
-arguments or streamed from stdin (one per line).
+Publishes provider records for the given CIDs once. The periodic
+reprovide schedule (driven by Provide.Strategy and Provide.DHT.Interval)
+is left unchanged: CIDs announced here are NOT added to the schedule.
+CIDs can be passed as arguments or streamed from stdin (one per line).
 
 The default sweep provider (Provide.DHT.SweepEnabled=true) submits the CIDs
 to its burst-provide queue and returns as each CID is queued; dedicated
@@ -156,9 +157,7 @@ Use --recursive to walk the DAG and announce every reachable block. With
 the default Provide.Strategy=all, every block is already announced, so -r
 is only useful with selective strategies like 'roots' or 'pinned+entities'.
 
-CIDs must already exist in the local blockstore. Periodic re-announcement
-follows Provide.Strategy and Provide.DHT.Interval; this command does not
-change either.
+CIDs must already exist in the local blockstore.
 
 CIDs are deduplicated across arguments, stdin, and DAG walks. Dedup uses
 a bloom filter, so at very large scale a small fraction of CIDs may be
@@ -211,9 +210,12 @@ a final count is printed at the end.
 		}
 
 		// announce queues a single CID into the provide system and emits one
-		// event for it. Errors propagate to the caller.
+		// event for it. Uses ProvideOnce so the CID is published without
+		// being added to the keystore: the periodic reprovide schedule
+		// (driven by Provide.Strategy) is unaffected. Errors propagate to
+		// the caller.
 		announce := func(c cid.Cid) error {
-			if err := nd.Provider.StartProviding(true, c.Hash()); err != nil {
+			if err := nd.Provider.ProvideOnce(c.Hash()); err != nil {
 				return err
 			}
 			return res.Emit(&ProvideOnceEvent{Queued: c.String()})
