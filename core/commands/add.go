@@ -13,7 +13,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
-	"github.com/cheggaaa/pb"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/ipfs/boxo/files"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	mfs "github.com/ipfs/boxo/mfs"
@@ -252,7 +252,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 		cmds.BoolOption(silentOptionName, "Write no output."),
-		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data. Defaults to true when stderr is a terminal."),
 		// Basic Add Behavior
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
@@ -292,10 +292,10 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		silent, _ := req.Options[silentOptionName].(bool)
 
 		if !quiet && !silent {
-			// ipfs cli progress bar defaults to true unless quiet or silent is used
+			// default to showing progress only when stderr is a terminal
 			_, found := req.Options[progressOptionName].(bool)
 			if !found {
-				req.Options[progressOptionName] = true
+				req.Options[progressOptionName] = isStderrTTY()
 			}
 		}
 
@@ -732,11 +732,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 				var bar *pb.ProgressBar
 				if progress {
-					bar = pb.New64(0).SetUnits(pb.U_BYTES)
-					bar.ManualUpdate = true
-					bar.ShowTimeLeft = false
-					bar.ShowPercent = false
-					bar.Output = os.Stderr
+					bar = pb.New64(0).Set(pb.Bytes, true).Set(pb.Static, true).SetWriter(os.Stderr)
+					bar.SetTemplateString(`{{counters . }} {{speed . }}`)
 					bar.Start()
 				}
 
@@ -786,18 +783,17 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 							}
 							lastBytes = output.Bytes
 							delta := prevFiles + lastBytes - totalProgress
-							totalProgress = bar.Add64(delta)
+							bar.Add64(delta)
+							totalProgress = bar.Current()
 						}
 
 						if progress {
-							bar.Update()
+							bar.Write()
 						}
 					case size := <-sizeChan:
 						if progress {
-							bar.Total = size
-							bar.ShowPercent = true
-							bar.ShowBar = true
-							bar.ShowTimeLeft = true
+							bar.SetTotal(size)
+							bar.SetTemplateString(`{{counters . }} {{bar . }} {{speed . }} {{percent .}} {{rtime . "ETA %s"}}`)
 						}
 					case <-req.Context.Done():
 						// don't set or print error here, that happens in the goroutine below
@@ -805,12 +801,10 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 					}
 				}
 
-				if progress && bar.Total == 0 && bar.Get() != 0 {
-					bar.Total = bar.Get()
-					bar.ShowPercent = true
-					bar.ShowBar = true
-					bar.ShowTimeLeft = true
-					bar.Update()
+				if progress && bar.Total() == 0 && bar.Current() != 0 {
+					bar.SetTotal(bar.Current())
+					bar.SetTemplateString(`{{counters . }} {{bar . }} {{speed . }} {{percent .}} {{rtime . "ETA %s"}}`)
+					bar.Write()
 				}
 			}
 

@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/cheggaaa/pb"
+	"github.com/cheggaaa/pb/v3"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -103,9 +103,8 @@ func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
 	val, specified := res.Request().Options[progressOptionName]
 	if !specified {
 		// default based on TTY availability
-		errStat, _ := os.Stderr.Stat()
-		if (errStat.Mode() & os.ModeCharDevice) != 0 {
-			showProgress = true
+		if errStat, err := os.Stderr.Stat(); err == nil {
+			showProgress = (errStat.Mode() & os.ModeCharDevice) != 0
 		}
 	} else if val.(bool) {
 		showProgress = true
@@ -116,11 +115,8 @@ func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
 		return cmds.Copy(re, res)
 	}
 
-	bar := pb.New64(0).SetUnits(pb.U_BYTES)
-	bar.Output = os.Stderr
-	bar.ShowSpeed = true
-	bar.ShowElapsedTime = true
-	bar.RefreshRate = 500 * time.Millisecond
+	bar := pb.New64(0).Set(pb.Bytes, true).SetWriter(os.Stderr).SetRefreshRate(500 * time.Millisecond)
+	bar.SetTemplateString(`{{counters . }} {{speed . }} {{etime . }}`)
 	bar.Start()
 
 	var processedOneResponse bool
