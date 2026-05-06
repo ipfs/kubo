@@ -599,6 +599,11 @@ func purgeOrphanedKeystoreData(ctx context.Context, ds datastore.Batching) error
 
 func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
+	// noScheduleMode is true when the user disabled the periodic reprovide
+	// schedule (Provide.DHT.Interval=0). In this mode the keystore is
+	// inert: kad-dht's burst-only path (ProvideOnce, StartProviding) does
+	// not Put or Delete keys, and no reprovide loop runs to read them.
+	noScheduleMode := reprovideInterval == 0
 	type providerInput struct {
 		fx.In
 		DHT  routing.Routing `name:"dhtc"`
@@ -625,9 +630,9 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if err := validateKeystoreSuffix(suffix); err != nil {
 				return nil, err
 			}
-			// When no datastore spec is configured (e.g., test/mock repos),
-			// fall back to an in-memory datastore.
-			if rootSpec == nil {
+			// In-memory datastore in no-schedule mode (keystore is inert)
+			// or when no datastore spec is configured (test/mock repos).
+			if noScheduleMode || rootSpec == nil {
 				return datastore.NewMapDatastore(), nil
 			}
 			if err := os.MkdirAll(keystoreBasePath, 0o755); err != nil {
@@ -645,8 +650,23 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if err := validateKeystoreSuffix(suffix); err != nil {
 				return err
 			}
+			if noScheduleMode {
+				return nil
+			}
 			providerLog.Infow("provider keystore: removing datastore from disk", "suffix", suffix, "path", filepath.Join(keystoreBasePath, suffix))
 			return os.RemoveAll(filepath.Join(keystoreBasePath, suffix))
+		}
+
+		// In no-schedule mode the on-disk keystore is never used. If a
+		// previous run was in schedule mode it may have left data behind;
+		// purge it once on startup to free disk.
+		if noScheduleMode {
+			if _, statErr := os.Stat(keystoreBasePath); statErr == nil {
+				providerLog.Infow("provider keystore: purging on-disk data (Provide.DHT.Interval=0)", "path", keystoreBasePath)
+				if rmErr := os.RemoveAll(keystoreBasePath); rmErr != nil {
+					providerLog.Warnw("provider keystore: purge failed", "path", keystoreBasePath, "err", rmErr)
+				}
+			}
 		}
 
 		// One-time cleanup of stale keystore data left by older Kubo in the
@@ -817,10 +837,10 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		if _, ok := in.Provider.(*NoopProvider); ok {
 			return
 		}
-		// Skip keystore initialization in no-schedule mode (Interval=0).
-		// With no periodic reprovide, the keystore has no reader and the
-		// sync ticker would panic on a zero interval.
-		if reprovideInterval == 0 {
+		// In no-schedule mode no reprovide loop runs, so there is no
+		// reader for the keystore and no need to sync it. The zero
+		// interval would also panic the periodic sync ticker.
+		if noScheduleMode {
 			return
 		}
 
