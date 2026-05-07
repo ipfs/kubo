@@ -182,7 +182,7 @@ func makeProgressBar(out io.Writer, l int64) *pb.ProgressBar {
 	return bar
 }
 
-//returns true when os.Stderr is connected to a terminal.
+// returns true when os.Stderr is connected to a terminal.
 func isStderrTTY() bool {
 	stat, err := os.Stderr.Stat()
 	if err != nil {
