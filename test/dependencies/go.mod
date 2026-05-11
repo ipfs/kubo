@@ -8,7 +8,7 @@ require (
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/ipfs/go-cidutil v0.1.1
-	github.com/ipfs/go-log/v2 v2.9.2-0.20260511175728-e14b772a8630
+	github.com/ipfs/go-log/v2 v2.9.2
 	github.com/ipfs/go-test v0.3.0
 	github.com/ipfs/hang-fds v0.1.0
 	github.com/ipfs/iptb v1.4.1

@@ -96,7 +96,7 @@ require (
 	github.com/ipfs/go-ipld-git v0.1.1 // indirect
 	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
 	github.com/ipfs/go-libdht v0.5.0 // indirect
-	github.com/ipfs/go-log/v2 v2.9.2-0.20260511175728-e14b772a8630 // indirect
+	github.com/ipfs/go-log/v2 v2.9.2 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.3 // indirect
 	github.com/ipfs/go-test v0.3.0 // indirect

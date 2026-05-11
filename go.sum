@@ -452,8 +452,8 @@ github.com/ipfs/go-ipld-legacy v0.3.0/go.mod h1:Ukef9ARQiX+RVetwH2XiReLgJvQDEXcU
 github.com/ipfs/go-libdht v0.5.0 h1:ZN+eCqwahZvUeT0e4DsIxRtm78Mc9UR5tmZUiMsrGjQ=
 github.com/ipfs/go-libdht v0.5.0/go.mod h1:L3YiuFXecLeZZFuuVRM0hjg1GgVhARzUdahFsuqSa7w=
 github.com/ipfs/go-log v0.0.1/go.mod h1:kL1d2/hzSpI0thNYjiKfjanbVNU+IIGA/WnNESY9leM=
-github.com/ipfs/go-log/v2 v2.9.2-0.20260511175728-e14b772a8630 h1:hUTgkx13QTbxLF+U+WljIyYjGkYe4yped8QJw2xF5kM=
-github.com/ipfs/go-log/v2 v2.9.2-0.20260511175728-e14b772a8630/go.mod h1:RziRwwXWhndlk8L75RnEe0zeAYaq2heKtEMc3jqUov0=
+github.com/ipfs/go-log/v2 v2.9.2 h1:O/5BB0elpkRILvT24rCJ5976wWd7u0nJ436T3rdYdc4=
+github.com/ipfs/go-log/v2 v2.9.2/go.mod h1:RziRwwXWhndlk8L75RnEe0zeAYaq2heKtEMc3jqUov0=
 github.com/ipfs/go-metrics-interface v0.3.0 h1:YwG7/Cy4R94mYDUuwsBfeziJCVm9pBMJ6q/JR9V40TU=
 github.com/ipfs/go-metrics-interface v0.3.0/go.mod h1:OxxQjZDGocXVdyTPocns6cOLwHieqej/jos7H4POwoY=
 github.com/ipfs/go-metrics-prometheus v0.1.0 h1:bApWOHkrH3VTBHzTHrZSfq4n4weOZDzZFxUXv+HyKcA=
