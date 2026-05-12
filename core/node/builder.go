@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"time"
 
 	"go.uber.org/fx"
 
@@ -37,6 +38,11 @@ type BuildCfg struct {
 	Routing libp2p.RoutingOption
 	Host    libp2p.HostOption
 	Repo    repo.Repo
+
+	// ShutdownTimeout caps how long node.Close()'s call to app.Stop is
+	// allowed to take. Zero disables the cap (app.Stop runs with no
+	// deadline, matching the legacy "wait forever" behavior).
+	ShutdownTimeout time.Duration
 }
 
 func (cfg *BuildCfg) getOpt(key string) bool {

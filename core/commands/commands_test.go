@@ -81,6 +81,7 @@ func TestCommands(t *testing.T) {
 		"/diag/datastore/count",
 		"/diag/datastore/get",
 		"/diag/datastore/put",
+		"/diag/healthy",
 		"/diag/profile",
 		"/diag/sys",
 		"/files",

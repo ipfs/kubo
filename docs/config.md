@@ -104,6 +104,7 @@ config file at runtime.
         - [`Internal.Bitswap.BroadcastControl.MaxRandomPeers`](#internalbitswapbroadcastcontrolmaxrandompeers)
         - [`Internal.Bitswap.BroadcastControl.SendToPendingPeers`](#internalbitswapbroadcastcontrolsendtopendingpeers)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
+    - [`Internal.ShutdownTimeout`](#internalshutdowntimeout)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
@@ -1908,6 +1909,28 @@ Type: `optionalInteger` (0 disables the limit, strongly discouraged)
 
 **Note:** This is an EXPERIMENTAL feature and may change or be removed in future releases.
 See [#10842](https://github.com/ipfs/kubo/issues/10842) for more information.
+
+### `Internal.ShutdownTimeout`
+
+Caps how long graceful shutdown is allowed to take. If `node.Close()` does
+not return within this duration, the daemon logs which subsystem failed
+and exits with status `1`. Set to `0` to wait forever (legacy behavior).
+
+The default `12h` guarantees the daemon cannot be stuck indefinitely on a
+hung close hook, which matters for container orchestrators that otherwise
+see a half-shutdown process as `healthy`. The value is smaller than the
+22h DHT reprovide cycle, so a hung daemon recovers before missing more
+than one cycle.
+
+Tune down for fast-restart environments. When tuning, raise the
+orchestrator grace period (`--stop-timeout` for Docker,
+`terminationGracePeriodSeconds` for Kubernetes) to at least this value so
+the daemon exits gracefully before the orchestrator escalates to
+`SIGKILL`.
+
+Default: `12h`
+
+Type: `optionalDuration` (`0` disables the cap)
 
 ## `Ipns`
 
