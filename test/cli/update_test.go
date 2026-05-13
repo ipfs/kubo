@@ -21,15 +21,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestUpdate exercises the built-in "ipfs update" command tree against
-// the real GitHub Releases API. Network access is required.
+// TestUpdate exercises the built-in "ipfs update" command tree.
 //
-// The node is created without Init or daemon, so install/revert error
-// paths that don't depend on a running daemon can be tested.
+// A local httptest server replaces GitHub Releases so the test does not
+// depend on network reachability or rate limits. The node is created
+// without Init or daemon, so install/revert error paths that don't
+// depend on a running daemon can be tested.
 func TestUpdate(t *testing.T) {
 	t.Parallel()
 	h := harness.NewT(t)
 	node := h.NewNode()
+
+	srv := newMockGitHubReleases(t)
+	node.Runner.Env["TEST_KUBO_UPDATE_GITHUB_URL"] = srv.URL
 
 	t.Run("help text describes the command", func(t *testing.T) {
 		t.Parallel()
@@ -131,9 +135,17 @@ func TestUpdate(t *testing.T) {
 // (check, versions) work while the IPFS daemon holds the repo lock.
 // These commands only query the GitHub API and never touch the repo,
 // so they must succeed regardless of daemon state.
+//
+// A local httptest server replaces GitHub so the test does not depend
+// on network reachability or GitHub rate limits. The locking behavior
+// under test is independent of which endpoint serves the release JSON.
 func TestUpdateWhileDaemonRuns(t *testing.T) {
 	t.Parallel()
-	node := harness.NewT(t).NewNode().Init().StartDaemon()
+
+	srv := newMockGitHubReleases(t)
+	node := harness.NewT(t).NewNode()
+	node.Runner.Env["TEST_KUBO_UPDATE_GITHUB_URL"] = srv.URL
+	node.Init().StartDaemon()
 	defer node.StopDaemon()
 
 	t.Run("check succeeds with daemon running", func(t *testing.T) {
@@ -462,6 +474,43 @@ func TestUpdateClean(t *testing.T) {
 }
 
 // --- test helpers ---
+
+// newMockGitHubReleases returns an httptest server that mimics the GitHub
+// Releases listing API with a single stable release at v0.99.0 carrying
+// a binary asset for the current GOOS/GOARCH. This is enough to drive
+// "ipfs update check" and "ipfs update versions" without touching the
+// real api.github.com.
+//
+// The asset name follows the same convention used by real kubo releases
+// (see https://github.com/ipfs/kubo/releases): kubo_<tag>_<os>-<arch>.<ext>,
+// where ext is "zip" on Windows and "tar.gz" everywhere else. This must
+// match what assetNameForPlatformTag produces in core/commands/update_github.go,
+// otherwise findReleaseAsset cannot locate the binary and reports
+// "no release found with a binary for <os>/<arch>".
+func newMockGitHubReleases(t *testing.T) *httptest.Server {
+	t.Helper()
+	ext := "tar.gz"
+	if runtime.GOOS == "windows" {
+		ext = "zip"
+	}
+	asset := fmt.Sprintf("kubo_v0.99.0_%s-%s.%s", runtime.GOOS, runtime.GOARCH, ext)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		// Both `update check` and `update versions` call
+		// GET /releases?per_page=N. One stable release with a matching
+		// platform asset exercises both paths.
+		rels := []map[string]any{{
+			"tag_name":   "v0.99.0",
+			"prerelease": false,
+			"assets": []map[string]any{{
+				"name": asset,
+			}},
+		}}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(rels)
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
 
 // copyBuiltBinary copies the built ipfs binary (cmd/ipfs/ipfs) to dst.
 // It locates the project root the same way the test harness does.

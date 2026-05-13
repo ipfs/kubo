@@ -7,7 +7,7 @@ go 1.26.2
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.39.1-0.20260424123057-3cdde219473f
+	github.com/ipfs/boxo v0.39.1-0.20260504132022-a1b91c48cae6
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.48.0
 	github.com/multiformats/go-multiaddr v0.16.1
@@ -35,7 +35,7 @@ require (
 	github.com/cockroachdb/crlib v0.0.0-20241112164430-1264a2edc35b // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
-	github.com/cockroachdb/pebble/v2 v2.1.4 // indirect
+	github.com/cockroachdb/pebble/v2 v2.1.5 // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/cockroachdb/swiss v0.0.0-20251224182025-b0f6560f979b // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
@@ -51,7 +51,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/filecoin-project/go-clock v0.1.0 // indirect
 	github.com/flynn/noise v1.1.0 // indirect
-	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	github.com/fsnotify/fsnotify v1.10.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/gammazero/chanqueue v1.1.2 // indirect
 	github.com/gammazero/deque v1.2.1 // indirect
@@ -68,7 +68,7 @@ require (
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
 	github.com/guillaumemichel/reservedpool v0.3.0 // indirect
-	github.com/hanwen/go-fuse/v2 v2.9.1-0.20260323175136-8b5aa92e8e7c // indirect
+	github.com/hanwen/go-fuse/v2 v2.10.1 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
@@ -84,10 +84,10 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.6.0 // indirect
 	github.com/ipfs/go-ds-leveldb v0.5.2 // indirect
 	github.com/ipfs/go-ds-measure v0.2.2 // indirect
-	github.com/ipfs/go-ds-pebble v0.5.10 // indirect
+	github.com/ipfs/go-ds-pebble v0.5.11 // indirect
 	github.com/ipfs/go-dsqueue v0.2.0 // indirect
 	github.com/ipfs/go-fs-lock v0.1.1 // indirect
-	github.com/ipfs/go-ipfs-cmds v0.16.0 // indirect
+	github.com/ipfs/go-ipfs-cmds v0.16.1 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.1 // indirect
 	github.com/ipfs/go-ipfs-pq v0.0.4 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
@@ -96,11 +96,11 @@ require (
 	github.com/ipfs/go-ipld-git v0.1.1 // indirect
 	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
 	github.com/ipfs/go-libdht v0.5.0 // indirect
-	github.com/ipfs/go-log/v2 v2.9.1 // indirect
+	github.com/ipfs/go-log/v2 v2.9.2 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.3 // indirect
 	github.com/ipfs/go-test v0.3.0 // indirect
-	github.com/ipfs/go-unixfsnode v1.10.3 // indirect
+	github.com/ipfs/go-unixfsnode v1.10.4 // indirect
 	github.com/ipld/go-car/v2 v2.16.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.23.0 // indirect
@@ -118,9 +118,9 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.3.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.39.1 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.39.2 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.8.0 // indirect
-	github.com/libp2p/go-libp2p-pubsub v0.15.0 // indirect
+	github.com/libp2p/go-libp2p-pubsub v0.16.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
 	github.com/libp2p/go-libp2p-record v0.3.1 // indirect
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.5 // indirect
@@ -131,7 +131,7 @@ require (
 	github.com/libp2p/go-yamux/v5 v5.0.1 // indirect
 	github.com/libp2p/zeroconf/v2 v2.2.0 // indirect
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mholt/acmez/v3 v3.1.2 // indirect
 	github.com/miekg/dns v1.1.72 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect
@@ -192,21 +192,21 @@ require (
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0 // indirect
-	go.opentelemetry.io/otel v1.42.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0 // indirect
+	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.42.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.42.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.42.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.42.0 // indirect
-	go.opentelemetry.io/otel/metric v1.42.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.42.0 // indirect
-	go.opentelemetry.io/otel/trace v1.42.0 // indirect
+	go.opentelemetry.io/otel/metric v1.43.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.43.0 // indirect
+	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.uber.org/dig v1.19.0 // indirect
 	go.uber.org/fx v1.24.0 // indirect
 	go.uber.org/mock v0.5.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.1 // indirect
+	go.uber.org/zap v1.28.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
@@ -215,7 +215,7 @@ require (
 	golang.org/x/mod v0.35.0 // indirect
 	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260409153401-be6f6cb8b1fa // indirect
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.14.0 // indirect

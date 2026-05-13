@@ -201,6 +201,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		maybeProvide(libp2p.P2PForgeCertMgr(bcfg.Repo.Path(), cfg.AutoTLS, atlsLog), enableAutoTLS),
 		maybeInvoke(libp2p.StartP2PAutoTLS, enableAutoTLS),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
+		fx.Invoke(libp2p.MonitorDeadListeners(cfg.Swarm.AddrFilters, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
 		fx.Provide(libp2p.RelayTransport(enableRelayTransport)),
