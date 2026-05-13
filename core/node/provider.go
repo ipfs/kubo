@@ -745,6 +745,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
 					ddhtprovider.WithOfflineDelay(cfg.Provide.DHT.OfflineDelay.WithDefault(config.DefaultProvideDHTOfflineDelay)),
 					ddhtprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
+					ddhtprovider.WithSendProviderRecordTimeout(cfg.Provide.DHT.SendProviderRecordTimeout.WithDefault(config.DefaultProvideDHTSendProviderRecordTimeout)),
 
 					ddhtprovider.WithMaxWorkers(int(cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers))),
 					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Provide.DHT.DedicatedPeriodicWorkers.WithDefault(config.DefaultProvideDHTDedicatedPeriodicWorkers))),
@@ -790,6 +791,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			dhtprovider.WithMaxReprovideDelay(time.Hour),
 			dhtprovider.WithOfflineDelay(cfg.Provide.DHT.OfflineDelay.WithDefault(config.DefaultProvideDHTOfflineDelay)),
 			dhtprovider.WithConnectivityCheckOnlineInterval(1 * time.Minute),
+			dhtprovider.WithSendProviderRecordTimeout(cfg.Provide.DHT.SendProviderRecordTimeout.WithDefault(config.DefaultProvideDHTSendProviderRecordTimeout)),
 
 			dhtprovider.WithMaxWorkers(int(cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers))),
 			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Provide.DHT.DedicatedPeriodicWorkers.WithDefault(config.DefaultProvideDHTDedicatedPeriodicWorkers))),
@@ -995,7 +997,16 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 						case <-ticker.C:
 						}
 
-						stats := prov.Stats()
+						statsCtx, statsCancel := context.WithTimeout(gcCtx, time.Minute)
+						stats, err := prov.Stats(statsCtx)
+						statsCancel()
+						if err != nil {
+							if gcCtx.Err() != nil {
+								return
+							}
+							providerLog.Debugw("provider stats unavailable for reprovide alert", "err", err)
+							continue
+						}
 						queuedWorkers = stats.Workers.QueuedPeriodic > 0
 						queueSize = int64(stats.Queues.PendingRegionReprovides)
 

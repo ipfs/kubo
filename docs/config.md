@@ -145,6 +145,7 @@ config file at runtime.
       - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
       - [`Provide.DHT.KeystoreBatchSize`](#providedhtkeystorebatchsize)
       - [`Provide.DHT.OfflineDelay`](#providedhtofflinedelay)
+      - [`Provide.DHT.SendProviderRecordTimeout`](#providedhtsendproviderrecordtimeout)
     - [`Provide.BloomFPRate`](#providebloomfprate)
   - [`Provider`](#provider)
     - [`Provider.Enabled`](#providerenabled)
@@ -2662,6 +2663,26 @@ keys to its state, so keys will eventually be provided in the
 Default: `2h`
 
 Type: `optionalDuration`
+
+#### `Provide.DHT.SendProviderRecordTimeout`
+
+Per-peer timeout applied to a single `ADD_PROVIDER` RPC sent during a provide
+or reprovide operation. A peer that accepts the libp2p stream but never reads
+the request can otherwise pin a provide worker goroutine until the connection
+is dropped by the transport layer; this option bounds that wait.
+
+Healthy peers complete the round-trip in well under a second. The default
+leaves significant headroom for slow links while keeping a hung peer from
+stalling a worker.
+
+> [!NOTE]
+> Lowering this value can speed up reprovide cycles when a non-trivial
+> fraction of peers are slow or unresponsive, at the cost of giving up on
+> genuinely slow but healthy peers.
+
+Default: `10s`
+
+Type: `optionalDuration` (positive)
 
 ### `Provide.BloomFPRate`
 
