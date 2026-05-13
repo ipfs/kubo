@@ -10,18 +10,18 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/ceramicnetwork/go-dag-jose v0.1.1
 	github.com/cheggaaa/pb v1.0.29
-	github.com/cockroachdb/pebble/v2 v2.1.4
+	github.com/cockroachdb/pebble/v2 v2.1.5
 	github.com/coreos/go-systemd/v22 v22.7.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5
-	github.com/fsnotify/fsnotify v1.9.0
+	github.com/fsnotify/fsnotify v1.10.0
 	github.com/google/uuid v1.6.0
-	github.com/hanwen/go-fuse/v2 v2.9.1-0.20260323175136-8b5aa92e8e7c
+	github.com/hanwen/go-fuse/v2 v2.10.1
 	github.com/hashicorp/go-version v1.9.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.39.0
+	github.com/ipfs/boxo v0.39.1-0.20260504132022-a1b91c48cae6
 	github.com/ipfs/go-block-format v0.2.3
 	github.com/ipfs/go-cid v0.6.1
 	github.com/ipfs/go-cidutil v0.1.1
@@ -31,18 +31,18 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.6.0
 	github.com/ipfs/go-ds-leveldb v0.5.2
 	github.com/ipfs/go-ds-measure v0.2.2
-	github.com/ipfs/go-ds-pebble v0.5.10
+	github.com/ipfs/go-ds-pebble v0.5.11
 	github.com/ipfs/go-fs-lock v0.1.1
-	github.com/ipfs/go-ipfs-cmds v0.16.0
+	github.com/ipfs/go-ipfs-cmds v0.16.1
 	github.com/ipfs/go-ipld-cbor v0.2.1
 	github.com/ipfs/go-ipld-format v0.6.3
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.3.0
-	github.com/ipfs/go-log/v2 v2.9.1
+	github.com/ipfs/go-log/v2 v2.9.2
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
 	github.com/ipfs/go-test v0.3.0
-	github.com/ipfs/go-unixfsnode v1.10.3
+	github.com/ipfs/go-unixfsnode v1.10.4
 	github.com/ipld/go-car/v2 v2.16.0
 	github.com/ipld/go-codec-dagpb v1.7.0
 	github.com/ipld/go-ipld-prime v0.23.0
@@ -52,9 +52,9 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0
 	github.com/libp2p/go-libp2p v0.48.0
 	github.com/libp2p/go-libp2p-http v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.39.1
+	github.com/libp2p/go-libp2p-kad-dht v0.39.2
 	github.com/libp2p/go-libp2p-kbucket v0.8.0
-	github.com/libp2p/go-libp2p-pubsub v0.15.0
+	github.com/libp2p/go-libp2p-pubsub v0.16.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
 	github.com/libp2p/go-libp2p-record v0.3.1
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.5
@@ -86,12 +86,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0
 	go.uber.org/dig v1.19.0
 	go.uber.org/fx v1.24.0
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.50.0
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
 	golang.org/x/mod v0.35.0
 	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.43.0
+	golang.org/x/sys v0.44.0
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -179,7 +179,7 @@ require (
 	github.com/libp2p/zeroconf/v2 v2.2.0 // indirect
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mholt/acmez/v3 v3.1.2 // indirect
@@ -259,7 +259,7 @@ require (
 	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260409153401-be6f6cb8b1fa // indirect
-	golang.org/x/term v0.42.0 // indirect
+	golang.org/x/term v0.43.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.44.0 // indirect

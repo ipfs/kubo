@@ -2906,7 +2906,12 @@ Controls how your node discovers content and peers on the network.
   when reachable from the public internet.
 
 - **`autoclient`**: Same as `auto`, but never runs a DHT server.
-  Use this if your node is behind a firewall or NAT.
+  Use this if your node is behind a firewall or NAT, or if you run a
+  [content denylist](https://github.com/ipfs/kubo/blob/master/docs/content-blocking.md)
+  and do not want to store or serve routing records (provider records,
+  IPNS records) for denied keys on behalf of other peers. See
+  [Scope of denylists](https://github.com/ipfs/kubo/blob/master/docs/content-blocking.md#scope-of-denylists)
+  for why this matters.
 
 - **`dht`**: Uses only the Amino DHT (no HTTP routers). Automatically switches
   between client and server mode based on reachability.
@@ -3224,6 +3229,9 @@ so that a range is neither advertised nor dialed.
 > RFC 6598 CGNAT, ULA, link-local, and others). See the
 > [`server` profile](#server-profile) section for the full list and for
 > optional entries operators may add manually.
+
+> [!CAUTION]
+> If an [`Addresses.Swarm`](#addressesswarm) listener (for example a manually configured `/ip4/127.0.0.1/tcp/.../ws` fronted by a local nginx or Caddy reverse proxy) is covered by an entry in this list, Kubo rejects every incoming connection to it, so the proxy cannot reach Kubo. Kubo logs an ERROR at startup naming the offending rule. Remove the rule from `Swarm.AddrFilters` to allow the listener; keep it in [`Addresses.NoAnnounce`](#addressesnoannounce) if you still want to suppress its announcement.
 
 Default: `[]`
 
@@ -4300,6 +4308,7 @@ Or skip the profile and populate those fields manually.
 | Link-local IPv6 peering                            | `/ip6/fe80::/ipcidr/10`      |
 | Multiple daemons peering over `127.0.0.1`          | `/ip4/127.0.0.0/ipcidr/8`    |
 | Multiple daemons peering over IPv6 loopback `::1`  | `/ip6/::1/ipcidr/128` and `/ip6/::/ipcidr/3` |
+| Local reverse proxy fronting a `/ws` (or other libp2p) listener on `127.0.0.1` | `/ip4/127.0.0.0/ipcidr/8` from `Swarm.AddrFilters` only (keep it in `Addresses.NoAnnounce`); also drop `/ip6/::1/ipcidr/128` and `/ip6/::/ipcidr/3` from `Swarm.AddrFilters` if the proxy uses IPv6 loopback |
 | [Yggdrasil] mesh peering (`200::/8`, `300::/8`)    | `/ip6/::/ipcidr/3`           |
 | NAT64 (`64:ff9b::/96`) reachability                | `/ip6/::/ipcidr/3`           |
 
