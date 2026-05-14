@@ -338,10 +338,18 @@ func autoRelayFeeder(cfgPeering config.Peering, peerChan chan<- peer.AddrInfo) f
 		}()
 
 		lc.Append(fx.Hook{
-			OnStop: func(_ context.Context) error {
+			OnStop: func(ctx context.Context) error {
 				cancel()
-				<-done
-				return nil
+				// Wait for the feeder goroutine to exit but bound by
+				// the shutdown deadline so a stuck DHT call (downstream
+				// bug ignoring ctx) cannot block fx.Stop. Mirrors the
+				// reprovideAlert pattern in provider.go.
+				select {
+				case <-done:
+					return nil
+				case <-ctx.Done():
+					return ctx.Err()
+				}
 			},
 		})
 	})
