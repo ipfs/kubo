@@ -57,7 +57,7 @@ func DistVersions(ctx context.Context, fetcher Fetcher, dist string, sortDesc bo
 		vers = append(vers, ver)
 	}
 	if scan.Err() != nil {
-		return nil, fmt.Errorf("could not read versions: %s", scan.Err())
+		return nil, fmt.Errorf("could not read versions: %w", scan.Err())
 	}
 
 	if sortDesc {

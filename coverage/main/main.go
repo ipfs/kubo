@@ -1,5 +1,5 @@
+// Only built when collecting coverage via "go test -tags testrunmain".
 //go:build testrunmain
-// +build testrunmain
 
 package main
 

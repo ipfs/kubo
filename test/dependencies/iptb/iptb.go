@@ -19,7 +19,6 @@ func init() {
 		PluginName:  plugin.PluginName,
 		BuiltIn:     true,
 	}, false)
-
 	if err != nil {
 		panic(err)
 	}

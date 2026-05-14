@@ -3,7 +3,6 @@ package ipfsfetcher
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,8 +22,7 @@ func init() {
 func TestIpfsFetcher(t *testing.T) {
 	skipUnlessEpic(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	fetcher := NewIpfsFetcher("", 0, nil, "")
 	defer fetcher.Close()
@@ -55,12 +53,10 @@ func TestIpfsFetcher(t *testing.T) {
 	if _, err = fetcher.Fetch(ctx, "/no_such_file"); err == nil {
 		t.Fatal("expected error 404")
 	}
-
 }
 
 func TestInitIpfsFetcher(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	f := NewIpfsFetcher("", 0, nil, "")
 	defer f.Close()
@@ -110,7 +106,7 @@ func TestInitIpfsFetcher(t *testing.T) {
 }
 
 func TestReadIpfsConfig(t *testing.T) {
-	var testConfig = `
+	testConfig := `
 {
 	"Bootstrap": [
 		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",

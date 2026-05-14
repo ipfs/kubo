@@ -2,17 +2,20 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"sort"
+	"slices"
 
-	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
-	mbase "github.com/multiformats/go-multibase"
-	"github.com/pkg/errors"
-
+	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/query"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	options "github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/libp2p/go-libp2p/core/peer"
+	mbase "github.com/multiformats/go-multibase"
 )
 
 var PubsubCmd = &cmds.Command{
@@ -25,9 +28,15 @@ subscribe to new messages on a given topic.
 
 EXPERIMENTAL FEATURE
 
-  It is not intended in its current state to be used in a production
-  environment.  To use, the daemon must be run with
-  '--enable-pubsub-experiment'.
+  This is an opt-in feature optimized for IPNS over PubSub
+  (https://specs.ipfs.tech/ipns/ipns-pubsub-router/).
+
+  The default message validator is designed for IPNS record protocol.
+  For custom pubsub applications requiring different validation logic,
+  use go-libp2p-pubsub (https://github.com/libp2p/go-libp2p-pubsub)
+  directly in a dedicated binary.
+
+  To enable, set 'Pubsub.Enabled' config to true.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -35,6 +44,7 @@ EXPERIMENTAL FEATURE
 		"sub":   PubsubSubCmd,
 		"ls":    PubsubLsCmd,
 		"peers": PubsubPeersCmd,
+		"reset": PubsubResetCmd,
 	},
 }
 
@@ -54,9 +64,10 @@ ipfs pubsub sub subscribes to messages on a given topic.
 
 EXPERIMENTAL FEATURE
 
-  It is not intended in its current state to be used in a production
-  environment.  To use, the daemon must be run with
-  '--enable-pubsub-experiment'.
+  This is an opt-in feature optimized for IPNS over PubSub
+  (https://specs.ipfs.tech/ipns/ipns-pubsub-router/).
+
+  To enable, set 'Pubsub.Enabled' config to true.
 
 PEER ENCODING
 
@@ -110,7 +121,7 @@ TOPIC AND DATA ENCODING
 			encoder, _ := mbase.EncoderByName("base64url")
 			psm := pubsubMessage{
 				Data:  encoder.Encode(msg.Data()),
-				From:  msg.From().Pretty(),
+				From:  msg.From().String(),
 				Seqno: encoder.Encode(msg.Seq()),
 			}
 			for _, topic := range msg.Topics() {
@@ -154,9 +165,10 @@ It reads binary data from stdin or a file.
 
 EXPERIMENTAL FEATURE
 
-  It is not intended in its current state to be used in a production
-  environment.  To use, the daemon must be run with
-  '--enable-pubsub-experiment'.
+  This is an opt-in feature optimized for IPNS over PubSub
+  (https://specs.ipfs.tech/ipns/ipns-pubsub-router/).
+
+  To enable, set 'Pubsub.Enabled' config to true.
 
 HTTP RPC ENCODING
 
@@ -209,9 +221,10 @@ ipfs pubsub ls lists out the names of topics you are currently subscribed to.
 
 EXPERIMENTAL FEATURE
 
-  It is not intended in its current state to be used in a production
-  environment.  To use, the daemon must be run with
-  '--enable-pubsub-experiment'.
+  This is an opt-in feature optimized for IPNS over PubSub
+  (https://specs.ipfs.tech/ipns/ipns-pubsub-router/).
+
+  To enable, set 'Pubsub.Enabled' config to true.
 
 TOPIC ENCODING
 
@@ -283,9 +296,10 @@ subscribed to the named topic.
 
 EXPERIMENTAL FEATURE
 
-  It is not intended in its current state to be used in a production
-  environment.  To use, the daemon must be run with
-  '--enable-pubsub-experiment'.
+  This is an opt-in feature optimized for IPNS over PubSub
+  (https://specs.ipfs.tech/ipns/ipns-pubsub-router/).
+
+  To enable, set 'Pubsub.Enabled' config to true.
 
 TOPIC AND DATA ENCODING
 
@@ -323,9 +337,9 @@ TOPIC AND DATA ENCODING
 		list := &stringList{make([]string, 0, len(peers))}
 
 		for _, peer := range peers {
-			list.Strings = append(list.Strings, peer.Pretty())
+			list.Strings = append(list.Strings, peer.String())
 		}
-		sort.Strings(list.Strings)
+		slices.Sort(list.Strings)
 		return cmds.EmitOnce(res, list)
 	},
 	Type: stringList{},
@@ -351,7 +365,7 @@ func urlArgsDecoder(req *cmds.Request, env cmds.Environment) error {
 	for n, arg := range req.Arguments {
 		encoding, data, err := mbase.Decode(arg)
 		if err != nil {
-			return errors.Wrap(err, "URL arg must be multibase encoded")
+			return fmt.Errorf("URL arg must be multibase encoded: %w", err)
 		}
 
 		// Enforce URL-safe encoding is used for data passed via URL arguments
@@ -366,4 +380,123 @@ func urlArgsDecoder(req *cmds.Request, env cmds.Environment) error {
 		req.Arguments[n] = string(data)
 	}
 	return nil
+}
+
+type pubsubResetResult struct {
+	Deleted int64 `json:"deleted"`
+}
+
+var PubsubResetCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Reset pubsub validator state.",
+		ShortDescription: `
+Clears persistent sequence number state used by the pubsub validator.
+
+WARNING: FOR TESTING ONLY - DO NOT USE IN PRODUCTION
+
+Resets validator state that protects against replay attacks. After reset,
+previously seen messages may be accepted again until their sequence numbers
+are re-learned.
+
+Use cases:
+- Testing pubsub functionality
+- Recovery from a peer sending artificially high sequence numbers
+  (which would cause subsequent messages from that peer to be rejected)
+
+The --peer flag limits the reset to a specific peer's state.
+Without --peer, all validator state is cleared.
+
+NOTE: This only resets the persistent seqno validator state. The in-memory
+seen messages cache (Pubsub.SeenMessagesTTL) auto-expires and can only be
+fully cleared by restarting the daemon.
+`,
+	},
+	Options: []cmds.Option{
+		cmds.StringOption(peerOptionName, "p", "Only reset state for this peer ID"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		n, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		ds := n.Repo.Datastore()
+		ctx := req.Context
+
+		peerOpt, _ := req.Options[peerOptionName].(string)
+
+		var deleted int64
+		if peerOpt != "" {
+			// Reset specific peer
+			pid, err := peer.Decode(peerOpt)
+			if err != nil {
+				return fmt.Errorf("invalid peer ID: %w", err)
+			}
+			key := datastore.NewKey(libp2p.SeqnoStorePrefix + pid.String())
+			exists, err := ds.Has(ctx, key)
+			if err != nil {
+				return fmt.Errorf("failed to check seqno state: %w", err)
+			}
+			if exists {
+				if err := ds.Delete(ctx, key); err != nil {
+					return fmt.Errorf("failed to delete seqno state: %w", err)
+				}
+				deleted = 1
+			}
+		} else {
+			// Reset all peers using batched delete for efficiency
+			q := query.Query{
+				Prefix:   libp2p.SeqnoStorePrefix,
+				KeysOnly: true,
+			}
+			results, err := ds.Query(ctx, q)
+			if err != nil {
+				return fmt.Errorf("failed to query seqno state: %w", err)
+			}
+			defer results.Close()
+
+			batch, err := ds.Batch(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to create batch: %w", err)
+			}
+
+			for result := range results.Next() {
+				if result.Error != nil {
+					return fmt.Errorf("query error: %w", result.Error)
+				}
+				if err := batch.Delete(ctx, datastore.NewKey(result.Key)); err != nil {
+					return fmt.Errorf("failed to batch delete key %s: %w", result.Key, err)
+				}
+				deleted++
+			}
+
+			if err := batch.Commit(ctx); err != nil {
+				return fmt.Errorf("failed to commit batch delete: %w", err)
+			}
+		}
+
+		// Sync to ensure deletions are persisted
+		if err := ds.Sync(ctx, datastore.NewKey(libp2p.SeqnoStorePrefix)); err != nil {
+			return fmt.Errorf("failed to sync datastore: %w", err)
+		}
+
+		return cmds.EmitOnce(res, &pubsubResetResult{Deleted: deleted})
+	},
+	Type: pubsubResetResult{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, result *pubsubResetResult) error {
+			peerOpt, _ := req.Options[peerOptionName].(string)
+			if peerOpt != "" {
+				if result.Deleted == 0 {
+					_, err := fmt.Fprintf(w, "No validator state found for peer %s\n", peerOpt)
+					return err
+				}
+				_, err := fmt.Fprintf(w, "Reset validator state for peer %s\n", peerOpt)
+				return err
+			}
+			_, err := fmt.Fprintf(w, "Reset validator state for %d peer(s)\n", result.Deleted)
+			return err
+		}),
+	},
 }

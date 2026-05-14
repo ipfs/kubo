@@ -5,7 +5,7 @@ import (
 )
 
 // PluginIPLD is an interface that can be implemented to add handlers for
-// for different IPLD codecs
+// for different IPLD codecs.
 type PluginIPLD interface {
 	Plugin
 

@@ -57,7 +57,7 @@ func app() int {
 
 		if len(opts.PidFile) > 0 {
 			data := []byte(strconv.Itoa(os.Getpid()))
-			err := os.WriteFile(opts.PidFile, data, 0644)
+			err := os.WriteFile(opts.PidFile, data, 0o644)
 			if err != nil {
 				return 1
 			}
@@ -78,7 +78,7 @@ func app() int {
 
 		if len(opts.PidFile) > 0 {
 			data := []byte(strconv.Itoa(os.Getpid()))
-			err := os.WriteFile(opts.PidFile, data, 0644)
+			err := os.WriteFile(opts.PidFile, data, 0o644)
 			if err != nil {
 				return 1
 			}

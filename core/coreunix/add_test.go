@@ -14,22 +14,23 @@ import (
 	"github.com/ipfs/kubo/gc"
 	"github.com/ipfs/kubo/repo"
 
+	"github.com/ipfs/boxo/blockservice"
+	blockstore "github.com/ipfs/boxo/blockstore"
+	"github.com/ipfs/boxo/files"
+	pi "github.com/ipfs/boxo/filestore/posinfo"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
 	blocks "github.com/ipfs/go-block-format"
-	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	files "github.com/ipfs/go-ipfs-files"
-	pi "github.com/ipfs/go-ipfs-posinfo"
-	dag "github.com/ipfs/go-merkledag"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	config "github.com/ipfs/kubo/config"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
 )
 
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
 func TestAddMultipleGCLive(t *testing.T) {
+	ctx := t.Context()
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
@@ -38,13 +39,13 @@ func TestAddMultipleGCLive(t *testing.T) {
 		},
 		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
-	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
+	node, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	out := make(chan interface{}, 10)
-	adder, err := NewAdder(context.Background(), node.Pinning, node.Blockstore, node.DAG)
+	out := make(chan any, 10)
+	adder, err := NewAdder(ctx, node.Pinning, node.Blockstore, node.DAG)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +68,7 @@ func TestAddMultipleGCLive(t *testing.T) {
 
 	go func() {
 		defer close(out)
-		_, _ = adder.AddAllAndPin(context.Background(), slf)
+		_, _ = adder.AddAllAndPin(ctx, slf)
 		// Ignore errors for clarity - the real bug would be gc'ing files while adding them, not this resultant error
 	}()
 
@@ -80,8 +81,11 @@ func TestAddMultipleGCLive(t *testing.T) {
 	gc1started := make(chan struct{})
 	go func() {
 		defer close(gc1started)
-		gc1out = gc.GC(context.Background(), node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
+		gc1out = gc.GC(ctx, node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
 	}()
+
+	// Give GC goroutine time to reach GCLock (will block there waiting for adder)
+	time.Sleep(time.Millisecond * 100)
 
 	// GC shouldn't get the lock until after the file is completely added
 	select {
@@ -93,8 +97,15 @@ func TestAddMultipleGCLive(t *testing.T) {
 	// finish write and unblock gc
 	pipew1.Close()
 
-	// Should have gotten the lock at this point
-	<-gc1started
+	// Wait for GC to acquire the lock
+	// The adder needs to finish processing file 'a' and call maybePauseForGC
+	// when starting file 'b' before GC can proceed
+	select {
+	case <-gc1started:
+		// GC got the lock as expected
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for GC to start - possible deadlock")
+	}
 
 	removedHashes := make(map[string]struct{})
 	for r := range gc1out {
@@ -112,8 +123,11 @@ func TestAddMultipleGCLive(t *testing.T) {
 	gc2started := make(chan struct{})
 	go func() {
 		defer close(gc2started)
-		gc2out = gc.GC(context.Background(), node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
+		gc2out = gc.GC(ctx, node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
 	}()
+
+	// Give GC goroutine time to reach GCLock
+	time.Sleep(time.Millisecond * 100)
 
 	select {
 	case <-gc2started:
@@ -123,7 +137,15 @@ func TestAddMultipleGCLive(t *testing.T) {
 
 	pipew2.Close()
 
-	<-gc2started
+	// Wait for second GC to acquire the lock
+	// The adder needs to finish processing file 'b' and call maybePauseForGC
+	// when starting file 'c' before GC can proceed
+	select {
+	case <-gc2started:
+		// GC got the lock as expected
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for second GC to start - possible deadlock")
+	}
 
 	for r := range gc2out {
 		if r.Error != nil {
@@ -133,13 +155,14 @@ func TestAddMultipleGCLive(t *testing.T) {
 	}
 
 	for o := range out {
-		if _, ok := removedHashes[o.(*coreiface.AddEvent).Path.Cid().String()]; ok {
+		if _, ok := removedHashes[o.(*coreiface.AddEvent).Path.RootCid().String()]; ok {
 			t.Fatal("gc'ed a hash we just added")
 		}
 	}
 }
 
 func TestAddGCLive(t *testing.T) {
+	ctx := t.Context()
 	r := &repo.Mock{
 		C: config.Config{
 			Identity: config.Identity{
@@ -148,13 +171,13 @@ func TestAddGCLive(t *testing.T) {
 		},
 		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
-	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
+	node, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	out := make(chan interface{})
-	adder, err := NewAdder(context.Background(), node.Pinning, node.Blockstore, node.DAG)
+	out := make(chan any)
+	adder, err := NewAdder(ctx, node.Pinning, node.Blockstore, node.DAG)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,18 +201,16 @@ func TestAddGCLive(t *testing.T) {
 	go func() {
 		defer close(addDone)
 		defer close(out)
-		_, err := adder.AddAllAndPin(context.Background(), slf)
-
+		_, err := adder.AddAllAndPin(ctx, slf)
 		if err != nil {
 			t.Error(err)
 		}
-
 	}()
 
 	addedHashes := make(map[string]struct{})
 	select {
 	case o := <-out:
-		addedHashes[o.(*coreiface.AddEvent).Path.Cid().String()] = struct{}{}
+		addedHashes[o.(*coreiface.AddEvent).Path.RootCid().String()] = struct{}{}
 	case <-addDone:
 		t.Fatal("add shouldn't complete yet")
 	}
@@ -198,7 +219,7 @@ func TestAddGCLive(t *testing.T) {
 	gcstarted := make(chan struct{})
 	go func() {
 		defer close(gcstarted)
-		gcout = gc.GC(context.Background(), node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
+		gcout = gc.GC(ctx, node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
 	}()
 
 	// gc shouldn't start until we let the add finish its current file.
@@ -219,7 +240,7 @@ func TestAddGCLive(t *testing.T) {
 
 	// receive next object from adder
 	o := <-out
-	addedHashes[o.(*coreiface.AddEvent).Path.Cid().String()] = struct{}{}
+	addedHashes[o.(*coreiface.AddEvent).Path.RootCid().String()] = struct{}{}
 
 	<-gcstarted
 
@@ -235,15 +256,12 @@ func TestAddGCLive(t *testing.T) {
 	var last cid.Cid
 	for a := range out {
 		// wait for it to finish
-		c, err := cid.Decode(a.(*coreiface.AddEvent).Path.Cid().String())
+		c, err := cid.Decode(a.(*coreiface.AddEvent).Path.RootCid().String())
 		if err != nil {
 			t.Fatal(err)
 		}
 		last = c
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
 
 	set := cid.NewSet()
 	err = dag.Walk(ctx, dag.GetLinksWithDAG(node.DAG), last, set.Visit)
@@ -273,7 +291,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := make(chan interface{})
+	out := make(chan any)
 	adder.Out = out
 	adder.Progress = true
 	adder.RawLeaves = rawLeaves
@@ -364,4 +382,4 @@ func (fi *dummyFileInfo) Size() int64        { return fi.size }
 func (fi *dummyFileInfo) Mode() os.FileMode  { return 0 }
 func (fi *dummyFileInfo) ModTime() time.Time { return fi.modTime }
 func (fi *dummyFileInfo) IsDir() bool        { return false }
-func (fi *dummyFileInfo) Sys() interface{}   { return nil }
+func (fi *dummyFileInfo) Sys() any           { return nil }

@@ -11,6 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/routing"
 	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 
@@ -48,18 +49,37 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 	if err != nil {
 		return out, err
 	}
-	bootstrappers, err := cfg.BootstrapPeers()
+	// Use auto-config resolution for actual connectivity
+	bootstrappers, err := cfg.BootstrapPeersWithAutoConf()
 	if err != nil {
 		return out, err
 	}
 
+	// Optimistic provide is enabled either via dedicated expierimental flag, or when DHT Provide Sweep is enabled.
+	// When DHT Provide Sweep is enabled, all provide operations go through the
+	// `SweepingProvider`, hence the provides don't use the optimistic provide
+	// logic. Provides use `SweepingProvider.StartProviding()` and not
+	// `IpfsDHT.Provide()`, which is where the optimistic provide logic is
+	// implemented. However, `IpfsDHT.Provide()` is used to quickly provide roots
+	// when user manually adds content with the `--fast-provide` flag enabled. In
+	// this case we want to use optimistic provide logic to quickly announce the
+	// content to the network. This should be the only use case of
+	// `IpfsDHT.Provide()` when DHT Provide Sweep is enabled.
+	optimisticProvide := cfg.Experimental.OptimisticProvide || cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled)
+
+	routingOptArgs := RoutingOptionArgs{
+		Ctx:                           ctx,
+		Datastore:                     params.Repo.Datastore(),
+		Validator:                     params.Validator,
+		BootstrapPeers:                bootstrappers,
+		OptimisticProvide:             optimisticProvide,
+		OptimisticProvideJobsPoolSize: cfg.Experimental.OptimisticProvideJobsPoolSize,
+		LoopbackAddressesOnLanDHT:     cfg.Routing.LoopbackAddressesOnLanDHT.WithDefault(config.DefaultLoopbackAddressesOnLanDHT),
+	}
 	opts = append(opts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-		r, err := params.RoutingOption(
-			ctx, h,
-			params.Repo.Datastore(),
-			params.Validator,
-			bootstrappers...,
-		)
+		args := routingOptArgs
+		args.Host = h
+		r, err := params.RoutingOption(args)
 		out.Routing = r
 		return r, err
 	}))
@@ -69,10 +89,12 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 		return P2PHostOut{}, err
 	}
 
+	routingOptArgs.Host = out.Host
+
 	// this code is necessary just for tests: mock network constructions
 	// ignore the libp2p constructor options that actually construct the routing!
 	if out.Routing == nil {
-		r, err := params.RoutingOption(ctx, out.Host, params.Repo.Datastore(), params.Validator, bootstrappers...)
+		r, err := params.RoutingOption(routingOptArgs)
 		if err != nil {
 			return P2PHostOut{}, err
 		}

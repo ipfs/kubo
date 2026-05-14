@@ -17,7 +17,8 @@
     },
     "Mounts": {
         "IPFS": "/ipfs",
-        "IPNS": "/ipns"
+        "IPNS": "/ipns",
+        "MFS": "/mfs"
     },
     "Version": {
         "AutoUpdate": "minor",

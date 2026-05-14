@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-// Transformer is a function which takes configuration and applies some filter to it
+// Transformer is a function which takes configuration and applies some filter to it.
 type Transformer func(c *Config) error
 
-// Profile contains the profile transformer the description of the profile
+// Profile contains the profile transformer the description of the profile.
 type Profile struct {
 	// Description briefly describes the functionality of the profile.
 	Description string
@@ -21,29 +21,44 @@ type Profile struct {
 	InitOnly bool
 }
 
-// defaultServerFilters has is a list of IPv4 and IPv6 prefixes that are private, local only, or unrouteable.
-// according to https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
-// and https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+// defaultServerFilters lists IPv4 and IPv6 prefixes that are private,
+// local-only, or otherwise not "Globally Reachable" per the IANA
+// Special-Purpose Address Registries (RFC 6890):
+//
+//	https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+//	https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+//
+// The `server` profile appends this list to both `Addresses.NoAnnounce`
+// (strip from self-announce / identify / DHT self-record) and
+// `Swarm.AddrFilters` (refuse libp2p dial/accept involving these ranges).
+// See docs/config.md under "`server` profile" for the rendered table with
+// per-entry RFC references and guidance on optional entries (for example
+// loopback or IPv6 outside `2000::/3`) that operators may add manually.
+//
+// Keep this list stable; changes here affect every `server`-profile user.
 var defaultServerFilters = []string{
-	"/ip4/10.0.0.0/ipcidr/8",
-	"/ip4/100.64.0.0/ipcidr/10",
-	"/ip4/169.254.0.0/ipcidr/16",
-	"/ip4/172.16.0.0/ipcidr/12",
-	"/ip4/192.0.0.0/ipcidr/24",
-	"/ip4/192.0.2.0/ipcidr/24",
-	"/ip4/192.168.0.0/ipcidr/16",
-	"/ip4/198.18.0.0/ipcidr/15",
-	"/ip4/198.51.100.0/ipcidr/24",
-	"/ip4/203.0.113.0/ipcidr/24",
-	"/ip4/240.0.0.0/ipcidr/4",
-	"/ip6/100::/ipcidr/64",
-	"/ip6/2001:2::/ipcidr/48",
-	"/ip6/2001:db8::/ipcidr/32",
-	"/ip6/fc00::/ipcidr/7",
-	"/ip6/fe80::/ipcidr/10",
+	"/ip4/10.0.0.0/ipcidr/8",      // RFC 1918: private-use
+	"/ip4/100.64.0.0/ipcidr/10",   // RFC 6598: shared address space (CGNAT)
+	"/ip4/127.0.0.0/ipcidr/8",     // RFC 1122: IPv4 loopback
+	"/ip4/169.254.0.0/ipcidr/16",  // RFC 3927: link-local
+	"/ip4/172.16.0.0/ipcidr/12",   // RFC 1918: private-use
+	"/ip4/192.0.0.0/ipcidr/24",    // RFC 6890: IETF protocol assignments
+	"/ip4/192.0.2.0/ipcidr/24",    // RFC 5737: TEST-NET-1 (documentation)
+	"/ip4/192.168.0.0/ipcidr/16",  // RFC 1918: private-use
+	"/ip4/198.18.0.0/ipcidr/15",   // RFC 2544: benchmarking
+	"/ip4/198.51.100.0/ipcidr/24", // RFC 5737: TEST-NET-2 (documentation)
+	"/ip4/203.0.113.0/ipcidr/24",  // RFC 5737: TEST-NET-3 (documentation)
+	"/ip4/240.0.0.0/ipcidr/4",     // RFC 1112: reserved (covers broadcast 255.255.255.255)
+	"/ip6/::/ipcidr/3",            // RFC 4291 §2.4: IANA-reserved 0000::/3 block (unspecified, loopback, IPv4-mapped, NAT64, and unallocated space where 1e::/16 leaks)
+	"/ip6/::1/ipcidr/128",         // RFC 4291 §2.4: IPv6 loopback (subset of `::/3` above; kept for documentation)
+	"/ip6/100::/ipcidr/64",        // RFC 6666: discard-only (subset of `::/3` above; kept for documentation)
+	"/ip6/2001:2::/ipcidr/48",     // RFC 5180: BMWG benchmarking
+	"/ip6/2001:db8::/ipcidr/32",   // RFC 3849: documentation
+	"/ip6/fc00::/ipcidr/7",        // RFC 4193: unique local addresses (ULA)
+	"/ip6/fe80::/ipcidr/10",       // RFC 4291: link-local unicast
 }
 
-// Profiles is a map holding configuration transformers. Docs are in docs/config.md
+// Profiles is a map holding configuration transformers. Docs are in docs/config.md.
 var Profiles = map[string]Profile{
 	"server": {
 		Description: `Disables local host discovery, recommended when
@@ -82,9 +97,17 @@ is useful when using the daemon in test environments.`,
 			}
 
 			c.Swarm.DisableNatPortMap = true
+			c.Routing.LoopbackAddressesOnLanDHT = True
 
 			c.Bootstrap = []string{}
 			c.Discovery.MDNS.Enabled = false
+			c.AutoTLS.Enabled = False
+			c.AutoConf.Enabled = False
+
+			// Explicitly set autoconf-controlled fields to empty when autoconf is disabled
+			c.DNS.Resolvers = map[string]string{}
+			c.Routing.DelegatedRouters = []string{}
+			c.Ipns.DelegatedPublishers = []string{}
 			return nil
 		},
 	},
@@ -95,14 +118,14 @@ Inverse profile of the test profile.`,
 		Transform: func(c *Config) error {
 			c.Addresses = addressesConfig()
 
-			bootstrapPeers, err := DefaultBootstrapPeers()
-			if err != nil {
-				return err
-			}
-			c.Bootstrap = appendSingle(c.Bootstrap, BootstrapPeerStrings(bootstrapPeers))
+			// Use AutoConf system for bootstrap peers
+			c.Bootstrap = []string{AutoPlaceholder}
+			c.AutoConf.Enabled = Default
+			c.AutoConf.URL = nil // Clear URL to use implicit default
 
 			c.Swarm.DisableNatPortMap = false
 			c.Discovery.MDNS.Enabled = true
+			c.AutoTLS.Enabled = Default
 			return nil
 		},
 	},
@@ -123,7 +146,7 @@ This profile may only be applied when first initializing the node.
 	"flatfs": {
 		Description: `Configures the node to use the flatfs datastore.
 
-This is the most battle-tested and reliable datastore. 
+This is the most battle-tested and reliable datastore.
 You should use this datastore if:
 
 * You need a very simple and very reliable datastore, and you trust your
@@ -134,7 +157,11 @@ You should use this datastore if:
 * You want to minimize memory usage.
 * You are ok with the default speed of data import, or prefer to use --nocopy.
 
-This profile may only be applied when first initializing the node.
+See configuration documentation at:
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#flatfs
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs'
 `,
 
 		InitOnly: true,
@@ -143,28 +170,111 @@ This profile may only be applied when first initializing the node.
 			return nil
 		},
 	},
-	"badgerds": {
-		Description: `Configures the node to use the experimental badger datastore.
+	"flatfs-measure": {
+		Description: `Configures the node to use the flatfs datastore with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
 
-Use this datastore if some aspects of performance, 
-especially the speed of adding many gigabytes of files, are critical.
-However, be aware that:
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = flatfsSpecMeasure()
+			return nil
+		},
+	},
+	"pebbleds": {
+		Description: `Configures the node to use the pebble high-performance datastore.
+
+Pebble is a LevelDB/RocksDB inspired key-value store focused on performance
+and internal usage by CockroachDB.
+You should use this datastore if:
+
+- You need a datastore that is focused on performance.
+- You need reliability by default, but may choose to disable WAL for maximum performance when reliability is not critical.
+- This datastore is good for multi-terabyte data sets.
+- May benefit from tuning depending on read/write patterns and throughput.
+- Performance is helped significantly by running on a system with plenty of memory.
+
+See configuration documentation at:
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#pebbleds
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile pebbleds'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = pebbleSpec()
+			return nil
+		},
+	},
+	"pebbleds-measure": {
+		Description: `Configures the node to use the pebble datastore with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile pebbleds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = pebbleSpecMeasure()
+			return nil
+		},
+	},
+	"badgerds": {
+		Description: `DEPRECATED: Configures the node to use the legacy badgerv1 datastore.
+This profile will be removed in a future Kubo release.
+New deployments should use 'flatfs' or 'pebbleds' instead.
+
+NOTE: this is badger 1.x, which has known bugs and is no longer supported by the upstream team.
+It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
+
+Other caveats:
 
 * This datastore will not properly reclaim space when your datastore is
   smaller than several gigabytes.  If you run IPFS with --enable-gc, you plan
   on storing very little data in your IPFS node, and disk usage is more
   critical than performance, consider using flatfs.
-* This datastore uses up to several gigabytes of memory.  
+* This datastore uses up to several gigabytes of memory.
 * Good for medium-size datastores, but may run into performance issues
   if your dataset is bigger than a terabyte.
-* The current implementation is based on old badger 1.x
-  which is no longer supported by the upstream team.
 
-This profile may only be applied when first initializing the node.`,
+To migrate: create a new IPFS_PATH with 'ipfs init --profile=flatfs',
+move pinned data via 'ipfs dag export/import' or 'ipfs pin ls -t recursive|add',
+and decommission the old badger-based node.
+When it comes to block storage, use experimental 'pebbleds' only if you are sure
+modern 'flatfs' does not serve your use case (most users will be perfectly fine
+with flatfs, it is also possible to keep flatfs for blocks and replace leveldb
+with pebble if preferred over leveldb).
+
+See configuration documentation at:
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#badgerds
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile badgerds'
+`,
 
 		InitOnly: true,
 		Transform: func(c *Config) error {
 			c.Datastore.Spec = badgerSpec()
+			return nil
+		},
+	},
+	"badgerds-measure": {
+		Description: `DEPRECATED: Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
+This profile will be removed in a future Kubo release.
+New deployments should use 'flatfs' or 'pebbleds' instead.
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile badgerds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = badgerSpecMeasure()
 			return nil
 		},
 	},
@@ -174,10 +284,12 @@ functionality - performance of content discovery and data
 fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
-			c.Routing.Type = "dhtclient"
+			// Disable "server" services (dht, autonat, limited relay)
+			c.Routing.Type = NewOptionalString("autoclient")
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
-			c.Reprovider.Interval = "0"
+			c.Swarm.RelayService.Enabled = False
 
+			// Keep bare minimum connections around
 			lowWater := int64(20)
 			highWater := int64(40)
 			gracePeriod := time.Minute
@@ -185,6 +297,29 @@ fetching may be degraded.
 			c.Swarm.ConnMgr.LowWater = &OptionalInteger{value: &lowWater}
 			c.Swarm.ConnMgr.HighWater = &OptionalInteger{value: &highWater}
 			c.Swarm.ConnMgr.GracePeriod = &OptionalDuration{&gracePeriod}
+			return nil
+		},
+	},
+	"announce-off": {
+		Description: `Disables Provide system (announcing to Amino DHT).
+
+		USE WITH CAUTION:
+		The main use case for this is setups with manual Peering.Peers config.
+		Data from this node will not be announced on the DHT. This will make
+		DHT-based routing and data retrieval impossible if this node is the only
+		one hosting it, and other peers are not already connected to it.
+`,
+		Transform: func(c *Config) error {
+			c.Provide.Enabled = False
+			c.Provide.DHT.Interval = NewOptionalDuration(0) // 0 disables periodic reprovide
+			return nil
+		},
+	},
+	"announce-on": {
+		Description: `Re-enables Provide system (reverts announce-off profile).`,
+		Transform: func(c *Config) error {
+			c.Provide.Enabled = True
+			c.Provide.DHT.Interval = NewOptionalDuration(DefaultProvideDHTInterval) // have to apply explicit default because nil would be ignored
 			return nil
 		},
 	},
@@ -200,6 +335,69 @@ fetching may be degraded.
 				fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
 				fmt.Sprintf("/ip6/::/tcp/%d", port),
 			}
+			return nil
+		},
+	},
+	"unixfs-v0-2015": {
+		Description: `Legacy UnixFS import profile for backward-compatible CID generation.
+Produces CIDv0 with no raw leaves, sha2-256, 256 KiB chunks, and
+link-based HAMT size estimation. Use only when legacy CIDs are required.
+See https://specs.ipfs.tech/ipips/ipip-0499/. Alias: legacy-cid-v0`,
+		Transform: applyUnixFSv02015,
+	},
+	"legacy-cid-v0": {
+		Description: `Alias for unixfs-v0-2015 profile.`,
+		Transform:   applyUnixFSv02015,
+	},
+	"unixfs-v1-2025": {
+		Description: `Recommended UnixFS import profile for cross-implementation CID determinism.
+Uses CIDv1, raw leaves, sha2-256, 1 MiB chunks, 1024 links per file node,
+256 HAMT fanout, and block-based size estimation for HAMT threshold.
+See https://specs.ipfs.tech/ipips/ipip-0499/`,
+		Transform: func(c *Config) error {
+			c.Import.CidVersion = *NewOptionalInteger(1)
+			c.Import.UnixFSRawLeaves = True
+			c.Import.UnixFSChunker = *NewOptionalString("size-1048576") // 1 MiB
+			c.Import.HashFunction = *NewOptionalString("sha2-256")
+			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
+			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
+			c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationBlock)
+			c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
+			return nil
+		},
+	},
+	"autoconf-on": {
+		Description: `Sets configuration to use implicit defaults from remote autoconf service.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to "auto".
+This profile requires AutoConf to be enabled and configured.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = []string{AutoPlaceholder}
+			c.DNS.Resolvers = map[string]string{
+				".": AutoPlaceholder,
+			}
+			c.Routing.DelegatedRouters = []string{AutoPlaceholder}
+			c.Ipns.DelegatedPublishers = []string{AutoPlaceholder}
+			c.AutoConf.Enabled = True
+			if c.AutoConf.URL == nil {
+				c.AutoConf.URL = NewOptionalString(DefaultAutoConfURL)
+			}
+			return nil
+		},
+	},
+	"autoconf-off": {
+		Description: `Disables AutoConf and sets networking fields to empty for manual configuration.
+Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to empty.
+Use this when you want normal networking but prefer manual control over all endpoints.`,
+
+		Transform: func(c *Config) error {
+			c.Bootstrap = nil
+			c.DNS.Resolvers = nil
+			c.Routing.DelegatedRouters = nil
+			c.Ipns.DelegatedPublishers = nil
+			c.AutoConf.Enabled = False
 			return nil
 		},
 	},
@@ -250,4 +448,19 @@ func mapKeys(m map[string]struct{}) []string {
 		out = append(out, f)
 	}
 	return out
+}
+
+// applyUnixFSv02015 applies the legacy UnixFS v0 (2015) import settings.
+func applyUnixFSv02015(c *Config) error {
+	c.Import.CidVersion = *NewOptionalInteger(0)
+	c.Import.UnixFSRawLeaves = False
+	c.Import.UnixFSChunker = *NewOptionalString("size-262144") // 256 KiB
+	c.Import.HashFunction = *NewOptionalString("sha2-256")
+	c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(174)
+	c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+	c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+	c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
+	c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationLinks)
+	c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
+	return nil
 }

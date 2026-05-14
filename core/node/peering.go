@@ -3,7 +3,7 @@ package node
 import (
 	"context"
 
-	"github.com/ipfs/kubo/peering"
+	"github.com/ipfs/boxo/peering"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"go.uber.org/fx"
@@ -18,7 +18,8 @@ func Peering(lc fx.Lifecycle, host host.Host) *peering.PeeringService {
 			return ps.Start()
 		},
 		OnStop: func(context.Context) error {
-			return ps.Stop()
+			ps.Stop()
+			return nil
 		},
 	})
 	return ps

@@ -8,7 +8,7 @@
 # To overwrite a variable, like ExecStart you have to specify it once
 # blank and a second time with a new value, like:
 # ExecStart=
-# ExecStart=/usr/bin/ipfs daemon --flag1 --flag2
+# ExecStart=/usr/local/bin/ipfs daemon --flag1 --flag2
 #
 # For more info about custom unit files see systemd.unit(5).
 
@@ -41,7 +41,7 @@ User=ipfs
 Group=ipfs
 StateDirectory=ipfs
 Environment=IPFS_PATH="${HOME}"
-ExecStart=/usr/bin/ipfs daemon --init --migrate
+ExecStart=/usr/local/bin/ipfs daemon --init --migrate
 Restart=on-failure
 KillSignal=SIGINT
 

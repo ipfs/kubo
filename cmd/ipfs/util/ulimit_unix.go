@@ -1,5 +1,5 @@
+// Unix ulimit handling via getrlimit/setrlimit.
 //go:build darwin || linux || netbsd || openbsd
-// +build darwin linux netbsd openbsd
 
 package util
 

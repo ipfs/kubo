@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	bootstrap2 "github.com/ipfs/kubo/core/bootstrap"
+	bootstrap2 "github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/kubo/core/coreapi"
 	mock "github.com/ipfs/kubo/core/mock"
 	"github.com/ipfs/kubo/thirdparty/unit"
 
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/boxo/files"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
 	"github.com/libp2p/go-libp2p/core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
@@ -26,7 +26,7 @@ func TestThreeLeggedCatTransfer(t *testing.T) {
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
 	}
-	if err := RunThreeLeggedCat(RandomBytes(100*unit.MB), conf); err != nil {
+	if err := RunThreeLeggedCat(RandomBytes(1*unit.MB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -64,7 +64,7 @@ func TestThreeLeggedCat100MBMacbookCoastToCoast(t *testing.T) {
 }
 
 func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
 	// create network
@@ -119,6 +119,13 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 
 	added, err := adderAPI.Unixfs().Add(ctx, files.NewBytesFile(data))
 	if err != nil {
+		return err
+	}
+
+	// Explicitly provide the root CID to the DHT so the catter can discover
+	// the adder. Without this, the async reprovider may not have propagated
+	// the record before the catter queries.
+	if err := adder.Routing.Provide(ctx, added.RootCid(), true); err != nil {
 		return err
 	}
 

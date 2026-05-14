@@ -2,7 +2,6 @@ package integrationtest
 
 import (
 	"bytes"
-	"context"
 	"testing"
 
 	blocks "github.com/ipfs/go-block-format"
@@ -14,15 +13,14 @@ import (
 )
 
 func TestBitswapWithoutRouting(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	const numPeers = 4
 
 	// create network
 	mn := mocknet.New()
 
 	var nodes []*core.IpfsNode
-	for i := 0; i < numPeers; i++ {
+	for range numPeers {
 		n, err := core.NewNode(ctx, &core.BuildCfg{
 			Online:  true,
 			Host:    coremock.MockHostOption(mn),

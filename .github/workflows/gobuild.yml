@@ -1,0 +1,58 @@
+name: Go Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+  push:
+    branches:
+      - 'master'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go-build:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "4xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 20
+    env:
+      TEST_DOCKER: 0
+      TEST_VERBOSE: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Build all platforms
+        run: |
+          # Read platforms from build-platforms.yml and build each one
+          echo "Building kubo for all platforms..."
+
+          # Read and build each platform
+          grep '^  - ' .github/build-platforms.yml | sed 's/^  - //' | while read -r platform; do
+            if [ -z "$platform" ]; then
+              continue
+            fi
+
+            echo "::group::Building $platform"
+            GOOS=$(echo "$platform" | cut -d- -f1)
+            GOARCH=$(echo "$platform" | cut -d- -f2)
+
+            echo "Building $platform"
+            echo "  GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs"
+            GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs
+            echo "::endgroup::"
+          done
+
+          echo "All platforms built successfully"

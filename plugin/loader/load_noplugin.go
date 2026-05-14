@@ -1,5 +1,5 @@
+// No-op plugin loader when built with "go build -tags noplugin".
 //go:build noplugin
-// +build noplugin
 
 package loader
 

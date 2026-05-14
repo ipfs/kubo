@@ -4,6 +4,11 @@ test_description="Test cid commands"
 
 . lib/test-lib.sh
 
+# NOTE: Primary tests for "ipfs cid" commands are in test/cli/cid_test.go
+# These sharness tests are kept for backward compatibility but new tests
+# should be added to test/cli/cid_test.go instead. If any of these tests
+# break, consider removing them and updating only the test/cli version.
+
 # note: all "ipfs cid" commands should work without requiring a repo
 
 CIDv0="QmS4ustL54uo8FzR9455qaxZwuMiUhyvMcX9Ba8nUH4uVv"
@@ -101,7 +106,7 @@ v     118  base32hex
 V      86  base32hexupper
 z     122  base58btc
 Z      90  base58flickr
-   128640  base256emoji
+🚀  128640  base256emoji
 EOF
 
 cat <<EOF > codecs_expect
@@ -113,6 +118,7 @@ cat <<EOF > codecs_expect
   120  git-raw
   123  torrent-info
   124  torrent-file
+  128  blake3-hashseq
   129  leofcoin-block
   130  leofcoin-tx
   131  leofcoin-pr
@@ -128,7 +134,7 @@ cat <<EOF > codecs_expect
   151  eth-account-snapshot
   152  eth-storage-trie
   153  eth-receipt-log-trie
-  154  eth-reciept-log
+  154  eth-receipt-log
   176  bitcoin-block
   177  bitcoin-tx
   178  bitcoin-witness-commitment
@@ -146,7 +152,7 @@ cat <<EOF > codecs_expect
   297  dag-json
   496  swhid-1-snp
   512  json
-46083  urdca-2015-canon
+46083  rdfc-1
 46593  json-jcs
 EOF
 
@@ -239,13 +245,57 @@ cat <<EOF > hashes_expect
 EOF
 
 test_expect_success "cid bases" '
-  cut -c 12- bases_expect > expect &&
+  cat <<-EOF > expect
+	identity
+	base2
+	base32
+	base32upper
+	base32pad
+	base32padupper
+	base16
+	base16upper
+	base36
+	base36upper
+	base64
+	base64pad
+	base32hexpad
+	base32hexpadupper
+	base64url
+	base64urlpad
+	base32hex
+	base32hexupper
+	base58btc
+	base58flickr
+	base256emoji
+	EOF
   ipfs cid bases > actual &&
   test_cmp expect actual
 '
 
 test_expect_success "cid bases --prefix" '
-  cut -c 1-3,12- bases_expect > expect &&
+  cat <<-EOF > expect
+	   identity
+	0  base2
+	b  base32
+	B  base32upper
+	c  base32pad
+	C  base32padupper
+	f  base16
+	F  base16upper
+	k  base36
+	K  base36upper
+	m  base64
+	M  base64pad
+	t  base32hexpad
+	T  base32hexpadupper
+	u  base64url
+	U  base64urlpad
+	v  base32hex
+	V  base32hexupper
+	z  base58btc
+	Z  base58flickr
+	🚀  base256emoji
+	EOF
   ipfs cid bases --prefix > actual &&
   test_cmp expect actual
 '

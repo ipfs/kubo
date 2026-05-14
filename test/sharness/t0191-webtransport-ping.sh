@@ -11,8 +11,8 @@ test_expect_success 'init iptb' '
   iptb testbed create -type localipfs -count 2 -init
 '
 
-addr1='"[\"/ip4/127.0.0.1/udp/0/quic/webtransport\"]"'
-addr2='"[\"/ip4/127.0.0.1/udp/0/quic/webtransport\"]"'
+addr1='"[\"/ip4/127.0.0.1/udp/0/quic-v1/webtransport\"]"'
+addr2='"[\"/ip4/127.0.0.1/udp/0/quic-v1/webtransport\"]"'
 test_expect_success "add WebTransport swarm addresses" '
   ipfsi 0 config --json Addresses.Swarm '$addr1' &&
   ipfsi 0 config --json Swarm.Transports.Network.WebTransport true &&

@@ -87,6 +87,7 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 			Objectives:  map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		}
 
+		// Legacy metric - new metrics are provided by boxo/gateway as gw_http_responses_total
 		reqCnt := prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace:   opts.Namespace,
@@ -151,13 +152,11 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 	}
 }
 
-var (
-	peersTotalMetric = prometheus.NewDesc(
-		prometheus.BuildFQName("ipfs", "p2p", "peers_total"),
-		"Number of connected peers",
-		[]string{"transport"},
-		nil,
-	)
+var peersTotalMetric = prometheus.NewDesc(
+	prometheus.BuildFQName("ipfs", "p2p", "peers_total"),
+	"Number of connected peers",
+	[]string{"transport"},
+	nil,
 )
 
 type IpfsNodeCollector struct {

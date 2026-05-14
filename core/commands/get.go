@@ -1,6 +1,7 @@
 package commands
 
 import (
+	gotar "archive/tar"
 	"bufio"
 	"compress/gzip"
 	"errors"
@@ -12,13 +13,13 @@ import (
 	"strings"
 
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipfs/kubo/core/commands/e"
 
 	"github.com/cheggaaa/pb"
+	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/tar"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/ipfs/tar-utils"
 )
 
 var ErrInvalidCompressionLevel = errors.New("compression level must be between 1 and 9")
@@ -44,6 +45,9 @@ To output a TAR archive instead of unpacked files, use '--archive' or '-a'.
 To compress the output with GZIP compression, use '--compress' or '-C'. You
 may also specify the level of compression by specifying '-l=<1-9>'.
 `,
+		HTTP: &cmds.HTTPHelpText{
+			ResponseContentType: "application/x-tar, or application/gzip when compress=true",
+		},
 	},
 
 	Arguments: []cmds.Argument{
@@ -72,7 +76,10 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return err
 		}
 
-		p := path.New(req.Arguments[0])
+		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
 
 		file, err := api.Unixfs().Get(ctx, p)
 		if err != nil {
@@ -98,6 +105,16 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			<-ctx.Done()
 			reader.Close()
 		}()
+
+		// Set Content-Type based on output format.
+		// When compression is enabled, output is gzip (or tar.gz for directories).
+		// Otherwise, tar is used as the transport format.
+		res.SetEncodingType(cmds.OctetStream)
+		if cmplvl != gzip.NoCompression {
+			res.SetContentType("application/gzip")
+		} else {
+			res.SetContentType("application/x-tar")
+		}
 
 		return res.Emit(reader)
 	},
@@ -328,12 +345,18 @@ func fileArchive(f files.Node, name string, archive bool, compression int) (io.R
 			closeGzwAndPipe() // everything seems to be ok
 		}()
 	} else {
-		// the case for 1. archive, and 2. not archived and not compressed, in which tar is used anyway as a transport format
+		// the case for 1. archive, and 2. not archived and not compressed, in
+		// which tar is used anyway as a transport format
 
 		// construct the tar writer
 		w, err := files.NewTarWriter(maybeGzw)
 		if checkErrAndClosePipe(err) {
 			return nil, err
+		}
+
+		// if not creating an archive set the format to PAX in order to preserve nanoseconds
+		if !archive {
+			w.SetFormat(gotar.FormatPAX)
 		}
 
 		go func() {

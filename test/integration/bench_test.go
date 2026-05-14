@@ -8,7 +8,6 @@ import (
 )
 
 func benchmarkAddCat(numBytes int64, conf testutil.LatencyConfig, b *testing.B) {
-
 	b.StopTimer()
 	b.SetBytes(numBytes)
 	data := RandomBytes(numBytes) // we don't want to measure the time it takes to generate this data

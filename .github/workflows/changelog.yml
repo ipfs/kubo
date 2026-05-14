@@ -1,0 +1,39 @@
+name: Changelog
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+      - labeled
+      - unlabeled
+    paths:
+      - '**.go'
+      - '**/go.mod'
+      - '**/go.sum'
+
+jobs:
+  changelog:
+    if: contains(github.event.pull_request.title, '[skip changelog]') == false &&
+        contains(github.event.pull_request.labels.*.name, 'skip/changelog') == false
+    runs-on: ubuntu-latest
+    name: Changelog
+    steps:
+      - id: changelog
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ENDPOINT: repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files
+          SELECTOR: 'map(select(.filename | startswith("docs/changelogs/"))) | length'
+        run: gh api "$ENDPOINT" --jq "$SELECTOR" | xargs -I{} echo "modified={}" | tee -a $GITHUB_OUTPUT
+      - if: steps.changelog.outputs.modified == '0'
+        env:
+          MESSAGE: |
+            docs/changelogs/ was not modified in this PR. Please do one of the following:
+            - add a changelog entry
+            - add `[skip changelog]` to the PR title
+            - label the PR with `skip/changelog`
+        run: |
+          echo "::error::${MESSAGE//$'\n'/%0A}"
+          exit 1

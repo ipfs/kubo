@@ -7,10 +7,11 @@ test_description="Test circuit relay"
 # start iptb + wait for peering
 NUM_NODES=3
 test_expect_success 'init iptb' '
-  iptb testbed create -type localipfs -count $NUM_NODES -init
+  iptb testbed create -type localipfs -count $NUM_NODES -init &&
+  iptb run -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true
 '
 
-# Network toplogy: A <-> Relay <-> B
+# Network topology: A <-> Relay <-> B
 test_expect_success 'start up nodes for configuration' '
   iptb start -wait -- --routing=none
 '

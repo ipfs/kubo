@@ -6,7 +6,7 @@ for container in 3nodetest_bootstrap_1 3nodetest_client_1 3nodetest_server_1; do
 done
 
 # since the nodes are executed with the --debug flag, profiling data is written
-# to the the working dir. by default, the working dir is /go.
+# to the working dir. by default, the working dir is /go.
 
 for container in 3nodetest_bootstrap_1 3nodetest_client_1 3nodetest_server_1; do
     docker cp $container:/go/ipfs.cpuprof build/profiling_data_$container

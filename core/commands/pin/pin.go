@@ -8,19 +8,22 @@ import (
 	"os"
 	"time"
 
-	bserv "github.com/ipfs/go-blockservice"
+	"github.com/dustin/go-humanize"
+	bserv "github.com/ipfs/boxo/blockservice"
+	offline "github.com/ipfs/boxo/exchange/offline"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	pin "github.com/ipfs/boxo/pinning/pinner"
+	verifcid "github.com/ipfs/boxo/verifcid"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	dag "github.com/ipfs/go-merkledag"
-	verifcid "github.com/ipfs/go-verifcid"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/path"
+	coreiface "github.com/ipfs/kubo/core/coreiface"
+	options "github.com/ipfs/kubo/core/coreiface/options"
 
+	config "github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	e "github.com/ipfs/kubo/core/commands/e"
 )
 
@@ -46,17 +49,41 @@ type PinOutput struct {
 type AddPinOutput struct {
 	Pins     []string `json:",omitempty"`
 	Progress int      `json:",omitempty"`
+	Bytes    uint64   `json:",omitempty"`
 }
 
 const (
-	pinRecursiveOptionName = "recursive"
-	pinProgressOptionName  = "progress"
+	pinRecursiveOptionName    = "recursive"
+	pinProgressOptionName     = "progress"
+	fastProvideRootOptionName = "fast-provide-root"
+	fastProvideDAGOptionName  = "fast-provide-dag"
+	fastProvideWaitOptionName = "fast-provide-wait"
 )
 
 var addPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Pin objects to local storage.",
 		ShortDescription: "Stores an IPFS object(s) from a given path locally to disk.",
+		LongDescription: `
+Create a pin for the given object, protecting resolved CID from being garbage
+collected.
+
+An optional name can be provided, and read back via 'ipfs pin ls --names'.
+
+Be mindful of defaults:
+
+Default pin type is 'recursive' (entire DAG).
+Pass -r=false to create a direct pin for a single block.
+Use 'pin ls -t recursive' to only list roots of recursively pinned DAGs
+(significantly faster when many big DAGs are pinned recursively)
+
+Default pin name is empty. Pass '--name' to 'pin add' to set one
+and use 'pin ls --names' to see it. Pinning a second time with a different
+name will update the name of the pin.
+
+If daemon is running, any missing blocks will be retrieved from the network.
+It may take some time. Pass '--progress' to track the progress.
+`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -64,7 +91,11 @@ var addPinCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(pinRecursiveOptionName, "r", "Recursively pin the object linked to by the specified object(s).").WithDefault(true),
+		cmds.StringOption(pinNameOptionName, "n", "An optional name for created pin(s)."),
 		cmds.BoolOption(pinProgressOptionName, "Show progress"),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CID to DHT after pinning. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideDAGOptionName, "Walk and provide the full DAG according to Provide.Strategy after pinning. Default: Import.FastProvideDAG"),
+		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes. Default: Import.FastProvideWait"),
 	},
 	Type: AddPinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -75,7 +106,13 @@ var addPinCmd = &cmds.Command{
 
 		// set recursive flag
 		recursive, _ := req.Options[pinRecursiveOptionName].(bool)
+		name, _ := req.Options[pinNameOptionName].(string)
 		showProgress, _ := req.Options[pinProgressOptionName].(bool)
+
+		// Validate pin name
+		if err := cmdutils.ValidatePinName(name); err != nil {
+			return err
+		}
 
 		if err := req.ParseBodyArgs(); err != nil {
 			return err
@@ -86,12 +123,15 @@ var addPinCmd = &cmds.Command{
 			return err
 		}
 
+		nd, fpRoot, fpDAG, fpWait := resolveFastProvideFlags(req, env)
+
 		if !showProgress {
-			added, err := pinAddMany(req.Context, api, enc, req.Arguments, recursive)
+			added, err := pinAddMany(req.Context, api, enc, req.Arguments, recursive, name)
 			if err != nil {
 				return err
 			}
 
+			fastProvideAfterPin(req, nd, fpRoot, fpDAG, fpWait, added)
 			return cmds.EmitOnce(res, &AddPinOutput{Pins: added})
 		}
 
@@ -105,7 +145,7 @@ var addPinCmd = &cmds.Command{
 
 		ch := make(chan pinResult, 1)
 		go func() {
-			added, err := pinAddMany(ctx, api, enc, req.Arguments, recursive)
+			added, err := pinAddMany(ctx, api, enc, req.Arguments, recursive, name)
 			ch <- pinResult{pins: added, err: err}
 		}()
 
@@ -119,14 +159,17 @@ var addPinCmd = &cmds.Command{
 					return val.err
 				}
 
-				if pv := v.Value(); pv != 0 {
-					if err := res.Emit(&AddPinOutput{Progress: v.Value()}); err != nil {
+				fastProvideAfterPin(req, nd, fpRoot, fpDAG, fpWait, val.pins)
+
+				if ps := v.ProgressStat(); ps.Nodes != 0 {
+					if err := res.Emit(&AddPinOutput{Progress: ps.Nodes, Bytes: ps.Bytes}); err != nil {
 						return err
 					}
 				}
 				return res.Emit(&AddPinOutput{Pins: val.pins})
 			case <-ticker.C:
-				if err := res.Emit(&AddPinOutput{Progress: v.Value()}); err != nil {
+				ps := v.ProgressStat()
+				if err := res.Emit(&AddPinOutput{Progress: ps.Nodes, Bytes: ps.Bytes}); err != nil {
 					return err
 				}
 			case <-ctx.Done():
@@ -169,7 +212,7 @@ var addPinCmd = &cmds.Command{
 				}
 				if out.Pins == nil {
 					// this can only happen if the progress option is set
-					fmt.Fprintf(os.Stderr, "Fetched/Processed %d nodes\r", out.Progress)
+					fmt.Fprintf(os.Stderr, "Fetched/Processed %d nodes (%s)\r", out.Progress, humanize.Bytes(out.Bytes))
 				} else {
 					err = re.Emit(out)
 					if err != nil {
@@ -181,21 +224,97 @@ var addPinCmd = &cmds.Command{
 	},
 }
 
-func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, paths []string, recursive bool) ([]string, error) {
+func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, paths []string, recursive bool, name string) ([]string, error) {
 	added := make([]string, len(paths))
 	for i, b := range paths {
-		rp, err := api.ResolvePath(ctx, path.New(b))
+		p, err := cmdutils.PathOrCidPath(b)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := api.Pin().Add(ctx, rp, options.Pin.Recursive(recursive)); err != nil {
+		rp, _, err := api.ResolvePath(ctx, p)
+		if err != nil {
 			return nil, err
 		}
-		added[i] = enc.Encode(rp.Cid())
+
+		if err := api.Pin().Add(ctx, rp, options.Pin.Recursive(recursive), options.Pin.Name(name)); err != nil {
+			return nil, err
+		}
+		added[i] = enc.Encode(rp.RootCid())
 	}
 
 	return added, nil
+}
+
+// resolveFastProvideFlags resolves --fast-provide-root, --fast-provide-dag,
+// and --fast-provide-wait from CLI flags, falling back to config defaults.
+// Returns the node for use by fastProvideAfterPin.
+func resolveFastProvideFlags(req *cmds.Request, env cmds.Environment) (nd *core.IpfsNode, root, dag, wait bool) {
+	nd, err := cmdenv.GetNode(env)
+	if err != nil {
+		return nil, config.DefaultFastProvideRoot, config.DefaultFastProvideDAG, config.DefaultFastProvideWait
+	}
+	cfg, err := nd.Repo.Config()
+	if err != nil {
+		return nd, config.DefaultFastProvideRoot, config.DefaultFastProvideDAG, config.DefaultFastProvideWait
+	}
+	fpRoot, fpRootSet := req.Options[fastProvideRootOptionName].(bool)
+	fpDAG, fpDAGSet := req.Options[fastProvideDAGOptionName].(bool)
+	fpWait, fpWaitSet := req.Options[fastProvideWaitOptionName].(bool)
+	root = config.ResolveBoolFromConfig(fpRoot, fpRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
+	dag = config.ResolveBoolFromConfig(fpDAG, fpDAGSet, cfg.Import.FastProvideDAG, config.DefaultFastProvideDAG)
+	wait = config.ResolveBoolFromConfig(fpWait, fpWaitSet, cfg.Import.FastProvideWait, config.DefaultFastProvideWait)
+	return nd, root, dag, wait
+}
+
+// fastProvideAfterPin handles both root and DAG providing after a
+// successful pin operation. Best-effort: errors are logged but do not
+// fail the pin command.
+func fastProvideAfterPin(req *cmds.Request, nd *core.IpfsNode, fpRoot, fpDAG, fpWait bool, encodedCIDs []string) {
+	if !fpRoot && !fpDAG {
+		return
+	}
+	cfg, err := nd.Repo.Config()
+	if err != nil {
+		return
+	}
+	var cidList []cid.Cid
+	for _, s := range encodedCIDs {
+		c, err := cid.Decode(s)
+		if err != nil {
+			continue
+		}
+		cidList = append(cidList, c)
+	}
+
+	if fpDAG {
+		// DAG walk includes the root CID (DFS pre-order emits it
+		// first), so a separate root provide is not needed.
+		// Single call with all roots shares one bloom tracker.
+		cmdenv.ExecuteFastProvideDAG(
+			req.Context,
+			nd.Context(),
+			cidList,
+			nd.ProvidingStrategy,
+			nd.Blockstore,
+			nd.Provider,
+			fpWait,
+			uint(cfg.Provide.BloomFPRate.WithDefault(config.DefaultProvideBloomFPRate)),
+			0, // block count unknown; bloom chain auto-grows
+		)
+	} else if fpRoot {
+		for _, c := range cidList {
+			if err := cmdenv.ExecuteFastProvideRoot(
+				req.Context, nd, cfg, c,
+				fpWait,
+				true,  // isPinned
+				true,  // isPinnedRoot
+				false, // isMFS
+			); err != nil {
+				log.Errorf("fast provide root after pin: %s", err)
+			}
+		}
+	}
 }
 
 var rmPinCmd = &cmds.Command{
@@ -242,12 +361,17 @@ ipfs pin ls -t indirect <cid>
 
 		pins := make([]string, 0, len(req.Arguments))
 		for _, b := range req.Arguments {
-			rp, err := api.ResolvePath(req.Context, path.New(b))
+			p, err := cmdutils.PathOrCidPath(b)
 			if err != nil {
 				return err
 			}
 
-			id := enc.Encode(rp.Cid())
+			rp, _, err := api.ResolvePath(req.Context, p)
+			if err != nil {
+				return err
+			}
+
+			id := enc.Encode(rp.RootCid())
 			pins = append(pins, id)
 			if err := api.Pin().Rm(req.Context, rp, options.Pin.RmRecursive(recursive)); err != nil {
 				return err
@@ -271,6 +395,7 @@ const (
 	pinTypeOptionName   = "type"
 	pinQuietOptionName  = "quiet"
 	pinStreamOptionName = "stream"
+	pinNamesOptionName  = "names"
 )
 
 var listPinCmd = &cmds.Command{
@@ -284,6 +409,7 @@ respectively.
 `,
 		LongDescription: `
 Returns a list of objects that are pinned locally.
+
 By default, all pinned objects are returned, but the '--type' flag or
 arguments can restrict that to a specific pin type or to some specific objects
 respectively.
@@ -292,9 +418,12 @@ Use --type=<type> to specify the type of pinned keys to list.
 Valid values are:
     * "direct": pin that specific object.
     * "recursive": pin that specific object, and indirectly pin all its
-    	descendants
+      descendants
     * "indirect": pinned indirectly by an ancestor (like a refcount)
     * "all"
+
+By default, pin names are not included (returned as empty).
+Pass '--names' flag to return pin names (set with '--name' from 'pin add').
 
 With arguments, the command fails if any of the arguments is not a pinned
 object. And if --type=<type> is additionally used, the command will also fail
@@ -322,8 +451,10 @@ Example:
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(pinTypeOptionName, "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
-		cmds.BoolOption(pinQuietOptionName, "q", "Write just hashes of objects."),
+		cmds.BoolOption(pinQuietOptionName, "q", "Output only the CIDs of pins."),
+		cmds.StringOption(pinNameOptionName, "n", "Limit returned pins to ones with names that contain the value provided (case-sensitive, partial match). Implies --names=true."),
 		cmds.BoolOption(pinStreamOptionName, "s", "Enable streaming of pins as they are discovered."),
+		cmds.BoolOption(pinNamesOptionName, "Include pin names in the output (slower, disabled by default)."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -331,47 +462,64 @@ Example:
 			return err
 		}
 
-		typeStr, _ := req.Options[pinTypeOptionName].(string)
-		stream, _ := req.Options[pinStreamOptionName].(bool)
-
-		switch typeStr {
-		case "all", "direct", "indirect", "recursive":
-		default:
-			err = fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
+		n, err := cmdenv.GetNode(env)
+		if err != nil {
 			return err
 		}
 
+		if n.Pinning == nil {
+			return fmt.Errorf("pinning service not available")
+		}
+
+		typeStr, _ := req.Options[pinTypeOptionName].(string)
+		stream, _ := req.Options[pinStreamOptionName].(bool)
+		displayNames, _ := req.Options[pinNamesOptionName].(bool)
+		name, _ := req.Options[pinNameOptionName].(string)
+
+		// Validate name filter
+		if err := cmdutils.ValidatePinName(name); err != nil {
+			return err
+		}
+
+		mode, ok := pin.StringToMode(typeStr)
+		if !ok {
+			return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
+		}
+
 		// For backward compatibility, we accumulate the pins in the same output type as before.
-		emit := res.Emit
+		var emit func(PinLsOutputWrapper) error
 		lgcList := map[string]PinLsType{}
 		if !stream {
-			emit = func(v interface{}) error {
-				obj := v.(*PinLsOutputWrapper)
-				lgcList[obj.PinLsObject.Cid] = PinLsType{Type: obj.PinLsObject.Type}
+			emit = func(v PinLsOutputWrapper) error {
+				lgcList[v.PinLsObject.Cid] = PinLsType{Type: v.PinLsObject.Type, Name: v.PinLsObject.Name}
 				return nil
+			}
+		} else {
+			emit = func(v PinLsOutputWrapper) error {
+				return res.Emit(v)
 			}
 		}
 
 		if len(req.Arguments) > 0 {
-			err = pinLsKeys(req, typeStr, api, emit)
+			err = pinLsKeys(req, mode, displayNames || name != "", n.Pinning, api, emit)
 		} else {
-			err = pinLsAll(req, typeStr, api, emit)
+			err = pinLsAll(req, typeStr, displayNames || name != "", name, api, emit)
 		}
 		if err != nil {
 			return err
 		}
 
 		if !stream {
-			return cmds.EmitOnce(res, &PinLsOutputWrapper{
+			return cmds.EmitOnce(res, PinLsOutputWrapper{
 				PinLsList: PinLsList{Keys: lgcList},
 			})
 		}
 
 		return nil
 	},
-	Type: &PinLsOutputWrapper{},
+	Type: PinLsOutputWrapper{},
 	Encoders: cmds.EncoderMap{
-		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinLsOutputWrapper) error {
+		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out PinLsOutputWrapper) error {
 			stream, _ := req.Options[pinStreamOptionName].(bool)
 
 			enc := json.NewEncoder(w)
@@ -382,15 +530,17 @@ Example:
 
 			return enc.Encode(out.PinLsList)
 		}),
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinLsOutputWrapper) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out PinLsOutputWrapper) error {
 			quiet, _ := req.Options[pinQuietOptionName].(bool)
 			stream, _ := req.Options[pinStreamOptionName].(bool)
 
 			if stream {
 				if quiet {
 					fmt.Fprintf(w, "%s\n", out.PinLsObject.Cid)
-				} else {
+				} else if out.PinLsObject.Name == "" {
 					fmt.Fprintf(w, "%s %s\n", out.PinLsObject.Cid, out.PinLsObject.Type)
+				} else {
+					fmt.Fprintf(w, "%s %s %s\n", out.PinLsObject.Cid, out.PinLsObject.Type, out.PinLsObject.Name)
 				}
 				return nil
 			}
@@ -398,8 +548,10 @@ Example:
 			for k, v := range out.PinLsList.Keys {
 				if quiet {
 					fmt.Fprintf(w, "%s\n", k)
-				} else {
+				} else if v.Name == "" {
 					fmt.Fprintf(w, "%s %s\n", k, v.Type)
+				} else {
+					fmt.Fprintf(w, "%s %s %s\n", k, v.Type, v.Name)
 				}
 			}
 
@@ -418,62 +570,66 @@ type PinLsOutputWrapper struct {
 
 // PinLsList is a set of pins with their type
 type PinLsList struct {
-	Keys map[string]PinLsType
+	Keys map[string]PinLsType `json:",omitempty"`
 }
 
 // PinLsType contains the type of a pin
 type PinLsType struct {
 	Type string
+	Name string
 }
 
 // PinLsObject contains the description of a pin
 type PinLsObject struct {
 	Cid  string `json:",omitempty"`
+	Name string `json:",omitempty"`
 	Type string `json:",omitempty"`
 }
 
-func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
+func pinLsKeys(req *cmds.Request, mode pin.Mode, displayNames bool, pinner pin.Pinner, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
 	}
 
-	switch typeStr {
-	case "all", "direct", "indirect", "recursive":
-	default:
-		return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
-	}
-
-	opt, err := options.Pin.IsPinned.Type(typeStr)
-	if err != nil {
-		panic("unhandled pin type")
-	}
-
+	// Collect CIDs to check
+	cids := make([]cid.Cid, 0, len(req.Arguments))
 	for _, p := range req.Arguments {
-		rp, err := api.ResolvePath(req.Context, path.New(p))
+		p, err := cmdutils.PathOrCidPath(p)
 		if err != nil {
 			return err
 		}
 
-		pinType, pinned, err := api.Pin().IsPinned(req.Context, rp, opt)
+		rp, _, err := api.ResolvePath(req.Context, p)
 		if err != nil {
 			return err
 		}
 
-		if !pinned {
-			return fmt.Errorf("path '%s' is not pinned", p)
+		cids = append(cids, rp.RootCid())
+	}
+
+	// Check pins using the new type-specific method
+	pinned, err := pinner.CheckIfPinnedWithType(req.Context, mode, displayNames, cids...)
+	if err != nil {
+		return err
+	}
+
+	// Process results
+	for i, p := range pinned {
+		if !p.Pinned() {
+			return fmt.Errorf("path '%s' is not pinned", req.Arguments[i])
 		}
 
-		switch pinType {
-		case "direct", "indirect", "recursive", "internal":
-		default:
-			pinType = "indirect through " + pinType
+		pinType, _ := pin.ModeToString(p.Mode)
+		if p.Mode == pin.Indirect && p.Via.Defined() {
+			pinType = "indirect through " + enc.Encode(p.Via)
 		}
 
-		err = emit(&PinLsOutputWrapper{
+		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: pinType,
-				Cid:  enc.Encode(rp.Cid()),
+				Cid:  enc.Encode(cids[i]),
+				Name: p.Name,
 			},
 		})
 		if err != nil {
@@ -484,45 +640,44 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 	return nil
 }
 
-func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
+func pinLsAll(req *cmds.Request, typeStr string, detailed bool, name string, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
 	}
 
-	switch typeStr {
-	case "all", "direct", "indirect", "recursive":
-	default:
-		err = fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
-		return err
+	_, ok := pin.StringToMode(typeStr)
+	if !ok {
+		return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
 	}
 
 	opt, err := options.Pin.Ls.Type(typeStr)
 	if err != nil {
-		panic("unhandled pin type")
-	}
-
-	pins, err := api.Pin().Ls(req.Context, opt)
-	if err != nil {
 		return err
 	}
 
+	pins := make(chan coreiface.Pin)
+	lsErr := make(chan error, 1)
+	lsCtx, cancel := context.WithCancel(req.Context)
+	defer cancel()
+
+	go func() {
+		lsErr <- api.Pin().Ls(lsCtx, pins, opt, options.Pin.Ls.Detailed(detailed), options.Pin.Ls.Name(name))
+	}()
+
 	for p := range pins {
-		if err := p.Err(); err != nil {
-			return err
-		}
-		err = emit(&PinLsOutputWrapper{
+		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: p.Type(),
-				Cid:  enc.Encode(p.Path().Cid()),
+				Name: p.Name(),
+				Cid:  enc.Encode(p.Path().RootCid()),
 			},
 		})
 		if err != nil {
 			return err
 		}
 	}
-
-	return nil
+	return <-lsErr
 }
 
 const (
@@ -550,6 +705,9 @@ pin.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(pinUnpinOptionName, "Remove the old pin.").WithDefault(true),
+		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide new root CID to DHT after update. Default: Import.FastProvideRoot"),
+		cmds.BoolOption(fastProvideDAGOptionName, "Walk and provide the full DAG according to Provide.Strategy after update. Default: Import.FastProvideDAG"),
+		cmds.BoolOption(fastProvideWaitOptionName, "Block until the immediate provide completes. Default: Import.FastProvideWait"),
 	},
 	Type: PinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -565,12 +723,22 @@ pin.
 
 		unpin, _ := req.Options[pinUnpinOptionName].(bool)
 
-		// Resolve the paths ahead of time so we can return the actual CIDs
-		from, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
+		fromPath, err := cmdutils.PathOrCidPath(req.Arguments[0])
 		if err != nil {
 			return err
 		}
-		to, err := api.ResolvePath(req.Context, path.New(req.Arguments[1]))
+
+		toPath, err := cmdutils.PathOrCidPath(req.Arguments[1])
+		if err != nil {
+			return err
+		}
+
+		// Resolve the paths ahead of time so we can return the actual CIDs
+		from, _, err := api.ResolvePath(req.Context, fromPath)
+		if err != nil {
+			return err
+		}
+		to, _, err := api.ResolvePath(req.Context, toPath)
 		if err != nil {
 			return err
 		}
@@ -580,7 +748,10 @@ pin.
 			return err
 		}
 
-		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.Cid()), enc.Encode(to.Cid())}})
+		nd, fpRoot, fpDAG, fpWait := resolveFastProvideFlags(req, env)
+		fastProvideAfterPin(req, nd, fpRoot, fpDAG, fpWait, []string{enc.Encode(to.RootCid())})
+
+		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.RootCid()), enc.Encode(to.RootCid())}})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
@@ -648,13 +819,14 @@ var verifyPinCmd = &cmds.Command{
 
 // PinVerifyRes is the result returned for each pin checked in "pin verify"
 type PinVerifyRes struct {
-	Cid string
+	Cid string `json:",omitempty"`
+	Err string `json:",omitempty"`
 	PinStatus
 }
 
 // PinStatus is part of PinVerifyRes, do not use directly
 type PinStatus struct {
-	Ok       bool
+	Ok       bool      `json:",omitempty"`
 	BadNodes []BadNode `json:",omitempty"`
 }
 
@@ -669,16 +841,13 @@ type pinVerifyOpts struct {
 	includeOk bool
 }
 
-func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) (<-chan interface{}, error) {
+// FIXME: this implementation is duplicated sith core/coreapi.PinAPI.Verify, remove this one and exclusively rely on CoreAPI.
+func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) (<-chan any, error) {
 	visited := make(map[cid.Cid]PinStatus)
 
 	bs := n.Blocks.Blockstore()
 	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
 	getLinks := dag.GetLinksWithDAG(DAG)
-	recPins, err := n.Pinning.RecursiveKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	var checkPin func(root cid.Cid) PinStatus
 	checkPin = func(root cid.Cid) PinStatus {
@@ -687,7 +856,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 			return status
 		}
 
-		if err := verifcid.ValidateCid(root); err != nil {
+		if err := verifcid.ValidateCid(verifcid.DefaultAllowlist, root); err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
 				status.BadNodes = []BadNode{{Cid: enc.Encode(key), Err: err.Error()}}
@@ -719,14 +888,18 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 		return status
 	}
 
-	out := make(chan interface{})
+	out := make(chan any)
 	go func() {
 		defer close(out)
-		for _, cid := range recPins {
-			pinStatus := checkPin(cid)
+		for p := range n.Pinning.RecursiveKeys(ctx, false) {
+			if p.Err != nil {
+				out <- PinVerifyRes{Err: p.Err.Error()}
+				return
+			}
+			pinStatus := checkPin(p.Pin.Key)
 			if !pinStatus.Ok || opts.includeOk {
 				select {
-				case out <- &PinVerifyRes{enc.Encode(cid), pinStatus}:
+				case out <- PinVerifyRes{Cid: enc.Encode(p.Pin.Key), PinStatus: pinStatus}:
 				case <-ctx.Done():
 					return
 				}
@@ -739,12 +912,18 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 
 // Format formats PinVerifyRes
 func (r PinVerifyRes) Format(out io.Writer) {
+	if r.Err != "" {
+		fmt.Fprintf(out, "error: %s\n", r.Err)
+		return
+	}
+
 	if r.Ok {
 		fmt.Fprintf(out, "%s ok\n", r.Cid)
-	} else {
-		fmt.Fprintf(out, "%s broken\n", r.Cid)
-		for _, e := range r.BadNodes {
-			fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
-		}
+		return
+	}
+
+	fmt.Fprintf(out, "%s broken\n", r.Cid)
+	for _, e := range r.BadNodes {
+		fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
 	}
 }

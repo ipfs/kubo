@@ -2,7 +2,6 @@ package fsrepo_test
 
 import (
 	"encoding/json"
-	"os"
 	"reflect"
 	"testing"
 
@@ -13,7 +12,7 @@ import (
 )
 
 // note: to test sorting of the mountpoints in the disk spec they are
-// specified out of order in the test config
+// specified out of order in the test config.
 var defaultConfig = []byte(`{
     "StorageMax": "10GB",
     "StorageGCWatermark": 90,
@@ -88,11 +87,7 @@ func TestDefaultDatastoreConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dir, err := os.MkdirTemp("", "ipfs-datastore-config-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir) // clean up
+	dir := t.TempDir()
 
 	config := new(config.Datastore)
 	err = json.Unmarshal(defaultConfig, config)
@@ -126,13 +121,9 @@ func TestLevelDbConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir, err := os.MkdirTemp("", "ipfs-datastore-config-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir) // clean up
+	dir := t.TempDir()
 
-	spec := make(map[string]interface{})
+	spec := make(map[string]any)
 	err = json.Unmarshal(leveldbConfig, &spec)
 	if err != nil {
 		t.Fatal(err)
@@ -164,13 +155,9 @@ func TestFlatfsConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir, err := os.MkdirTemp("", "ipfs-datastore-config-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir) // clean up
+	dir := t.TempDir()
 
-	spec := make(map[string]interface{})
+	spec := make(map[string]any)
 	err = json.Unmarshal(flatfsConfig, &spec)
 	if err != nil {
 		t.Fatal(err)
@@ -202,13 +189,9 @@ func TestMeasureConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir, err := os.MkdirTemp("", "ipfs-datastore-config-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir) // clean up
+	dir := t.TempDir()
 
-	spec := make(map[string]interface{})
+	spec := make(map[string]any)
 	err = json.Unmarshal(measureConfig, &spec)
 	if err != nil {
 		t.Fatal(err)

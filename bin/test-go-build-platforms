@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+echo "Building kubo for all platforms in .github/build-platforms.yml..."
+
+if [ ! -f .github/build-platforms.yml ]; then
+    echo "Error: .github/build-platforms.yml not found"
+    exit 1
+fi
+
+grep '^  - ' .github/build-platforms.yml | sed 's/^  - //' | while read -r platform; do
+    if [ -z "$platform" ]; then
+        continue
+    fi
+
+    GOOS=$(echo "$platform" | cut -d- -f1)
+    GOARCH=$(echo "$platform" | cut -d- -f2)
+
+    echo "Building $platform..."
+    echo "  GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs"
+    GOOS=$GOOS GOARCH=$GOARCH go build -o /dev/null ./cmd/ipfs
+done
+
+echo "All platforms built successfully"

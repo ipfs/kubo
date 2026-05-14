@@ -17,7 +17,7 @@ var DefaultHostOption HostOption = constructPeerHost
 func constructPeerHost(id peer.ID, ps peerstore.Peerstore, options ...libp2p.Option) (host.Host, error) {
 	pkey := ps.PrivKey(id)
 	if pkey == nil {
-		return nil, fmt.Errorf("missing private key for node ID: %s", id.Pretty())
+		return nil, fmt.Errorf("missing private key for node ID: %s", id)
 	}
 	options = append([]libp2p.Option{libp2p.Identity(pkey), libp2p.Peerstore(ps)}, options...)
 	return libp2p.New(options...)

@@ -355,10 +355,10 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
-    test_must_fail "ipfs add with multiple files of same name but different dirs fails" '
+    test_expect_success "ipfs add with multiple files of same name but different dirs fails" '
       mkdir -p mountdir/same-file/ &&
       cp mountdir/hello.txt mountdir/same-file/hello.txt &&
-      ipfs add mountdir/hello.txt mountdir/same-file/hello.txt >actual &&
+      test_expect_code 1 ipfs add mountdir/hello.txt mountdir/same-file/hello.txt >actual &&
       rm mountdir/same-file/hello.txt  &&
       rmdir mountdir/same-file
     '
@@ -469,18 +469,27 @@ test_add_cat_file() {
     ipfs files rm -r --force /mfs
   '
 
+  # confirm -w and --to-files are exclusive
+  # context: https://github.com/ipfs/kubo/issues/10611
+  test_expect_success "ipfs add -r -w dir --to-files /mfs/subdir5/ errors (-w and --to-files are exclusive)" '
+    ipfs files mkdir -p /mfs/subdir5 &&
+    test_expect_code 1 ipfs add -r -w test --to-files /mfs/subdir5/ >actual 2>&1 &&
+    test_should_contain "Error" actual &&
+    ipfs files rm -r --force /mfs
+  '
+
 }
 
 test_add_cat_5MB() {
   ADD_FLAGS="$1"
   EXP_HASH="$2"
 
-  test_expect_success "generate 5MB file using go-random" '
-    random 5242880 41 >mountdir/bigfile
+  test_expect_success "generate 5MB file using random-data" '
+    random-data -size=5242880 -seed=41 >mountdir/bigfile
   '
 
   test_expect_success "sha1 of the file looks ok" '
-    echo "11145620fb92eb5a49c9986b5c6844efda37e471660e" >sha1_expected &&
+    echo "11145b8c4bc8f87ea2fcfc3d55708b8cac2aadf12862" >sha1_expected &&
     multihash -a=sha1 -e=hex mountdir/bigfile >sha1_actual &&
     test_cmp sha1_expected sha1_actual
   '
@@ -585,12 +594,12 @@ test_add_cat_expensive() {
   ADD_FLAGS="$1"
   HASH="$2"
 
-  test_expect_success EXPENSIVE "generate 100MB file using go-random" '
-    random 104857600 42 >mountdir/bigfile
+  test_expect_success EXPENSIVE "generate 100MB file using random-data" '
+    random-data -size=104857600 -seed=42 >mountdir/bigfile
   '
 
   test_expect_success EXPENSIVE "sha1 of the file looks ok" '
-    echo "1114885b197b01e0f7ff584458dc236cb9477d2e736d" >sha1_expected &&
+    echo "11141e8c04d7cd019cc0acf0311a8ca6cf2c18413c96" >sha1_expected &&
     multihash -a=sha1 -e=hex mountdir/bigfile >sha1_actual &&
     test_cmp sha1_expected sha1_actual
   '
@@ -614,7 +623,7 @@ test_add_cat_expensive() {
   '
 
   test_expect_success EXPENSIVE "ipfs cat output hashed looks good" '
-    echo "1114885b197b01e0f7ff584458dc236cb9477d2e736d" >sha1_expected &&
+    echo "11141e8c04d7cd019cc0acf0311a8ca6cf2c18413c96" >sha1_expected &&
     test_cmp sha1_expected sha1_actual
   '
 
@@ -873,17 +882,17 @@ test_expect_success "'ipfs add -rn' succeeds" '
   mkdir -p mountdir/moons/saturn &&
   echo "Hello Europa!" >mountdir/moons/jupiter/europa.txt &&
   echo "Hello Titan!" >mountdir/moons/saturn/titan.txt &&
-  echo "hey youre no moon!" >mountdir/moons/mercury.txt &&
+  echo "hey you are no moon!" >mountdir/moons/mercury.txt &&
   ipfs add -rn mountdir/moons >actual
 '
 
 test_expect_success "'ipfs add -rn' output looks good" '
-  MOONS="QmVKvomp91nMih5j6hYBA8KjbiaYvEetU2Q7KvtZkLe9nQ" &&
+  MOONS="QmbGoaQZm8kjYfCiN1aBsgwhqfUBGDYTrDb91Mz7Dvq81B" &&
   EUROPA="Qmbjg7zWdqdMaK2BucPncJQDxiALExph5k3NkQv5RHpccu" &&
   JUPITER="QmS5mZddhFPLWFX3w6FzAy9QxyYkaxvUpsWCtZ3r7jub9J" &&
   SATURN="QmaMagZT4rTE7Nonw8KGSK4oe1bh533yhZrCo1HihSG8FK" &&
   TITAN="QmZzppb9WHn552rmRqpPfgU5FEiHH6gDwi3MrB9cTdPwdb" &&
-  MERCURY="QmUJjVtnN8YEeYcS8VmUeWffTWhnMQAkk5DzZdKnPhqUdK" &&
+  MERCURY="QmRsTB5CpEUvDUpDgHCzb3VftZ139zrk9zs5ZcgYh9TMPJ" &&
   echo "added $EUROPA moons/jupiter/europa.txt" >expected &&
   echo "added $MERCURY moons/mercury.txt" >>expected &&
   echo "added $TITAN moons/saturn/titan.txt" >>expected &&
@@ -893,42 +902,42 @@ test_expect_success "'ipfs add -rn' output looks good" '
   test_cmp expected actual
 '
 
-test_expect_success "go-random is installed" '
-  type random
+test_expect_success "random-data is installed" '
+  type random-data
 '
 
-test_add_cat_5MB "" "QmSr7FqYkxYWGoSfy8ZiaMWQ5vosb18DQGCzjwEQnVHkTb"
+test_add_cat_5MB "" "QmapAfmzmeWYTNztMQEhUXFcSGrsax22WRG7YN9xLdMeQq"
 
-test_add_cat_5MB --raw-leaves "QmbdLHCmdi48eM8T7D67oXjA1S2Puo8eMfngdHhdPukFd6"
+test_add_cat_5MB --raw-leaves "QmabWSFaPusmiZaaVZLhEUtHcj8CCvVeUfkBpKqAkKVMiS"
 
 # note: the specified hash implies that internal nodes are stored
 # using CidV1 and leaves are stored using raw blocks
-test_add_cat_5MB --cid-version=1 "bafybeigfnx3tka2rf5ovv2slb7ymrt4zbwa3ryeqibe6fipyt5vgsrli3u"
+test_add_cat_5MB --cid-version=1 "bafybeifwdkm32fmukqwh3jofm6ma76bcqvn6opxstsnzmya7utboi4cb2m"
 
 # note: the specified hash implies that internal nodes are stored
 # using CidV1 and leaves are stored using CidV1 but using the legacy
 # format (i.e. not raw)
-test_add_cat_5MB '--cid-version=1 --raw-leaves=false' "bafybeieyifrgpjn3yengthr7qaj72ozm2aq3wm53srgeprc43w67qpvfqa"
+test_add_cat_5MB '--cid-version=1 --raw-leaves=false' "bafybeifq4unep5w4agr3nlynxidj2rymf6dzu6bf4ieqqildkboe5mdmne"
 
 # note: --hash=blake2b-256 implies --cid-version=1 which implies --raw-leaves=true
 # the specified hash represents the leaf nodes stored as raw leaves and
 # encoded with the blake2b-256 hash function
-test_add_cat_5MB '--hash=blake2b-256' "bafykbzacebnmjcl4sn37b3ehtibvf263oun2w6idghenrvlpehq5w5jqyvhjo"
+test_add_cat_5MB '--hash=blake2b-256' "bafykbzacebxcnlql4oc3mtscqn32aumqkqxxv3wt7dkyrphgh6lc2gckiq6bw"
 
 # the specified hash represents the leaf nodes stored as protoful nodes and
 # encoded with the blake2b-256 hash function
-test_add_cat_5MB '--hash=blake2b-256 --raw-leaves=false' "bafykbzaceaxiiykzgpbhnzlecffqm3zbuvhujyvxe5scltksyafagkyw4rjn2"
+test_add_cat_5MB '--hash=blake2b-256 --raw-leaves=false' "bafykbzacearibnoamkfmcagpfgk2sbgx65qftnsrh4ttd3g7ghooasfnyavme"
 
-test_add_cat_expensive "" "QmU9SWAPPmNEKZB8umYMmjYvN7VyHqABNvdA6GUi4MMEz3"
+test_add_cat_expensive "" "Qma1WZKC3jad7e3F7GEDvkFdhPLyMEhKszBF4nBUCBGh6c"
 
 # note: the specified hash implies that internal nodes are stored
 # using CidV1 and leaves are stored using raw blocks
-test_add_cat_expensive "--cid-version=1" "bafybeidkj5ecbhrqmzrcee2rw7qwsx24z3364qya3fnp2ktkg2tnsrewhi"
+test_add_cat_expensive "--cid-version=1" "bafybeibdfw7nsmb3erhej2k6v4eopaswsf5yfv2ikweqa3qsc5no4jywqu"
 
 # note: --hash=blake2b-256 implies --cid-version=1 which implies --raw-leaves=true
 # the specified hash represents the leaf nodes stored as raw leaves and
 # encoded with the blake2b-256 hash function
-test_add_cat_expensive '--hash=blake2b-256' "bafykbzaceb26fnq5hz5iopzamcb4yqykya5x6a4nvzdmcyuu4rj2akzs3z7r6"
+test_add_cat_expensive '--hash=blake2b-256' "bafykbzaceduy3thhmcf6ptfqzxberlvj7sgo4uokrvd6qwrhim6r3rgcb26qi"
 
 test_add_named_pipe
 

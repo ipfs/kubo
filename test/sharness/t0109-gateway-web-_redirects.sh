@@ -14,7 +14,7 @@ test_launch_ipfs_daemon
 # Import test case
 # Run `ipfs cat /ipfs/$REDIRECTS_DIR_CID/_redirects` to see sample _redirects file
 test_expect_success "Add the _redirects file test directory" '
-  ipfs dag import ../t0109-gateway-web-_redirects-data/redirects.car
+  ipfs dag import --pin-roots ../t0109-gateway-web-_redirects-data/redirects.car
 '
 CAR_ROOT_CID=QmQyqMY5vUBSbSxyitJqthgwZunCQjDVtNd8ggVCxzuPQ4
 

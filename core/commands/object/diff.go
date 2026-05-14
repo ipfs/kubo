@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ipfs/boxo/ipld/merkledag/dagutils"
+	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-merkledag/dagutils"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 )
 
 const (
@@ -60,8 +61,15 @@ Example:
 			return err
 		}
 
-		pa := path.New(req.Arguments[0])
-		pb := path.New(req.Arguments[1])
+		pa, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		pb, err := cmdutils.PathOrCidPath(req.Arguments[1])
+		if err != nil {
+			return err
+		}
 
 		changes, err := api.Object().Diff(req.Context, pa, pb)
 		if err != nil {
@@ -75,12 +83,12 @@ Example:
 				Path: change.Path,
 			}
 
-			if change.Before != nil {
-				out[i].Before = change.Before.Cid()
+			if (change.Before != path.ImmutablePath{}) {
+				out[i].Before = change.Before.RootCid()
 			}
 
-			if change.After != nil {
-				out[i].After = change.After.Cid()
+			if (change.After != path.ImmutablePath{}) {
+				out[i].After = change.After.RootCid()
 			}
 		}
 
@@ -89,26 +97,30 @@ Example:
 	Type: Changes{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Changes) error {
+			enc, err := cmdenv.GetCidEncoder(req)
+			if err != nil {
+				return err
+			}
 			verbose, _ := req.Options[verboseOptionName].(bool)
 
 			for _, change := range out.Changes {
 				if verbose {
 					switch change.Type {
 					case dagutils.Add:
-						fmt.Fprintf(w, "Added new link %q pointing to %s.\n", change.Path, change.After)
+						fmt.Fprintf(w, "Added new link %q pointing to %s.\n", change.Path, enc.Encode(change.After))
 					case dagutils.Mod:
-						fmt.Fprintf(w, "Changed %q from %s to %s.\n", change.Path, change.Before, change.After)
+						fmt.Fprintf(w, "Changed %q from %s to %s.\n", change.Path, enc.Encode(change.Before), enc.Encode(change.After))
 					case dagutils.Remove:
-						fmt.Fprintf(w, "Removed link %q (was %s).\n", change.Path, change.Before)
+						fmt.Fprintf(w, "Removed link %q (was %s).\n", change.Path, enc.Encode(change.Before))
 					}
 				} else {
 					switch change.Type {
 					case dagutils.Add:
-						fmt.Fprintf(w, "+ %s %q\n", change.After, change.Path)
+						fmt.Fprintf(w, "+ %s %q\n", enc.Encode(change.After), change.Path)
 					case dagutils.Mod:
-						fmt.Fprintf(w, "~ %s %s %q\n", change.Before, change.After, change.Path)
+						fmt.Fprintf(w, "~ %s %s %q\n", enc.Encode(change.Before), enc.Encode(change.After), change.Path)
 					case dagutils.Remove:
-						fmt.Fprintf(w, "- %s %q\n", change.Before, change.Path)
+						fmt.Fprintf(w, "- %s %q\n", enc.Encode(change.Before), change.Path)
 					}
 				}
 			}

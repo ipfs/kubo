@@ -10,7 +10,7 @@ test_description="Test out the filestore nocopy functionality"
 
 test_init_filestore() {
   test_expect_success "clean up old node" '
-    rm -rf "$IPFS_PATH" mountdir ipfs ipns
+    rm -rf "$IPFS_PATH" mountdir ipfs ipns mfs
   '
 
   test_init_ipfs
@@ -24,9 +24,9 @@ test_init_dataset() {
   test_expect_success "create a dataset" '
     rm -r somedir
     mkdir somedir &&
-    random    1000  1 > somedir/file1 &&
-    random   10000  2 > somedir/file2 &&
-    random 1000000  3 > somedir/file3
+    random-data -size=1000     -seed=1 > somedir/file1 &&
+    random-data -size=10000    -seed=2 > somedir/file2 &&
+    random-data -size=1000000  -seed=3 > somedir/file3
   '
 }
 
@@ -35,33 +35,47 @@ test_init() {
   test_init_dataset
 }
 
-EXPHASH="QmRueCuPMYYvdxWz1vWncF7wzCScEx4qasZXo5aVBb1R4V"
+EXPHASH="QmXqfraAT3U8ct14PPPXcFkWyvmqUZazLdo29GXTKSHkP4"
 
 cat <<EOF > ls_expect_file_order
-bafkreicj3ezgtrh3euw2gyub6w3jydhnouqobxt7stbgtns3mv3iwv6bqq   1000 somedir/file1 0
-bafkreibxwxisv4cld6x76ybqbvf2uwbkoswjqt4hut46af6rps2twme7ey  10000 somedir/file2 0
-bafkreidntk6ciin24oez6yjz4b25fgwecncvi4ua4uhr2tdyenogpzpid4 262144 somedir/file3 0
-bafkreidwie26yauqbhpd2nhhhmod55irq3z372mh6gw4ikl2ifo34c5jra 262144 somedir/file3 262144
-bafkreib7piyesy3dr22sawmycdftrmpyt3z4tmhxrdig2zt5zdp7qwbuay 262144 somedir/file3 524288
-bafkreigxp5k3k6b3i5sldu4r3im74nfxmoptuuubcvq6rg632nfznskglu 213568 somedir/file3 786432
+bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0
+bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0
+bafkreiemzfmzws23c2po4m6deiueknqfty7r3voes3e3zujmobrooc2ngm 262144 somedir/file3 0
+bafkreihgm53yhxn427lnfdwhqgpawc62qejog7gega5kqb6uwbyhjm47hu 262144 somedir/file3 262144
+bafkreigl2pjptgxz6cexcnua56zc5dwsyrc4ph2eulmcb634oes6gzvmuy 262144 somedir/file3 524288
+bafkreifjcthslybjizk36xffcsb32fsbguxz3ptkl7723wz4u3qikttmam 213568 somedir/file3 786432
 EOF
 
 sort < ls_expect_file_order > ls_expect_key_order
 
-FILE1_HASH=bafkreicj3ezgtrh3euw2gyub6w3jydhnouqobxt7stbgtns3mv3iwv6bqq
-FILE2_HASH=bafkreibxwxisv4cld6x76ybqbvf2uwbkoswjqt4hut46af6rps2twme7ey
-FILE3_HASH=QmfE4SDQazxTD7u8VTYs9AJqQL8rrJPUAorLeJXKSZrVf9
+FILE1_HASH=bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu
+FILE2_HASH=bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4
+FILE3_HASH=QmYEZtRGGk8rgM8MetegLLRHMKskPCg7zWpmQQAo3cQiN5
 
 cat <<EOF > verify_expect_file_order
-ok      bafkreicj3ezgtrh3euw2gyub6w3jydhnouqobxt7stbgtns3mv3iwv6bqq   1000 somedir/file1 0
-ok      bafkreibxwxisv4cld6x76ybqbvf2uwbkoswjqt4hut46af6rps2twme7ey  10000 somedir/file2 0
-ok      bafkreidntk6ciin24oez6yjz4b25fgwecncvi4ua4uhr2tdyenogpzpid4 262144 somedir/file3 0
-ok      bafkreidwie26yauqbhpd2nhhhmod55irq3z372mh6gw4ikl2ifo34c5jra 262144 somedir/file3 262144
-ok      bafkreib7piyesy3dr22sawmycdftrmpyt3z4tmhxrdig2zt5zdp7qwbuay 262144 somedir/file3 524288
-ok      bafkreigxp5k3k6b3i5sldu4r3im74nfxmoptuuubcvq6rg632nfznskglu 213568 somedir/file3 786432
+ok      bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0
+ok      bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0
+ok      bafkreiemzfmzws23c2po4m6deiueknqfty7r3voes3e3zujmobrooc2ngm 262144 somedir/file3 0
+ok      bafkreihgm53yhxn427lnfdwhqgpawc62qejog7gega5kqb6uwbyhjm47hu 262144 somedir/file3 262144
+ok      bafkreigl2pjptgxz6cexcnua56zc5dwsyrc4ph2eulmcb634oes6gzvmuy 262144 somedir/file3 524288
+ok      bafkreifjcthslybjizk36xffcsb32fsbguxz3ptkl7723wz4u3qikttmam 213568 somedir/file3 786432
 EOF
 
 sort < verify_expect_file_order > verify_expect_key_order
+
+cat <<EOF > verify_rm_expect
+ok      bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0 keep
+ok      bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0 keep
+changed bafkreiemzfmzws23c2po4m6deiueknqfty7r3voes3e3zujmobrooc2ngm 262144 somedir/file3 0 remove
+changed bafkreifjcthslybjizk36xffcsb32fsbguxz3ptkl7723wz4u3qikttmam 213568 somedir/file3 786432 remove
+changed bafkreigl2pjptgxz6cexcnua56zc5dwsyrc4ph2eulmcb634oes6gzvmuy 262144 somedir/file3 524288 remove
+changed bafkreihgm53yhxn427lnfdwhqgpawc62qejog7gega5kqb6uwbyhjm47hu 262144 somedir/file3 262144 remove
+EOF
+
+cat <<EOF > verify_after_rm_expect
+ok      bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0
+ok      bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0
+EOF
 
 IPFS_CMD="ipfs"
 
@@ -155,6 +169,27 @@ test_filestore_verify() {
   test_init_dataset
 }
 
+test_filestore_rm_bad_blocks() {
+  test_filestore_state
+
+  test_expect_success "change first bit of file" '
+    dd if=/dev/zero of=somedir/file3 bs=1024 count=1
+  '
+
+  test_expect_success "'$IPFS_CMD filestore verify --remove-bad-blocks' shows changed file removed" '
+    $IPFS_CMD filestore verify --remove-bad-blocks > verify_rm_actual &&
+    test_cmp verify_rm_expect verify_rm_actual
+  '
+
+  test_expect_success "'$IPFS_CMD filestore verify' shows only files that were not removed" '
+    $IPFS_CMD filestore verify > verify_after &&
+    test_cmp verify_after_rm_expect verify_after
+  '
+  
+  # reset the state for the next test
+  test_init_dataset
+}
+  
 test_filestore_dups() {
   # make sure the filestore is in a clean state
   test_filestore_state
@@ -179,6 +214,8 @@ test_filestore_verify
 
 test_filestore_dups
 
+test_filestore_rm_bad_blocks
+
 #
 # With daemon
 #
@@ -197,34 +234,36 @@ test_filestore_dups
 
 test_kill_ipfs_daemon
 
+test_filestore_rm_bad_blocks
+
 ##
 ## base32
 ##
 
-EXPHASH="bafybeibva2uh4qpwjo2yr5g7m7nd5kfq64atydq77qdlrikh5uejwqdcbi"
+EXPHASH="bafybeienfbjfbywu5y44i5qm4wxajblgy5a6xuc4eepjaw5fq223wwsy3m"
 
 cat <<EOF > ls_expect_file_order
-bafkreicj3ezgtrh3euw2gyub6w3jydhnouqobxt7stbgtns3mv3iwv6bqq   1000 somedir/file1 0
-bafkreibxwxisv4cld6x76ybqbvf2uwbkoswjqt4hut46af6rps2twme7ey  10000 somedir/file2 0
-bafkreidntk6ciin24oez6yjz4b25fgwecncvi4ua4uhr2tdyenogpzpid4 262144 somedir/file3 0
-bafkreidwie26yauqbhpd2nhhhmod55irq3z372mh6gw4ikl2ifo34c5jra 262144 somedir/file3 262144
-bafkreib7piyesy3dr22sawmycdftrmpyt3z4tmhxrdig2zt5zdp7qwbuay 262144 somedir/file3 524288
-bafkreigxp5k3k6b3i5sldu4r3im74nfxmoptuuubcvq6rg632nfznskglu 213568 somedir/file3 786432
+bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0
+bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0
+bafkreiemzfmzws23c2po4m6deiueknqfty7r3voes3e3zujmobrooc2ngm 262144 somedir/file3 0
+bafkreihgm53yhxn427lnfdwhqgpawc62qejog7gega5kqb6uwbyhjm47hu 262144 somedir/file3 262144
+bafkreigl2pjptgxz6cexcnua56zc5dwsyrc4ph2eulmcb634oes6gzvmuy 262144 somedir/file3 524288
+bafkreifjcthslybjizk36xffcsb32fsbguxz3ptkl7723wz4u3qikttmam 213568 somedir/file3 786432
 EOF
 
 sort < ls_expect_file_order > ls_expect_key_order
 
-FILE1_HASH=bafkreicj3ezgtrh3euw2gyub6w3jydhnouqobxt7stbgtns3mv3iwv6bqq
-FILE2_HASH=bafkreibxwxisv4cld6x76ybqbvf2uwbkoswjqt4hut46af6rps2twme7ey
-FILE3_HASH=bafybeih24zygzr2orr5q62mjnbgmjwgj6rx3tp74pwcqsqth44rloncllq
+FILE1_HASH=bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu
+FILE2_HASH=bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4
+FILE3_HASH=bafybeietaxxjghilcjhc2m4zcmicm7yjvkjdfkamc3ct2hq4gmsb3shqsi
 
 cat <<EOF > verify_expect_file_order
-ok      bafkreicj3ezgtrh3euw2gyub6w3jydhnouqobxt7stbgtns3mv3iwv6bqq   1000 somedir/file1 0
-ok      bafkreibxwxisv4cld6x76ybqbvf2uwbkoswjqt4hut46af6rps2twme7ey  10000 somedir/file2 0
-ok      bafkreidntk6ciin24oez6yjz4b25fgwecncvi4ua4uhr2tdyenogpzpid4 262144 somedir/file3 0
-ok      bafkreidwie26yauqbhpd2nhhhmod55irq3z372mh6gw4ikl2ifo34c5jra 262144 somedir/file3 262144
-ok      bafkreib7piyesy3dr22sawmycdftrmpyt3z4tmhxrdig2zt5zdp7qwbuay 262144 somedir/file3 524288
-ok      bafkreigxp5k3k6b3i5sldu4r3im74nfxmoptuuubcvq6rg632nfznskglu 213568 somedir/file3 786432
+ok      bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0
+ok      bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0
+ok      bafkreiemzfmzws23c2po4m6deiueknqfty7r3voes3e3zujmobrooc2ngm 262144 somedir/file3 0
+ok      bafkreihgm53yhxn427lnfdwhqgpawc62qejog7gega5kqb6uwbyhjm47hu 262144 somedir/file3 262144
+ok      bafkreigl2pjptgxz6cexcnua56zc5dwsyrc4ph2eulmcb634oes6gzvmuy 262144 somedir/file3 524288
+ok      bafkreifjcthslybjizk36xffcsb32fsbguxz3ptkl7723wz4u3qikttmam 213568 somedir/file3 786432
 EOF
 
 sort < verify_expect_file_order > verify_expect_key_order
@@ -242,6 +281,8 @@ test_filestore_adds
 test_filestore_verify
 
 test_filestore_dups
+
+test_filestore_rm_bad_blocks
 
 #
 # With daemon
@@ -262,6 +303,8 @@ test_filestore_dups
 test_kill_ipfs_daemon
 
 test_done
+
+test_filestore_rm_bad_blocks
 
 ##
 

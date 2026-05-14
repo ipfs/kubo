@@ -130,7 +130,7 @@ func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out s
 	}
 
 	// Set mode of binary to executable
-	err = os.Chmod(out, 0755)
+	err = os.Chmod(out, 0o755)
 	if err != nil {
 		return "", err
 	}

@@ -11,8 +11,8 @@ test_expect_success 'init iptb' '
   iptb testbed create -type localipfs -count 2 -init
 '
 
-addr1='"[\"/ip4/127.0.0.1/udp/0/quic\"]"'
-addr2='"[\"/ip4/127.0.0.1/udp/0/quic\"]"'
+addr1='"[\"/ip4/127.0.0.1/udp/0/quic-v1\"]"'
+addr2='"[\"/ip4/127.0.0.1/udp/0/quic-v1\"]"'
 test_expect_success "add QUIC swarm addresses" '
   ipfsi 0 config --json Addresses.Swarm '$addr1' &&
   ipfsi 1 config --json Addresses.Swarm '$addr2'

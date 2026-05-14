@@ -9,7 +9,7 @@ RUN chmod +x /tmp/test/run.sh
 EXPOSE 4021 4022/udp
 
 ENV IPFS_PROF true
-ENV IPFS_LOGGING_FMT nocolor
+ENV GOLOG_LOG_FMT nocolor
 
 ENTRYPOINT ["/bin/bash"]
 CMD ["/tmp/test/run.sh"]

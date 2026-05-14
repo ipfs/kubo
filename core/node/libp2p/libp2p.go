@@ -8,7 +8,7 @@ import (
 	version "github.com/ipfs/kubo"
 	config "github.com/ipfs/kubo/config"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -25,11 +25,12 @@ type Libp2pOpts struct {
 	Opts []libp2p.Option `group:"libp2p"`
 }
 
-var UserAgent = simpleOpt(libp2p.UserAgent(version.GetUserAgentVersion()))
-
-func ConnectionManager(low, high int, grace time.Duration) func() (opts Libp2pOpts, err error) {
+func ConnectionManager(low, high int, grace, silence time.Duration) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {
-		cm, err := connmgr.NewConnManager(low, high, connmgr.WithGracePeriod(grace))
+		cm, err := connmgr.NewConnManager(low, high,
+			connmgr.WithGracePeriod(grace),
+			connmgr.WithSilencePeriod(silence),
+		)
 		if err != nil {
 			return opts, err
 		}
@@ -44,6 +45,10 @@ func PstoreAddSelfKeys(id peer.ID, sk crypto.PrivKey, ps peerstore.Peerstore) er
 	}
 
 	return ps.AddPrivKey(id, sk)
+}
+
+func UserAgent() func() (opts Libp2pOpts, err error) {
+	return simpleOpt(libp2p.UserAgent(version.GetUserAgentVersion()))
 }
 
 func simpleOpt(opt libp2p.Option) func() (opts Libp2pOpts, err error) {

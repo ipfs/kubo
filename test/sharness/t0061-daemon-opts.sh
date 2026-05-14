@@ -18,7 +18,7 @@ apiaddr=$API_ADDR
 
 # Odd. this fails here, but the inverse works on t0060-daemon.
 test_expect_success SOCAT 'transport should be unencrypted ( needs socat )' '
-  socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-plaintext &&
+  socat -s - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-plaintext &&
   grep -q "/plaintext" swarmnc &&
   test_must_fail grep -q "na" swarmnc ||
   test_fsh cat swarmnc

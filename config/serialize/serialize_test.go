@@ -30,7 +30,7 @@ func TestConfig(t *testing.T) {
 	}
 
 	if runtime.GOOS != "windows" { // see https://golang.org/src/os/types_windows.go
-		if g := st.Mode().Perm(); g&0117 != 0 {
+		if g := st.Mode().Perm(); g&0o117 != 0 {
 			t.Fatalf("config file should not be executable or accessible to world: %v", g)
 		}
 	}

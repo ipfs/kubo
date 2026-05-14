@@ -1,12 +1,13 @@
 package node
 
 import (
+	blockstore "github.com/ipfs/boxo/blockstore"
 	"github.com/ipfs/go-datastore"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	config "github.com/ipfs/kubo/config"
 	"go.uber.org/fx"
 
-	"github.com/ipfs/go-filestore"
+	"github.com/ipfs/boxo/filestore"
+	"github.com/ipfs/boxo/provider"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/thirdparty/verifbs"
@@ -14,7 +15,8 @@ import (
 
 // RepoConfig loads configuration from the repo
 func RepoConfig(repo repo.Repo) (*config.Config, error) {
-	return repo.Config()
+	cfg, err := repo.Config()
+	return cfg, err
 }
 
 // Datastore provides the datastore
@@ -26,23 +28,40 @@ func Datastore(repo repo.Repo) datastore.Datastore {
 type BaseBlocks blockstore.Blockstore
 
 // BaseBlockstoreCtor creates cached blockstore backed by the provided datastore
-func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, nilRepo bool, hashOnRead bool) func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
-	return func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
-		// hash security
-		bs = blockstore.NewBlockstore(repo.Datastore())
-		bs = &verifbs.VerifBS{Blockstore: bs}
+func BaseBlockstoreCtor(
+	cacheOpts blockstore.CacheOpts,
+	hashOnRead bool,
+	writeThrough bool,
+	providingStrategy string,
+) func(mctx helpers.MetricsCtx, repo repo.Repo, prov DHTProvider, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+	return func(mctx helpers.MetricsCtx, repo repo.Repo, prov DHTProvider, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+		opts := []blockstore.Option{blockstore.WriteThrough(writeThrough)}
 
-		if !nilRepo {
-			bs, err = blockstore.CachedBlockstore(helpers.LifecycleCtx(mctx, lc), bs, cacheOpts)
-			if err != nil {
-				return nil, err
-			}
+		// Blockstore providing integration:
+		// When strategy includes "all" the blockstore directly provides blocks as they're Put.
+		// Important: Provide calls from blockstore are intentionally BLOCKING.
+		// The Provider implementation (not the blockstore) should handle concurrency/queuing.
+		// This avoids spawning unbounded goroutines for concurrent block additions.
+		strategyFlag := config.MustParseProvideStrategy(providingStrategy)
+		if strategyFlag&config.ProvideStrategyAll != 0 {
+			opts = append(opts, blockstore.Provider(prov))
+		}
+
+		// hash security
+		bs = blockstore.NewBlockstore(
+			repo.Datastore(),
+			opts...,
+		)
+		bs = &verifbs.VerifBS{Blockstore: bs}
+		bs, err = blockstore.CachedBlockstore(helpers.LifecycleCtx(mctx, lc), bs, cacheOpts)
+		if err != nil {
+			return nil, err
 		}
 
 		bs = blockstore.NewIdStore(bs)
 
-		if hashOnRead { // TODO: review: this is how it was done originally, is there a reason we can't just pass this directly?
-			bs.HashOnRead(true)
+		if hashOnRead {
+			bs = &blockstore.ValidatingBlockstore{Blockstore: bs}
 		}
 
 		return
@@ -58,15 +77,26 @@ func GcBlockstoreCtor(bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockst
 	return
 }
 
-// GcBlockstoreCtor wraps GcBlockstore and adds Filestore support
-func FilestoreBlockstoreCtor(repo repo.Repo, bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
-	gclocker = blockstore.NewGCLocker()
+// FilestoreBlockstoreCtor wraps GcBlockstore and adds Filestore support
+func FilestoreBlockstoreCtor(
+	providingStrategy string,
+) func(repo repo.Repo, bb BaseBlocks, prov DHTProvider) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
+	return func(repo repo.Repo, bb BaseBlocks, prov DHTProvider) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
+		gclocker = blockstore.NewGCLocker()
 
-	// hash security
-	fstore = filestore.NewFilestore(bb, repo.FileManager())
-	gcbs = blockstore.NewGCBlockstore(fstore, gclocker)
-	gcbs = &verifbs.VerifBSGC{GCBlockstore: gcbs}
+		var fstoreProv provider.MultihashProvider
+		strategyFlag := config.MustParseProvideStrategy(providingStrategy)
+		if strategyFlag&config.ProvideStrategyAll != 0 {
+			fstoreProv = prov
+		}
 
-	bs = gcbs
-	return
+		fstore = filestore.NewFilestore(bb, repo.FileManager(), fstoreProv)
+
+		// hash security
+		gcbs = blockstore.NewGCBlockstore(fstore, gclocker)
+		gcbs = &verifbs.VerifBSGC{GCBlockstore: gcbs}
+
+		bs = gcbs
+		return
+	}
 }

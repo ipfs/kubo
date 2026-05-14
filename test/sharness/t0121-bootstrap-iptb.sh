@@ -52,7 +52,7 @@ test_expect_success "bring down iptb nodes" '
 '
 
 test_expect_success "reset iptb nodes" '
-  # the api doesnt seem to get cleaned up in sharness tests for some reason
+  # the api does not seem to get cleaned up in sharness tests for some reason
   iptb testbed create -type localipfs -count 5 -force -init
 '
 

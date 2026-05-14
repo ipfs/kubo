@@ -18,5 +18,4 @@ func TestCommandTree(t *testing.T) {
 		}
 	}
 	printErrors(Root.DebugValidate())
-	printErrors(RootRO.DebugValidate())
 }

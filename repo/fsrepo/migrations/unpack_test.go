@@ -35,7 +35,7 @@ func TestUnpackTgz(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	badTarGzip := filepath.Join(tmpDir, "bad.tar.gz")
-	err := os.WriteFile(badTarGzip, []byte("bad-data\n"), 0644)
+	err := os.WriteFile(badTarGzip, []byte("bad-data\n"), 0o644)
 	if err != nil {
 		panic(err)
 	}
@@ -72,14 +72,13 @@ func TestUnpackTgz(t *testing.T) {
 	if fi.Size() != int64(len(testData)) {
 		t.Fatal("unpacked file size is", fi.Size(), "expected", len(testData))
 	}
-
 }
 
 func TestUnpackZip(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	badZip := filepath.Join(tmpDir, "bad.zip")
-	err := os.WriteFile(badZip, []byte("bad-data\n"), 0644)
+	err := os.WriteFile(badZip, []byte("bad-data\n"), 0o644)
 	if err != nil {
 		panic(err)
 	}
@@ -153,7 +152,7 @@ func writeTarGzip(root, fileName, data string, w io.Writer) error {
 	if fileName != "" {
 		hdr := &tar.Header{
 			Name: path.Join(root, fileName),
-			Mode: 0600,
+			Mode: 0o600,
 			Size: int64(len(data)),
 		}
 		// Write header

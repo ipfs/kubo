@@ -1,0 +1,223 @@
+name: Go Test
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+  push:
+    branches:
+      - 'master'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Unit tests with coverage collection (uploaded to Codecov)
+  unit-tests:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 15
+    env:
+      GOTRACEBACK: single  # reduce noise on test timeout panics
+      TEST_DOCKER: 0
+      TEST_FUSE: 0
+      TEST_VERBOSE: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Install missing tools
+        run: sudo apt update && sudo apt install -y zsh
+      - name: Run unit tests
+        run: |
+          make test_unit &&
+            [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        if: failure() || success()
+        with:
+          name: unittests
+          files: coverage/unit_tests.coverprofile
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+      - name: Create a proper JUnit XML report
+        uses: ipdxco/gotest-json-to-junit-xml@v1
+        with:
+          input: test/unit/gotest.json
+          output: test/unit/gotest.junit.xml
+        if: failure() || success()
+      - name: Archive the JUnit XML report
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-tests-junit
+          path: test/unit/gotest.junit.xml
+        if: failure() || success()
+      - name: Create a HTML report
+        uses: ipdxco/junit-xml-to-html@v1
+        with:
+          mode: no-frames
+          input: test/unit/gotest.junit.xml
+          output: test/unit/gotest.html
+        if: failure() || success()
+      - name: Archive the HTML report
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-tests-html
+          path: test/unit/gotest.html
+        if: failure() || success()
+      - name: Create a Markdown report
+        uses: ipdxco/junit-xml-to-html@v1
+        with:
+          mode: summary
+          input: test/unit/gotest.junit.xml
+          output: test/unit/gotest.md
+        if: failure() || success()
+      - name: Set the summary
+        run: cat test/unit/gotest.md >> $GITHUB_STEP_SUMMARY
+        if: failure() || success()
+
+  # End-to-end integration/regression tests from test/cli
+  # (Go-based replacement for legacy test/sharness shell scripts)
+  cli-tests:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 15
+    env:
+      GOTRACEBACK: single  # reduce noise on test timeout panics
+      TEST_VERBOSE: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Install missing tools
+        run: sudo apt update && sudo apt install -y zsh
+      - name: Run CLI tests
+        env:
+          IPFS_PATH: ${{ runner.temp }}/ipfs-test
+        run: make test_cli
+      - name: Create JUnit XML report
+        uses: ipdxco/gotest-json-to-junit-xml@v1
+        with:
+          input: test/cli/cli-tests.json
+          output: test/cli/cli-tests.junit.xml
+        if: failure() || success()
+      - name: Archive JUnit XML report
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli-tests-junit
+          path: test/cli/cli-tests.junit.xml
+        if: failure() || success()
+      - name: Create HTML report
+        uses: ipdxco/junit-xml-to-html@v1
+        with:
+          mode: no-frames
+          input: test/cli/cli-tests.junit.xml
+          output: test/cli/cli-tests.html
+        if: failure() || success()
+      - name: Archive HTML report
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli-tests-html
+          path: test/cli/cli-tests.html
+        if: failure() || success()
+      - name: Create Markdown report
+        uses: ipdxco/junit-xml-to-html@v1
+        with:
+          mode: summary
+          input: test/cli/cli-tests.junit.xml
+          output: test/cli/cli-tests.md
+        if: failure() || success()
+      - name: Set summary
+        run: cat test/cli/cli-tests.md >> $GITHUB_STEP_SUMMARY
+        if: failure() || success()
+
+  # FUSE filesystem tests (require /dev/fuse and fusermount)
+  # Runs both FUSE unit tests (./fuse/...) and CLI integration tests (./test/cli/fuse/...)
+  fuse-tests:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    concurrency:
+      group: fuse-tests-${{ github.repository }}
+      cancel-in-progress: false
+    # A normal run takes ~3min. 6min gives roughly 2x and lets Go's 4min
+    # test timeout fire first (printing a stack trace) on a hang, instead
+    # of GitHub silently cancelling the job.
+    timeout-minutes: 6
+    env:
+      # Dump all goroutines on a test panic, not just the panicking one,
+      # so we can see which test is actually hung.
+      GOTRACEBACK: all
+      TEST_FUSE: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Install FUSE
+        run: |
+          if ! command -v fusermount3 &>/dev/null && ! command -v fusermount &>/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y fuse3
+          fi
+      - name: Clean up stale FUSE mounts
+        run: |
+          # On shared self-hosted runners, leftover mounts from previous
+          # runs can exhaust the kernel FUSE mount limit (mount_max).
+          # Unit tests mount with FsName "kubo-test"; CLI tests mount
+          # under the harness temp dir (ipfs/ipns/mfs subdirectories).
+          awk '$1 == "kubo-test" || $2 ~ /\/tmp\/.*\/(ipfs|ipns|mfs)$/ { print $2 }' /proc/mounts 2>/dev/null \
+            | while read -r mp; do
+                fusermount3 -uz "$mp" 2>/dev/null || fusermount -uz "$mp" 2>/dev/null || true
+              done
+      - name: Run FUSE tests
+        run: make test_fuse
+      - name: Clean up FUSE mounts
+        if: always()
+        run: |
+          awk '$1 == "kubo-test" || $2 ~ /\/tmp\/.*\/(ipfs|ipns|mfs)$/ { print $2 }' /proc/mounts 2>/dev/null \
+            | while read -r mp; do
+                fusermount3 -uz "$mp" 2>/dev/null || fusermount -uz "$mp" 2>/dev/null || true
+              done
+
+  # Example tests (kubo-as-a-library)
+  example-tests:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 5
+    env:
+      GOTRACEBACK: single
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Kubo
+        uses: actions/checkout@v6
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Run example tests
+        run: make test_examples

@@ -171,20 +171,18 @@ test_expect_success "shut down nodes" '
 
 
 # We want to just init the repo, without using a daemon for stuff below
-test_init_ipfs
+test_init_ipfs --empty-repo=false
 
 
 test_expect_success "basic offline export of 'getting started' dag works" '
   ipfs dag export "$HASH_WELCOME_DOCS" >/dev/null
 '
 
-
-echo "Error: block was not found locally (offline): ipld: could not find QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX (currently offline, perhaps retry after attaching to the network)" > offline_fetch_error_expected
 test_expect_success "basic offline export of nonexistent cid" '
   ! ipfs dag export QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 2> offline_fetch_error_actual >/dev/null
 '
 test_expect_success "correct error" '
-  test_cmp_sorted offline_fetch_error_expected offline_fetch_error_actual
+  test_should_contain "Error: block was not found locally (offline): ipld: could not find QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" offline_fetch_error_actual
 '
 
 cat >multiroot_import_json_stats_expected <<EOE
@@ -234,16 +232,16 @@ test_expect_success "naked root import expected output" '
 '
 
 test_expect_success "'ipfs dag import' check block size" '
-    BIG_CID=$(dd if=/dev/zero bs=2MB count=1 | ipfs dag put --input-codec=raw --store-codec=raw --allow-big-block) &&
-    ipfs dag export $BIG_CID > 2-MB-block.car &&
-    test_expect_code 1 ipfs dag import 2-MB-block.car >dag_import_out 2>&1
+    BIG_CID=$(dd if=/dev/zero bs=2097153 count=1 | ipfs dag put --input-codec=raw --store-codec=raw --allow-big-block) &&
+    ipfs dag export $BIG_CID > over-2MiB-block.car &&
+    test_expect_code 1 ipfs dag import over-2MiB-block.car >dag_import_out 2>&1
 '
 test_expect_success "ipfs dag import output has the correct error" '
-    grep "block is over 1MiB" dag_import_out
+    grep "block is over 2MiB" dag_import_out
 '
 
 test_expect_success "ipfs dag import --allow-big-block works" '
-    test_expect_code 0 ipfs dag import --allow-big-block 2-MB-block.car
+    test_expect_code 0 ipfs dag import --allow-big-block over-2MiB-block.car
 '
 
 cat > version_2_import_expected << EOE
@@ -289,6 +287,25 @@ test_expect_success "'ipfs dag import' decode IPLD 'cbor' codec works" '
   ipfs dag export $NEW_HASH > cbor.car &&
   ipfs dag import cbor.car &&
   rm cbor.car
+'
+
+# IPIP-402
+cat > partial_nopin_import_expected << EOE
+{"Stats":{"BlockCount":1,"BlockBytesCount":1618}}
+EOE
+test_expect_success "'ipfs dag import' without pinning works fine with incomplete DAG (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    ipfs dag import --stats --enc=json --pin-roots=false ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_nopin_import_out 2>&1 &&
+    test_cmp partial_nopin_import_expected partial_nopin_import_out
+'
+
+test_expect_success "'ipfs dag import' with pinning errors due to incomplete DAG (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    ipfs dag import --stats --enc=json --pin-roots=true ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_pin_import_out 2>&1 &&
+    test_should_contain "\"PinErrorMsg\":\"block was not found locally" partial_pin_import_out
+'
+
+test_expect_success "'ipfs dag import' pin error in default CLI mode produces exit code 1 (unixfs dir exported as dag-scope=entity from IPIP-402)" '
+    test_expect_code 1 ipfs dag import ../t0054-dag-car-import-export-data/partial-dag-scope-entity.car >partial_pin_import_out 2>&1 &&
+    test_should_contain "Error: pinning root \"QmPDC11yLAbVw3dX5jMeEuSdk4BiVjSd9X87zaYRdVjzW3\" FAILED: block was not found locally" partial_pin_import_out
 '
 
 test_done

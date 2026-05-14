@@ -1,0 +1,13 @@
+# Hadolint configuration for Kubo Docker image
+# https://github.com/hadolint/hadolint
+
+# Ignore specific rules
+ignored:
+  # DL3008: Pin versions in apt-get install
+  # We use stable base images and prefer smaller layers over version pinning
+  - DL3008
+
+# Trust base images from these registries
+trustedRegistries:
+  - docker.io
+  - gcr.io

@@ -10,38 +10,42 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// Listener listens for connections and proxies them to a target
+// Listener listens for connections and proxies them to a target.
 type Listener interface {
 	Protocol() protocol.ID
 	ListenAddress() ma.Multiaddr
 	TargetAddress() ma.Multiaddr
 
-	key() string
+	key() protocol.ID
 
 	// close closes the listener. Does not affect child streams
 	close()
+
+	// Done returns a channel that is closed when the listener is closed.
+	// This allows callers to detect when a listener has been removed.
+	Done() <-chan struct{}
 }
 
 // Listeners manages a group of Listener implementations,
-// checking for conflicts and optionally dispatching connections
+// checking for conflicts and optionally dispatching connections.
 type Listeners struct {
 	sync.RWMutex
 
-	Listeners map[string]Listener
+	Listeners map[protocol.ID]Listener
 }
 
 func newListenersLocal() *Listeners {
 	return &Listeners{
-		Listeners: map[string]Listener{},
+		Listeners: map[protocol.ID]Listener{},
 	}
 }
 
 func newListenersP2P(host p2phost.Host) *Listeners {
 	reg := &Listeners{
-		Listeners: map[string]Listener{},
+		Listeners: map[protocol.ID]Listener{},
 	}
 
-	host.SetStreamHandlerMatch("/x/", func(p string) bool {
+	host.SetStreamHandlerMatch("/x/", func(p protocol.ID) bool {
 		reg.RLock()
 		defer reg.RUnlock()
 
@@ -51,7 +55,7 @@ func newListenersP2P(host p2phost.Host) *Listeners {
 		reg.RLock()
 		defer reg.RUnlock()
 
-		l := reg.Listeners[string(stream.Protocol())]
+		l := reg.Listeners[stream.Protocol()]
 		if l != nil {
 			go l.(*remoteListener).handleStream(stream)
 		}
@@ -60,7 +64,7 @@ func newListenersP2P(host p2phost.Host) *Listeners {
 	return reg
 }
 
-// Register registers listenerInfo into this registry and starts it
+// Register registers listenerInfo into this registry and starts it.
 func (r *Listeners) Register(l Listener) error {
 	r.Lock()
 	defer r.Unlock()
@@ -73,15 +77,13 @@ func (r *Listeners) Register(l Listener) error {
 	return nil
 }
 
+// Close removes and closes all listeners for which matchFunc returns true.
+// Returns the number of listeners closed.
 func (r *Listeners) Close(matchFunc func(listener Listener) bool) int {
-	todo := make([]Listener, 0)
+	var todo []Listener
 	r.Lock()
 	for _, l := range r.Listeners {
-		if !matchFunc(l) {
-			continue
-		}
-
-		if _, ok := r.Listeners[l.key()]; ok {
+		if matchFunc(l) {
 			delete(r.Listeners, l.key())
 			todo = append(todo, l)
 		}

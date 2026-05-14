@@ -2,14 +2,13 @@ package commands
 
 import (
 	"os"
-	"path"
 	"runtime"
 
+	"github.com/ipfs/go-ipfs-cmds"
 	version "github.com/ipfs/kubo"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
-
-	cmds "github.com/ipfs/go-ipfs-cmds"
 	manet "github.com/multiformats/go-multiaddr/net"
 	sysi "github.com/whyrusleeping/go-sysinfo"
 )
@@ -35,8 +34,8 @@ Prints out information about your computer to aid in easier debugging.
 	},
 }
 
-func getInfo(nd *core.IpfsNode) (map[string]interface{}, error) {
-	info := make(map[string]interface{})
+func getInfo(nd *core.IpfsNode) (map[string]any, error) {
+	info := make(map[string]any)
 	err := runtimeInfo(info)
 	if err != nil {
 		return nil, err
@@ -67,8 +66,8 @@ func getInfo(nd *core.IpfsNode) (map[string]interface{}, error) {
 	return info, nil
 }
 
-func runtimeInfo(out map[string]interface{}) error {
-	rt := make(map[string]interface{})
+func runtimeInfo(out map[string]any) error {
+	rt := make(map[string]any)
 	rt["os"] = runtime.GOOS
 	rt["arch"] = runtime.GOARCH
 	rt["compiler"] = runtime.Compiler
@@ -81,40 +80,36 @@ func runtimeInfo(out map[string]interface{}) error {
 	return nil
 }
 
-func envVarInfo(out map[string]interface{}) error {
-	ev := make(map[string]interface{})
+func envVarInfo(out map[string]any) error {
+	ev := make(map[string]any)
 	ev["GOPATH"] = os.Getenv("GOPATH")
-	ev["IPFS_PATH"] = os.Getenv("IPFS_PATH")
+	ev[config.EnvDir] = os.Getenv(config.EnvDir)
 
 	out["environment"] = ev
 	return nil
 }
 
-func ipfsPath() string {
-	p := os.Getenv("IPFS_PATH")
-	if p == "" {
-		p = path.Join(os.Getenv("HOME"), ".ipfs")
+func diskSpaceInfo(out map[string]any) error {
+	pathRoot, err := config.PathRoot()
+	if err != nil {
+		return err
 	}
-	return p
-}
-
-func diskSpaceInfo(out map[string]interface{}) error {
-	di := make(map[string]interface{})
-	dinfo, err := sysi.DiskUsage(ipfsPath())
+	dinfo, err := sysi.DiskUsage(pathRoot)
 	if err != nil {
 		return err
 	}
 
-	di["fstype"] = dinfo.FsType
-	di["total_space"] = dinfo.Total
-	di["free_space"] = dinfo.Free
+	out["diskinfo"] = map[string]any{
+		"fstype":      dinfo.FsType,
+		"total_space": dinfo.Total,
+		"free_space":  dinfo.Free,
+	}
 
-	out["diskinfo"] = di
 	return nil
 }
 
-func memInfo(out map[string]interface{}) error {
-	m := make(map[string]interface{})
+func memInfo(out map[string]any) error {
+	m := make(map[string]any)
 
 	meminf, err := sysi.MemoryInfo()
 	if err != nil {
@@ -127,8 +122,8 @@ func memInfo(out map[string]interface{}) error {
 	return nil
 }
 
-func netInfo(online bool, out map[string]interface{}) error {
-	n := make(map[string]interface{})
+func netInfo(online bool, out map[string]any) error {
+	n := make(map[string]any)
 	addrs, err := manet.InterfaceMultiaddrs()
 	if err != nil {
 		return err

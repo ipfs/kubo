@@ -1,7 +1,6 @@
 package migrations
 
 import (
-	"context"
 	"testing"
 
 	"github.com/blang/semver/v4"
@@ -10,12 +9,9 @@ import (
 const testDist = "go-ipfs"
 
 func TestDistVersions(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
-	ts := createTestServer()
-	defer ts.Close()
-	fetcher := NewHttpFetcher("", ts.URL, "", 0)
+	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
 	vers, err := DistVersions(ctx, fetcher, testDist, true)
 	if err != nil {
@@ -29,12 +25,9 @@ func TestDistVersions(t *testing.T) {
 }
 
 func TestLatestDistVersion(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
-	ts := createTestServer()
-	defer ts.Close()
-	fetcher := NewHttpFetcher("", ts.URL, "", 0)
+	fetcher := NewHttpFetcher(testIpfsDist, testServer.URL, "", 0)
 
 	latest, err := LatestDistVersion(ctx, fetcher, testDist, false)
 	if err != nil {

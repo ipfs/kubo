@@ -7,6 +7,7 @@ import (
 	"time"
 
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -74,7 +75,8 @@ This interface is not stable and may change from release to release.
 			var dht *dht.IpfsDHT
 
 			var separateClient bool
-			if nd.DHTClient != nd.DHT {
+			// Check if using separate DHT client (e.g., accelerated DHT)
+			if nd.HasActiveDHTClient() && nd.DHTClient != nd.DHT {
 				separateClient = true
 			}
 
@@ -92,7 +94,9 @@ This interface is not stable and may change from release to release.
 						info := dhtPeerInfo{ID: p.String()}
 
 						if ver, err := nd.Peerstore.Get(p, "AgentVersion"); err == nil {
-							info.AgentVersion, _ = ver.(string)
+							if vs, ok := ver.(string); ok {
+								info.AgentVersion = cmdutils.CleanAndTrim(vs)
+							}
 						} else if err == pstore.ErrNotFound {
 							// ignore
 						} else {
@@ -143,7 +147,9 @@ This interface is not stable and may change from release to release.
 				info := dhtPeerInfo{ID: pi.Id.String()}
 
 				if ver, err := nd.Peerstore.Get(pi.Id, "AgentVersion"); err == nil {
-					info.AgentVersion, _ = ver.(string)
+					if vs, ok := ver.(string); ok {
+						info.AgentVersion = cmdutils.CleanAndTrim(vs)
+					}
 				} else if err == pstore.ErrNotFound {
 					// ignore
 				} else {

@@ -13,7 +13,8 @@ AF="/ip4/127.0.0.0/ipcidr/24"
 NUM_NODES=3
 
 test_expect_success "set up testbed" '
-  iptb testbed create -type localipfs -count $NUM_NODES -force -init
+  iptb testbed create -type localipfs -count $NUM_NODES -force -init &&
+  iptb run -- ipfs config --json "Routing.LoopbackAddressesOnLanDHT" true
 '
 
 test_expect_success 'filter 127.0.0.0/24 on node 1' '

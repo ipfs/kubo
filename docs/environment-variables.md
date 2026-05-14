@@ -1,5 +1,37 @@
 # Kubo environment variables
 
+- [Variables](#variables)
+  - [`IPFS_PATH`](#ipfs_path)
+  - [`IPFS_LOGGING`](#ipfs_logging)
+  - [`IPFS_LOGGING_FMT`](#ipfs_logging_fmt)
+  - [`GOLOG_LOG_LEVEL`](#golog_log_level)
+  - [`GOLOG_LOG_FMT`](#golog_log_fmt)
+  - [`GOLOG_FILE`](#golog_file)
+  - [`GOLOG_OUTPUT`](#golog_output)
+  - [`GOLOG_TRACING_FILE`](#golog_tracing_file)
+  - [`IPFS_FUSE_DEBUG`](#ipfs_fuse_debug)
+  - [`YAMUX_DEBUG`](#yamux_debug)
+  - [`IPFS_FD_MAX`](#ipfs_fd_max)
+  - [`IPFS_DIST_PATH`](#ipfs_dist_path)
+  - [`IPFS_NS_MAP`](#ipfs_ns_map)
+  - [`IPFS_HTTP_ROUTERS`](#ipfs_http_routers)
+  - [`IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS`](#ipfs_http_routers_filter_protocols)
+  - [`IPFS_CONTENT_BLOCKING_DISABLE`](#ipfs_content_blocking_disable)
+  - [`IPFS_WAIT_REPO_LOCK`](#ipfs_wait_repo_lock)
+  - [`IPFS_TELEMETRY`](#ipfs_telemetry)
+  - [`HTTPS_PROXY`](#https_proxy)
+  - [`HTTP_PROXY`](#http_proxy)
+  - [`NO_PROXY`](#no_proxy)
+  - [`LIBP2P_TCP_REUSEPORT`](#libp2p_tcp_reuseport)
+  - [`LIBP2P_TCP_MUX`](#libp2p_tcp_mux)
+  - [`LIBP2P_MUX_PREFS`](#libp2p_mux_prefs)
+  - [`LIBP2P_RCMGR`](#libp2p_rcmgr)
+  - [`LIBP2P_DEBUG_RCMGR`](#libp2p_debug_rcmgr)
+  - [`LIBP2P_SWARM_FD_LIMIT`](#libp2p_swarm_fd_limit)
+- [Tracing](#tracing)
+
+# Variables
+
 ## `IPFS_PATH`
 
 Sets the location of the IPFS repo (where the config, blocks, etc.
@@ -44,6 +76,8 @@ GOLOG_LOG_LEVEL="error,core/server=debug" ipfs daemon
 
 Logging can also be configured at runtime, both globally and on a per-subsystem basis, with the `ipfs log` command.
 
+See [Known logger subsystems](./debug-guide.md#known-logger-subsystems) for subsystem names related to the provide/reprovide pipeline.
+
 ## `GOLOG_LOG_FMT`
 
 Specifies the log message format.  It supports the following values:
@@ -63,6 +97,14 @@ The logging format defaults to `color` when the output is a terminal, and `nocol
 
 Sets the file to which Kubo logs. By default, Kubo logs to standard error.
 
+## `GOLOG_OUTPUT`
+
+When stderr and/or stdout options are configured or specified by the `GOLOG_OUTPUT` environ variable, log only to the output(s) specified. For example:
+
+- `GOLOG_OUTPUT="stderr"` logs only to stderr
+- `GOLOG_OUTPUT="stdout"` logs only to stdout
+- `GOLOG_OUTPUT="stderr+stdout"` logs to both stderr and stdout
+
 ## `GOLOG_TRACING_FILE`
 
 Sets the file to which Kubo sends tracing events. By default, tracing is
@@ -75,13 +117,13 @@ Warning: Enabling tracing will likely affect performance.
 
 ## `IPFS_FUSE_DEBUG`
 
-Enables fuse debug logging.
+When set to any non-empty value, logs every FUSE operation (open, read, write, lookup, getattr, etc.) to stderr with its arguments and return values. Useful for diagnosing mount issues or inspecting what the kernel requests.
 
-Default: false
+Default: not set (no debug logging)
 
 ## `YAMUX_DEBUG`
 
-Enables debug logging for the yamux stream muxer.
+If SET, enables debug logging for the yamux stream muxer.
 
 Default: false
 
@@ -114,13 +156,133 @@ $ ipfs resolve -r /ipns/dnslink-test2.example.com
 /ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am
 ```
 
+## `IPFS_HTTP_ROUTERS`
+
+Overrides AutoConf and all other HTTP routers when set.
+When `Routing.Type=auto`, this environment variable takes precedence over
+both AutoConf-provided endpoints and any manually configured delegated routers.
+The value should be a space or comma-separated list of HTTP routing endpoint URLs.
+
+This is useful for:
+- Testing and debugging in offline contexts
+- Overriding AutoConf endpoints temporarily
+- Using custom or private HTTP routing services
+
+Example:
+
+```console
+$ ipfs config Routing.Type auto
+$ IPFS_HTTP_ROUTERS="http://127.0.0.1:7423" ipfs daemon
+```
+
+The above will replace all AutoConf endpoints with a single local one, allowing for
+inspection/debug of HTTP requests sent by Kubo via `while true ; do nc -l 7423; done`
+or more advanced tools like [mitmproxy](https://docs.mitmproxy.org/stable/#mitmproxy).
+
+When not set, Kubo uses endpoints from AutoConf (when enabled) or manually configured `Routing.DelegatedRouters`.
+
+## `IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS`
+
+Overrides values passed with `filter-protocols` parameter defined in IPIP-484.
+Value is space-separated.
+
+```console
+$ IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS="unknown transport-bitswap transport-foo" ipfs daemon
+```
+
+Default: `config.DefaultHTTPRoutersFilterProtocols`
+
+## `IPFS_CONTENT_BLOCKING_DISABLE`
+
+Disables the content-blocking subsystem. No denylists will be watched and no
+content will be blocked.
+
+## `IPFS_WAIT_REPO_LOCK`
+
+Specifies the amount of time to wait for the repo lock. Set the value of this variable to a string that can be [parsed](https://pkg.go.dev/time@go1.24.3#ParseDuration) as a golang `time.Duration`. For example:
+```
+IPFS_WAIT_REPO_LOCK="15s"
+```
+
+If the lock cannot be acquired because someone else has the lock, and `IPFS_WAIT_REPO_LOCK` is set to a valid value, then acquiring the lock is retried every second until the lock is acquired or the specified wait time has elapsed.
+
+## `IPFS_TELEMETRY`
+
+Controls the behavior of the [telemetry plugin](telemetry.md). Valid values are:
+
+- `on`: Enables telemetry.
+- `off`: Disables telemetry.
+- `auto`: Like `on`, but logs an informative message about telemetry and gives user 15 minutes to opt-out before first collection. Used automatically on first run and when `IPFS_TELEMETRY` is not set.
+
+The mode can also be set in the config file under `Plugins.Plugins.telemetry.Config.Mode`.
+
+Example:
+
+```bash
+export IPFS_TELEMETRY="off"
+```
+
+## `HTTPS_PROXY`
+
+Proxy for outbound `https://` HTTP requests and `/wss` libp2p WebSocket peer dials. Kubo relies on Go's `http.ProxyFromEnvironment`, which is honored by every HTTP client in the default code paths:
+
+- `ipfs` CLI talking to a remote daemon over [Kubo RPC](https://docs.ipfs.tech/reference/kubo/rpc/).
+- Programmatic [Kubo RPC](https://docs.ipfs.tech/reference/kubo/rpc/) client (`client/rpc`) used by third-party Go applications.
+- `ipfs update` downloader fetching release binaries and checksums from GitHub.
+- Delegated HTTP routing configured via [`Routing.DelegatedRouters`](config.md#routingdelegatedrouters).
+- HTTP block retrieval used by Bitswap against [Trustless Gateways](https://specs.ipfs.tech/http-gateways/trustless-gateway/).
+- AutoConf fetch of network bootstrap defaults ([`AutoConf.URL`](config.md#autoconfurl)).
+- AutoTLS ACME cert issuance via [`certmagic`](https://github.com/caddyserver/certmagic): both the challenge broker request to `p2p-forge` and the ACME flow to the configured CA (Let's Encrypt by default).
+- go-libp2p WebSocket transport for `/wss` outbound peer dials (`gorilla/websocket` `DefaultDialer`).
+
+Accepted forms:
+
+- `http://host:port`: plain HTTP proxy; TLS targets tunnel through `CONNECT`. Works for both `https://` and `wss://`.
+- `https://host:port`: proxy itself is reached over TLS. Requires Kubo 0.41 or newer.
+- Basic auth is supported: `http://user:pass@host:port`.
+
+Example:
+
+```console
+HTTPS_PROXY=http://proxy.local:8080 ipfs daemon
+```
+
+Scope:
+
+- Outbound only. Inbound listeners (`/ws`, `/wss`, gateway, RPC) are not affected.
+- Direct libp2p transports (TCP, QUIC, WebTransport, WebRTC) do not use a proxy.
+
+## `HTTP_PROXY`
+
+Same as [`HTTPS_PROXY`](#https_proxy), applied to `http://` URLs and `/ws` libp2p WebSocket peer dials.
+
+## `NO_PROXY`
+
+Comma-separated list of host names, domain suffixes (prefixed with a dot), or CIDR blocks that bypass [`HTTP_PROXY`](#http_proxy) and [`HTTPS_PROXY`](#https_proxy).
+
+Example:
+
+```console
+NO_PROXY="localhost,127.0.0.1,.internal" HTTPS_PROXY=http://proxy.local:8080 ipfs daemon
+```
+
 ## `LIBP2P_TCP_REUSEPORT`
 
 Kubo tries to reuse the same source port for all connections to improve NAT
 traversal. If this is an issue, you can disable it by setting
 `LIBP2P_TCP_REUSEPORT` to false.
 
-Default: true
+Default: `true`
+
+## `LIBP2P_TCP_MUX`
+
+By default Kubo tries to reuse the same listener port for raw TCP and WebSockets transports via experimental `libp2p.ShareTCPListener()` feature introduced in [go-libp2p#2984](https://github.com/libp2p/go-libp2p/pull/2984).
+If this is an issue, you can disable it by setting `LIBP2P_TCP_MUX` to `false` and use separate ports for each TCP transport.
+
+> [!CAUTION]
+> This configuration option may be removed once `libp2p.ShareTCPListener()`  becomes default in go-libp2p.
+
+Default: `true`
 
 ## `LIBP2P_MUX_PREFS`
 
@@ -146,71 +308,36 @@ and outputs it to `rcmgr.json.gz`
 
 Default: disabled (not set)
 
+## `LIBP2P_SWARM_FD_LIMIT`
+
+This variable controls the number of concurrent outbound dials (except dials to relay addresses which have their own limiting logic).
+
+Reducing it slows down connection ballooning but might affect performance negatively.
+
+Default: [160](https://github.com/libp2p/go-libp2p/blob/master/p2p/net/swarm/swarm_dial.go#L91) (not set)
+
+## `TEST_DHT_STUB`
+
+Lifts WAN DHT filters so kubo can operate against DHT peers on
+loopback, enabling end-to-end provide/findprovs/IPNS testing
+without public internet access. Exercises every DHT code path:
+dial, protocol negotiation, message serialization, routing table
+management.
+
+Filters removed on the WAN DHT when this variable is set:
+
+- `AddressFilter`: accepts loopback addresses (default rejects non-public)
+- `QueryFilter`: accepts all peers (default rejects non-public)
+- `RoutingTableFilter`: accepts all peers (default rejects non-public)
+- `RoutingTablePeerDiversityFilter`: disabled (default caps same-IP peers to 3)
+
+In the CLI test harness, `h.BootstrapWithStubDHT(nodes)` spawns a
+mini-DHT on the loopback interface and sets this variable on each
+node automatically, allowing the loopback DHT to serve as a WAN
+replacement. Tests do not need to set this variable externally.
+
+Default: disabled (not set)
+
 # Tracing
-For advanced configuration (e.g. ratio-based sampling), see also: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md
 
-## `OTEL_TRACES_EXPORTER`
-Specifies the exporters to use as a comma-separated string. Each exporter has a set of additional environment variables used to configure it. The following values are supported:
-
-- `otlp`
-- `jaeger`
-- `zipkin`
-- `file` -- appends traces to a JSON file on the filesystem
-
-Setting this enables OpenTelemetry tracing.
-
-**NOTE** Tracing support is experimental: releases may contain tracing-related breaking changes.
-
-Default: "" (no exporters)
-
-## `OTLP Exporter`
-Unless specified in this section, the OTLP exporter uses the environment variables documented here: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/exporter.md
-
-### `OTEL_EXPORTER_OTLP_PROTOCOL`
-Specifies the OTLP protocol to use, which is one of:
-
-- `grpc`
-- `http/protobuf`
-
-Default: "grpc"
-
-## `Jaeger Exporter`
-
-See: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md#jaeger-exporter
-
-## `Zipkin Exporter`
-See: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md#zipkin-exporter
-
-## `File Exporter`
-### `OTEL_EXPORTER_FILE_PATH`
-Specifies the filesystem path for the JSON file.
-
-Default: "$PWD/traces.json"
-
-### How to use Jaeger UI
-
-One can use the `jaegertracing/all-in-one` Docker image to run a full Jaeger
-stack and configure Kubo to publish traces to it (here, in an ephemeral
-container):
-
-```console
-$ docker run --rm -it --name jaeger \
-    -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 \
-    -p 5775:5775/udp \
-    -p 6831:6831/udp \
-    -p 6832:6832/udp \
-    -p 5778:5778 \
-    -p 16686:16686 \
-    -p 14268:14268 \
-    -p 14268:14269 \
-    -p 14250:14250 \
-    -p 9411:9411 \
-    jaegertracing/all-in-one
-```
-
-Then, in other terminal, start Kubo with Jaeger tracing enabled:
-```
-$ OTEL_TRACES_EXPORTER=jaeger ipfs daemon
-```
-
-Finally, the [Jaeger UI](https://github.com/jaegertracing/jaeger-ui#readme) is available at http://localhost:16686
+For tracing configuration, please check: https://github.com/ipfs/boxo/blob/main/docs/tracing.md

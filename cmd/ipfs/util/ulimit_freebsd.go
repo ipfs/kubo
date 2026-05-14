@@ -1,5 +1,5 @@
+// FreeBSD ulimit handling via sysctl.
 //go:build freebsd
-// +build freebsd
 
 package util
 

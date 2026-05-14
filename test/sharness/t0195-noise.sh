@@ -8,7 +8,7 @@ test_init_ipfs
 
 # start iptb + wait for peering
 test_expect_success 'init iptb' '
-  iptb testbed create -type localipfs -count 3 -init
+  iptb testbed create -type localipfs -count 4 -init
 '
 
 tcp_addr='"[\"/ip4/127.0.0.1/tcp/0\"]"'
@@ -32,8 +32,11 @@ test_expect_success "test ping other" '
   ipfsi 1 ping -n2 -- "$PEERID_0"
 '
 
+# bootstrap a working dht so 2 can find 0 but can't dial it
 test_expect_success "test tls incompatible" '
+  iptb start --wait 3 &&
   iptb start --wait 2 &&
+  iptb connect [0-2] 3 &&
   test_must_fail iptb connect 2 0 > connect_error 2>&1 &&
   test_should_contain "failed to negotiate security protocol" connect_error ||
   test_fsh cat connect_error

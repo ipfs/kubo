@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -16,7 +15,7 @@ func TestGetOutputPath(t *testing.T) {
 	}{
 		{
 			args: []string{"/ipns/multiformats.io/"},
-			opts: map[string]interface{}{
+			opts: map[string]any{
 				"output": "takes-precedence",
 			},
 			outPath: "takes-precedence",
@@ -52,8 +51,7 @@ func TestGetOutputPath(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%s-%d", t.Name(), i), func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
+			ctx := t.Context()
 
 			req, err := cmds.NewRequest(ctx, []string{}, tc.opts, tc.args, nil, GetCmd)
 			if err != nil {

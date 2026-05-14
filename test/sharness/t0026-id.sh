@@ -16,12 +16,12 @@ test_id_compute_agent() {
     else
         AGENT_COMMIT="${AGENT_COMMIT##$AGENT_VERSION-}"
     fi
-    AGENT_VERSION="kubo/$AGENT_VERSION/$AGENT_COMMIT"
+    AGENT_VERSION="kubo/$AGENT_VERSION"
+    if test -n "$AGENT_COMMIT"; then
+        AGENT_VERSION="$AGENT_VERSION/$AGENT_COMMIT"
+    fi
     if test -n "$AGENT_SUFFIX"; then
-      if test -n "$AGENT_COMMIT"; then
-        AGENT_VERSION="$AGENT_VERSION/"
-      fi
-      AGENT_VERSION="$AGENT_VERSION$AGENT_SUFFIX"
+        AGENT_VERSION="$AGENT_VERSION/$AGENT_SUFFIX"
     fi
     echo "$AGENT_VERSION"
 }
@@ -30,22 +30,6 @@ test_expect_success "checking AgentVersion" '
   test_id_compute_agent > expected-agent-version &&
   ipfs id -f "<aver>\n" > actual-agent-version &&
   test_cmp expected-agent-version actual-agent-version
-'
-
-test_launch_ipfs_daemon_without_network --agent-version-suffix=test-suffix
-
-test_expect_success "checking AgentVersion with suffix (daemon running)" '
-  test_id_compute_agent test-suffix > expected-agent-version &&
-  ipfs id -f "<aver>\n" > actual-agent-version &&
-  test_cmp expected-agent-version actual-agent-version
-'
-
-test_kill_ipfs_daemon
-
-test_expect_success "checking ProtocolVersion" '
-  echo "ipfs/0.1.0" > expected-protocol-version &&
-  ipfs id -f "<pver>\n" > actual-protocol-version &&
-  test_cmp expected-protocol-version actual-protocol-version
 '
 
 test_expect_success "checking ID of self" '
@@ -60,5 +44,37 @@ test_expect_success "checking and converting ID of a random peer while offline" 
   ipfs id -f "<id>\n" --peerid-base base36 --offline QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N > actual-id &&
   test_cmp expected-id actual-id
 '
+
+# agent-version-suffix (local, offline)
+test_launch_ipfs_daemon --agent-version-suffix=test-suffix
+test_expect_success "checking AgentVersion with suffix (local)" '
+  test_id_compute_agent test-suffix > expected-agent-version &&
+  ipfs id -f "<aver>\n" > actual-agent-version &&
+  test_cmp expected-agent-version actual-agent-version
+'
+
+# agent-version-suffix (over libp2p identify protocol)
+iptb testbed create -type localipfs -count 2 -init
+startup_cluster 2 --agent-version-suffix=test-suffix-identify
+test_expect_success "checking AgentVersion with suffix (fetched via libp2p identify protocol)" '
+  ipfsi 0 id -f "<aver>\n" > expected-identify-agent-version &&
+  ipfsi 1 id "$(ipfsi 0 config Identity.PeerID)" -f "<aver>\n" > actual-libp2p-identify-agent-version &&
+  test_cmp expected-identify-agent-version actual-libp2p-identify-agent-version
+'
+iptb stop
+
+test_kill_ipfs_daemon
+
+# Version.AgentSuffix overrides --agent-version-suffix (local, offline)
+test_expect_success "setting Version.AgentSuffix in config" '
+  ipfs config Version.AgentSuffix json-config-suffix
+'
+test_launch_ipfs_daemon --agent-version-suffix=ignored-cli-suffix
+test_expect_success "checking AgentVersion with suffix set via JSON config" '
+  test_id_compute_agent json-config-suffix > expected-agent-version &&
+  ipfs id -f "<aver>\n" > actual-agent-version &&
+  test_cmp expected-agent-version actual-agent-version
+'
+test_kill_ipfs_daemon
 
 test_done

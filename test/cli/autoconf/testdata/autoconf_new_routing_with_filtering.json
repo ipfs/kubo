@@ -1,0 +1,59 @@
+{
+  "AutoConfVersion": 2025072901,
+  "AutoConfSchema": 1,
+  "AutoConfTTL": 86400,
+  "SystemRegistry": {
+    "NewRoutingSystem": {
+      "URL": "https://new-routing.example.com",
+      "Description": "New routing system for testing path filtering with auto routing",
+      "DelegatedConfig": {
+        "Read": [
+          "/routing/v1/providers",
+          "/routing/v1/peers",
+          "/routing/v1/ipns"
+        ],
+        "Write": [
+          "/routing/v1/ipns"
+        ]
+      }
+    }
+  },
+  "DNSResolvers": {
+    "eth.": [
+      "https://dns.eth.limo/dns-query"
+    ]
+  },
+  "DelegatedEndpoints": {
+    "https://supported-new.example.com": {
+      "Systems": ["NewRoutingSystem"],
+      "Read": [
+        "/routing/v1/providers",
+        "/routing/v1/peers"
+      ],
+      "Write": [
+        "/routing/v1/ipns"
+      ]
+    },
+    "https://unsupported-new.example.com": {
+      "Systems": ["NewRoutingSystem"],
+      "Read": [
+        "/custom/v0/read",
+        "/api/v1/nonstandard"
+      ],
+      "Write": [
+        "/custom/v0/write"
+      ]
+    },
+    "https://mixed-new.example.com": {
+      "Systems": ["NewRoutingSystem"],
+      "Read": [
+        "/routing/v1/providers",
+        "/invalid/path",
+        "/routing/v1/peers"
+      ],
+      "Write": [
+        "/routing/v1/ipns"
+      ]
+    }
+  }
+}

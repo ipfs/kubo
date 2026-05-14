@@ -18,7 +18,7 @@ body:
       label: Checklist
       description: Please verify that you've followed these steps
       options:
-        - label: This is a bug report, not a question. Ask questions on [discuss.ipfs.io](https://discuss.ipfs.io).
+        - label: This is a bug report, not a question. Ask questions on [discuss.ipfs.tech](https://discuss.ipfs.tech/c/help/13).
           required: true
         - label: I have searched on the [issue tracker](https://github.com/ipfs/kubo/issues?q=is%3Aissue) for my bug.
           required: true
@@ -32,8 +32,9 @@ body:
       label: Installation method
       description: Please select your installation method
       options:
+        - dist.ipfs.tech or ipfs-update
+        - docker image
         - ipfs-desktop
-        - ipfs-update or dist.ipfs.tech
         - third-party binary
         - built from source
   - type: textarea

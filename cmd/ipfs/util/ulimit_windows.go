@@ -1,5 +1,5 @@
+// Windows ulimit handling via SetHandleInformation.
 //go:build windows
-// +build windows
 
 package util
 

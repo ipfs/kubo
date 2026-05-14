@@ -1,3 +1,4 @@
+// File descriptor counting via Windows Handle API.
 //go:build windows
 
 package fd
