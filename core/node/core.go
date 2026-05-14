@@ -50,11 +50,19 @@ func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blocks
 	}
 }
 
-// Pinning creates new pinner which tells GC which blocks should be kept
-func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov DHTProvider) (pin.Pinner, error) {
+// Pinning builds the pinner that GC uses to decide which blocks to keep.
+//
+// An fx OnStop hook closes the pinner before the repo (and its
+// datastore). The order matters: in-flight pinner operations hold a
+// reference to the datastore, and some datastores (pebble) panic on
+// use after Close. Pinner.Close cancels those operations and waits
+// for them to return. See
+// [github.com/ipfs/boxo/pinning/pinner.Pinner.Close].
+func Pinning(strategy string) func(lc fx.Lifecycle, bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov DHTProvider) (pin.Pinner, error) {
 	strategyFlag := config.MustParseProvideStrategy(strategy)
 
-	return func(bstore blockstore.Blockstore,
+	return func(lc fx.Lifecycle,
+		bstore blockstore.Blockstore,
 		ds format.DAGService,
 		repo repo.Repo,
 		prov DHTProvider,
@@ -90,6 +98,16 @@ func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGSe
 		if err != nil {
 			return nil, err
 		}
+
+		// fx runs OnStop hooks in reverse registration order. The
+		// repo provider registers its close hook earlier (in
+		// builder.go), so this hook runs first and the repo hook
+		// runs after, without an explicit dependency between them.
+		lc.Append(fx.Hook{
+			OnStop: func(context.Context) error {
+				return pinning.Close()
+			},
+		})
 
 		return pinning, nil
 	}
