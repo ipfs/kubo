@@ -468,7 +468,10 @@ NOTES:
 			return fmt.Errorf("stats not available with current routing system %T", nd.Provider)
 		}
 
-		s := sweepingProvider.Stats()
+		s, err := sweepingProvider.Stats(req.Context)
+		if err != nil {
+			return err
+		}
 		return res.Emit(provideStats{Sweep: &s})
 	},
 	Encoders: cmds.EncoderMap{
