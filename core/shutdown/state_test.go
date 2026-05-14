@@ -43,6 +43,11 @@ func TestMarkStartedPreservesFirstTimestamp(t *testing.T) {
 	resetForTest(t)
 	MarkStarted()
 	first := StartedAt()
+	// Sleep is intentional: it forces time.Now() to advance between the
+	// two MarkStarted calls so a regression that replaces the CAS with a
+	// plain Store would change StartedAt() and fail the assertion below.
+	// Without the gap, both calls could land in the same nanosecond on
+	// coarse-resolution clocks and mask the bug.
 	time.Sleep(2 * time.Millisecond)
 	MarkStarted() // second call must not overwrite
 	if !StartedAt().Equal(first) {

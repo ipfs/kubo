@@ -4,23 +4,18 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
 const (
-	// testFinishDeadline is the ctx deadline for the happy-path test: long
-	// enough that the close callback returns first.
+	// testFinishDeadline is the ctx deadline for the happy-path tests:
+	// long enough that the close callback returns first.
 	testFinishDeadline = time.Second
-	// testTimeoutDeadline is the ctx deadline for the timeout test: short
-	// enough to fire before the simulated close callback returns.
+	// testTimeoutDeadline is the ctx deadline for the timeout test. Any
+	// positive value works because the test runs under synctest's fake
+	// clock; the choice only affects the exact-elapsed assertion below.
 	testTimeoutDeadline = 50 * time.Millisecond
-	// testTimeoutSlack is the tolerance for the ctx race in the timeout
-	// test: real wall time may exceed testTimeoutDeadline by up to this
-	// margin without being a regression.
-	testTimeoutSlack = 200 * time.Millisecond
-	// testBlockingOperation is the duration the simulated close callback
-	// sleeps to ensure it never returns naturally during the test.
-	testBlockingOperation = time.Hour
 )
 
 func TestCloseWithCtx_finishesBeforeDeadline(t *testing.T) {
@@ -44,18 +39,25 @@ func TestCloseWithCtx_propagatesCloseError(t *testing.T) {
 }
 
 func TestCloseWithCtx_timesOut(t *testing.T) {
-	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), testTimeoutDeadline)
-	defer cancel()
-	start := time.Now()
-	err := CloseWithCtx(ctx, "slow", func() error {
-		time.Sleep(testBlockingOperation)
-		return nil
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), testTimeoutDeadline)
+		defer cancel()
+		// release lets the simulated close exit after we've asserted on
+		// CloseWithCtx. Without it, synctest panics with "blocked
+		// goroutines remain" because production-side CloseWithCtx
+		// intentionally leaks the goroutine when the deadline fires.
+		release := make(chan struct{})
+		start := time.Now()
+		err := CloseWithCtx(ctx, "slow", func() error {
+			<-release
+			return nil
+		})
+		if elapsed := time.Since(start); elapsed != testTimeoutDeadline {
+			t.Fatalf("want elapsed == %s, got %s", testTimeoutDeadline, elapsed)
+		}
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("want DeadlineExceeded, got %v", err)
+		}
+		close(release)
 	})
-	if elapsed := time.Since(start); elapsed > testTimeoutDeadline+testTimeoutSlack {
-		t.Fatalf("did not honor deadline, took %s", elapsed)
-	}
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("want DeadlineExceeded, got %v", err)
-	}
 }
