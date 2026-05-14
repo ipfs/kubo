@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -158,7 +159,11 @@ func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, m
 			continue
 		}
 
-		count, err := file.Seek(offset, io.SeekStart)
+		seeker, ok := file.(io.Seeker)
+		if !ok {
+			return nil, 0, fmt.Errorf("file does not support seeking")
+		}
+		count, err := seeker.Seek(offset, io.SeekStart)
 		if err != nil {
 			return nil, 0, err
 		}
