@@ -27,6 +27,7 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/ipfs/kubo/repo"
 )
 
@@ -103,9 +104,14 @@ func Pinning(strategy string) func(lc fx.Lifecycle, bstore blockstore.Blockstore
 		// repo provider registers its close hook earlier (in
 		// builder.go), so this hook runs first and the repo hook
 		// runs after, without an explicit dependency between them.
+		//
+		// Wrapped with CloseWithCtx because the boxo Pinner.Close
+		// contract notes that an in-flight op which ignores its ctx
+		// (a downstream bug) can block Close; the host must bound it
+		// at the call site so the shutdown deadline is honored.
 		lc.Append(fx.Hook{
-			OnStop: func(context.Context) error {
-				return pinning.Close()
+			OnStop: func(ctx context.Context) error {
+				return shutdown.CloseWithCtx(ctx, "pinner", pinning.Close)
 			},
 		})
 
