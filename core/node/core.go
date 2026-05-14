@@ -43,7 +43,7 @@ func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blocks
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				return bsvc.Close()
+				return shutdown.CloseWithCtx(ctx, "blockservice", bsvc.Close)
 			},
 		})
 
