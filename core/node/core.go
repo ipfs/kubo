@@ -282,7 +282,7 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				return root.Close()
+				return shutdown.CloseWithCtx(ctx, "mfs-root", root.Close)
 			},
 		})
 

@@ -23,6 +23,7 @@ import (
 	"github.com/ipfs/go-datastore/query"
 	log "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
 	irouting "github.com/ipfs/kubo/routing"
@@ -321,7 +322,7 @@ Learn more: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide`,
 			}
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
-					return sys.Close()
+					return shutdown.CloseWithCtx(ctx, "legacy-provider", sys.Close)
 				},
 			})
 
@@ -929,14 +930,15 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				// Close provider first - waits for all worker goroutines to exit.
-				// This ensures no code can access keystore after this returns.
-				if err := in.Provider.Close(); err != nil {
+				// Close provider first; waits for all worker goroutines
+				// to exit so nothing can access the keystore after this
+				// returns. If ctx fires before provider drains, the
+				// keystore close below sees an expired ctx and returns
+				// immediately; the watchdog is the ultimate backstop.
+				if err := shutdown.CloseWithCtx(ctx, "dht-provider", in.Provider.Close); err != nil {
 					providerLog.Errorw("error closing provider during shutdown", "error", err)
 				}
-
-				// Close keystore - safe now, provider is fully shut down
-				return in.Keystore.Close()
+				return shutdown.CloseWithCtx(ctx, "keystore", in.Keystore.Close)
 			},
 		})
 	})

@@ -11,6 +11,7 @@ import (
 	"github.com/ipfs/boxo/autoconf"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/ipfs/kubo/repo"
 
 	ds "github.com/ipfs/go-datastore"
@@ -83,7 +84,7 @@ func (cfg *BuildCfg) options(ctx context.Context) (fx.Option, *cfg.Config) {
 	repoOption := fx.Provide(func(lc fx.Lifecycle) repo.Repo {
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				return cfg.Repo.Close()
+				return shutdown.CloseWithCtx(ctx, "repo", cfg.Repo.Close)
 			},
 		})
 
