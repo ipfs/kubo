@@ -19,6 +19,102 @@ func mustMultiaddrs(t *testing.T, addrs ...string) []ma.Multiaddr {
 	return out
 }
 
+// mustMultiaddrStrings is the inverse of mustMultiaddrs: a slice of strings
+// for stable comparison in test expectations.
+func mustMultiaddrStrings(addrs []ma.Multiaddr) []string {
+	out := make([]string, len(addrs))
+	for i, a := range addrs {
+		out[i] = a.String()
+	}
+	return out
+}
+
+func TestAppendHTTPProviderAddrs(t *testing.T) {
+	cases := []struct {
+		name string
+		in   []string
+		want []string
+	}{
+		{
+			name: "cleartext_ws",
+			in:   []string{"/ip4/1.2.3.4/tcp/4001/ws"},
+			want: []string{"/ip4/1.2.3.4/tcp/4001/ws", "/ip4/1.2.3.4/tcp/4001/http"},
+		},
+		{
+			name: "tls_ws",
+			in:   []string{"/ip4/1.2.3.4/tcp/4001/tls/ws"},
+			want: []string{"/ip4/1.2.3.4/tcp/4001/tls/ws", "/ip4/1.2.3.4/tcp/4001/tls/http"},
+		},
+		{
+			name: "tls_sni_ws",
+			in:   []string{"/ip4/1.2.3.4/tcp/4001/tls/sni/example.libp2p.direct/ws"},
+			want: []string{
+				"/ip4/1.2.3.4/tcp/4001/tls/sni/example.libp2p.direct/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/sni/example.libp2p.direct/http",
+			},
+		},
+		{
+			name: "dns_tls_ws",
+			in:   []string{"/dns4/example.com/tcp/443/tls/ws"},
+			want: []string{"/dns4/example.com/tcp/443/tls/ws", "/dns4/example.com/tcp/443/tls/http"},
+		},
+		{
+			name: "non_ws_addr_unchanged",
+			in: []string{
+				"/ip4/1.2.3.4/tcp/4001",
+				"/ip4/1.2.3.4/udp/4001/quic-v1",
+			},
+			want: []string{
+				"/ip4/1.2.3.4/tcp/4001",
+				"/ip4/1.2.3.4/udp/4001/quic-v1",
+			},
+		},
+		{
+			name: "mixed_preserves_order",
+			in: []string{
+				"/ip4/1.2.3.4/tcp/4001",
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/udp/4001/quic-v1",
+			},
+			want: []string{
+				"/ip4/1.2.3.4/tcp/4001",
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/http",
+				"/ip4/1.2.3.4/udp/4001/quic-v1",
+			},
+		},
+		{
+			name: "preexisting_http_not_duplicated",
+			in: []string{
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/http",
+			},
+			want: []string{
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/http",
+			},
+		},
+		{
+			name: "ws_appears_only_once_when_repeated",
+			in: []string{
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+			},
+			want: []string{
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/http",
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := appendHTTPProviderAddrs(mustMultiaddrs(t, c.in...))
+			require.Equal(t, c.want, mustMultiaddrStrings(got))
+		})
+	}
+}
+
 func TestFindDeadListeners(t *testing.T) {
 	cases := []struct {
 		name        string
