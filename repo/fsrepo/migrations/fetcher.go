@@ -91,6 +91,13 @@ func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) ([]byte, erro
 			f.markOutcome(i, true)
 			return out, nil
 		}
+		// A cancelled or timed-out context is not the gateway's fault.
+		// Returning early avoids quarantining every fetcher and bumping
+		// the loop-failure counter, which could latch the exhaustion
+		// breaker after a few user-initiated cancellations.
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
 		fmt.Printf("Error fetching: %s\n", err.Error())
 		errs = append(errs, err)
 		f.markOutcome(i, false)

@@ -408,6 +408,35 @@ func TestMultiFetcherSuccessResetsCounter(t *testing.T) {
 	}
 }
 
+// TestMultiFetcherContextCancelled verifies that a cancelled context exits
+// the rotation early without quarantining every fetcher or counting toward
+// the exhaustion cap. Otherwise three user Ctrl-Cs in a row would latch
+// ErrMultiFetcherExhausted on a perfectly healthy gateway list.
+func TestMultiFetcherContextCancelled(t *testing.T) {
+	a := &countingFetcher{}
+	b := &countingFetcher{}
+	mf := NewMultiFetcher(a, b)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	for i := range maxMultiFetcherFullLoopFailures + 2 {
+		_, err := mf.Fetch(ctx, "/x")
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("call %d: expected context.Canceled, got %v", i+1, err)
+		}
+	}
+
+	// Each call should have exited after the first fetcher returned the
+	// cancellation error, so b is never tried and the breaker never latches.
+	if got := b.calls.Load(); got != 0 {
+		t.Fatalf("second fetcher should not be tried after cancellation, got %d calls", got)
+	}
+	if err := mf.exhaustedErr(); err != nil {
+		t.Fatalf("breaker latched on cancelled-context loops: %v", err)
+	}
+}
+
 // countingFetcher always errors and records how many times it was called.
 // The counter is atomic so the fetcher is safe to share across goroutines
 // during -race tests.
