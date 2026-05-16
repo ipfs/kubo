@@ -1176,8 +1176,35 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	return errc, nil
 }
 
-const gatewayProtocolID protocol.ID = "/ipfs/gateway" // FIXME: specify https://github.com/ipfs/specs/issues/433
+// gatewayProtocolID is the libp2p protocol ID under which the trustless
+// gateway HTTP semantics are exposed over a libp2p stream, per the
+// libp2p Gateway specification:
+// https://specs.ipfs.tech/http-gateways/libp2p-gateway/
+const gatewayProtocolID protocol.ID = "/ipfs/gateway"
 
+// newGatewayWellKnown builds a fresh WellKnownHandler populated with the
+// libp2p Gateway protocol meta. Used to publish /.well-known/libp2p/protocols
+// on the HTTPProvider HTTPS path so clients can discover that the endpoint
+// speaks the libp2p Gateway protocol. The libp2p-stream path uses its own
+// WellKnownHandler attached to p2phttp.Host; both report the same metadata.
+func newGatewayWellKnown() *p2phttp.WellKnownHandler {
+	wk := &p2phttp.WellKnownHandler{}
+	wk.AddProtocolMeta(gatewayProtocolID, p2phttp.ProtocolMeta{Path: "/"})
+	return wk
+}
+
+// serveHTTPProviderOverLibp2p starts the libp2p-stream transport of the
+// HTTPProvider feature. It implements the libp2p Gateway specification
+// (https://specs.ipfs.tech/http-gateways/libp2p-gateway/) by mounting the
+// trustless gateway handler under the /ipfs/gateway libp2p protocol ID and
+// advertising it through the .well-known/libp2p/protocols document on the
+// libp2p+HTTP host.
+//
+// The handler is the same one used for every HTTPProvider transport:
+// NoFetch (only blocks already in the local blockstore), no DNSLink, no
+// HTML errors, raw blocks and CARs only. Deserialized UnixFS responses are
+// not served, so clients always get content-addressed bytes they can
+// verify against the requested CID.
 func serveHTTPProviderOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
 	node, err := cctx.ConstructNode()
 	if err != nil {
@@ -1208,14 +1235,38 @@ func serveHTTPProviderOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
 		return nil, err
 	}
 
+	// HTTPProvider: also expose the same trustless handler on the AutoTLS
+	// WSS port. FX provided the placeholder HTTPProvider handler when both
+	// HTTPProvider.Enabled and AutoTLS are on; we install the real handler
+	// now that IpfsNode is fully constructed. Unlike the libp2p-stream
+	// gateway above, this is reachable from any HTTPS client via the
+	// AutoTLS cert.
+	//
+	// The HTTPS mux also serves /.well-known/libp2p/protocols so HTTPS
+	// clients can discover that this peer speaks /ipfs/gateway (and any
+	// other libp2p protocols mounted in the future), per the libp2p+HTTP
+	// spec (https://specs.ipfs.tech/http-gateways/libp2p-gateway/).
+	//
+	// Wrap with RequireHTTP2OverTLS so the HTTPS path is h2-only (matches
+	// modern public HTTPS endpoints, gives bitswap-httpnet multiplexing)
+	// while the plain /ws path stays permissive for reverse-proxy interop.
+	if node.HTTPProvider != nil {
+		httpsMux := http.NewServeMux()
+		httpsMux.Handle("/", handler)
+		httpsMux.Handle(p2phttp.WellKnownProtocols, newGatewayWellKnown())
+		node.HTTPProvider.Set(libp2p.RequireHTTP2OverTLS(httpsMux))
+		log.Info("HTTPProvider: trustless gateway exposed via AutoWSS port (h2 required over TLS, h1+h2c allowed cleartext, .well-known/libp2p/protocols served)")
+	}
+
 	if node.PeerHost == nil {
 		return nil, fmt.Errorf("cannot create libp2p gateway: node PeerHost is nil (this should not happen and likely indicates an FX dependency injection issue or race condition)")
 	}
 
+	// libp2p-stream gateway. p2phttp.Host.Serve registers
+	// /.well-known/libp2p/protocols on h.ServeMux for us.
 	h := p2phttp.Host{
 		StreamHost: node.PeerHost,
 	}
-
 	h.WellKnownHandler.AddProtocolMeta(gatewayProtocolID, p2phttp.ProtocolMeta{Path: "/"})
 	h.ServeMux = http.NewServeMux()
 	h.ServeMux.Handle("/", handler)

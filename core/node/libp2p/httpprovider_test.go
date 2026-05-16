@@ -1,6 +1,7 @@
 package libp2p
 
 import (
+	"crypto/tls"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -52,3 +53,50 @@ func TestHTTPProviderHandler_Reset(t *testing.T) {
 	}
 }
 
+// TestRequireHTTP2OverTLS exercises the four (TLS yes/no × h1/h2) cases.
+func TestRequireHTTP2OverTLS(t *testing.T) {
+	hits := 0
+	wrapped := RequireHTTP2OverTLS(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits++
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	tlsState := &tls.ConnectionState{}
+
+	cases := []struct {
+		name       string
+		tls        *tls.ConnectionState
+		protoMajor int
+		wantStatus int
+		wantHits   int
+	}{
+		{"TLS_h1_rejected", tlsState, 1, http.StatusUpgradeRequired, 0},
+		{"TLS_h2_allowed", tlsState, 2, http.StatusOK, 1},
+		{"cleartext_h1_allowed", nil, 1, http.StatusOK, 1},
+		{"cleartext_h2_allowed", nil, 2, http.StatusOK, 1},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			hits = 0
+			req := httptest.NewRequest(http.MethodGet, "/x", nil)
+			req.TLS = c.tls
+			req.ProtoMajor = c.protoMajor
+
+			rec := httptest.NewRecorder()
+			wrapped.ServeHTTP(rec, req)
+
+			if rec.Code != c.wantStatus {
+				t.Fatalf("status: want %d, got %d", c.wantStatus, rec.Code)
+			}
+			if hits != c.wantHits {
+				t.Fatalf("handler invocations: want %d, got %d", c.wantHits, hits)
+			}
+			if c.wantStatus == http.StatusUpgradeRequired {
+				if got := rec.Header().Get("Upgrade"); got != "h2,websocket" {
+					t.Fatalf("Upgrade header: want %q, got %q", "h2,websocket", got)
+				}
+			}
+		})
+	}
+}

@@ -44,3 +44,31 @@ func (l *HTTPProviderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 	http.Error(w, "gateway not ready yet", http.StatusServiceUnavailable)
 }
+
+// RequireHTTP2OverTLS wraps an http.Handler so that requests arriving over
+// TLS with HTTP/1.1 are rejected with 426 Upgrade Required. Cleartext
+// requests pass through regardless of HTTP version, so reverse-proxy
+// deployments that forward HTTP/1.1 to the backend keep working.
+//
+// Why this lives in kubo and not in the go-libp2p WS transport: the
+// transport's WithFallbackHTTPHandler is intentionally interop-maximal
+// (accepts every HTTP version on every listener) and leaves application
+// policy to the caller. The HTTP-over-TLS path here is the public-facing
+// AutoTLS endpoint we want to keep looking like a modern HTTPS server
+// (multiplexing for bitswap-httpnet, smaller fingerprint surface for
+// censors). The plain /ws path stays permissive so reverse proxies that
+// only speak HTTP/1.1 to the backend keep working.
+//
+// HTTP/2 is detected via r.ProtoMajor; TLS via r.TLS != nil. Both fields
+// are populated by net/http before the handler runs.
+func RequireHTTP2OverTLS(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.TLS != nil && r.ProtoMajor < 2 {
+			w.Header().Set("Connection", "Upgrade")
+			w.Header().Set("Upgrade", "h2,websocket")
+			http.Error(w, "this endpoint requires HTTP/2 over TLS; HTTP/1.1 is reserved for the WebSocket upgrade", http.StatusUpgradeRequired)
+			return
+		}
+		h.ServeHTTP(w, r)
+	})
+}
