@@ -16,7 +16,9 @@ Stores each key-value pair as a file on the filesystem.
 
 The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descriptor of the sharding strategy. Some example values are:
 - `/repo/flatfs/shard/v1/next-to-last/2`
-  - Shards on the two next to last characters of the key
+  - Shards on the two next-to-last base32 characters of the key (~1024 directories)
+- `/repo/flatfs/shard/v1/next-to-last/3`
+  - Shards on the three next-to-last base32 characters of the key (~32,768 directories)
 - `/repo/flatfs/shard/v1/prefix/2`
   - Shards based on the two-character prefix of the key
 
@@ -32,6 +34,35 @@ The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descri
 - `sync`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a slowdown when adding files).
 
 NOTE: flatfs must only be used as a block store (mounted at `/blocks`) as it only partially implements the datastore interface. You can mount flatfs for /blocks only using the mount datastore (described below).
+
+### Choosing a `shardFunc` for large blockstores
+
+The `next-to-last/N` shard depth controls how many directories the blockstore
+is spread across. Each shard becomes a single directory under `blocks/`, and
+every block file lives directly inside its shard. The cost of any operation
+that does a `readdir` or per-file `stat` on a shard scales with the number of
+files in that shard.
+
+Two depths in common use:
+
+| `shardFunc`              | Shard count | At 60M blocks   | Notes                                       |
+|--------------------------|------------:|----------------:|---------------------------------------------|
+| `next-to-last/2`         | ~1,024      | ~58k files/dir  | default; fine for small/medium nodes        |
+| `next-to-last/3`         | ~32,768     | ~1.8k files/dir | recommended for large pinning/gateway nodes |
+
+For nodes expected to grow past a few million blocks (most pinning clusters,
+public gateways, mirrors), prefer `next-to-last/3`. The deeper sharding keeps
+per-directory file counts in a range modern filesystems handle well, and it
+significantly reduces the per-operation cost of `Stat`, `readdir`, and bulk
+enumeration (used by GC, [`Datastore.BloomFilterSize`](config.md#datastorebloomfiltersize)
+rebuild on startup, and `Provide.Strategy=all` reprovide cycles). On nodes
+backed by rotational disks the difference can be the gap between healthy
+operation and IOPS-saturated iowait.
+
+The shard depth is fixed at `ipfs init` time. Kubo ships no in-place
+re-sharding tool, so switching depth on an existing repo means exporting
+and re-importing the blockstore. Pick conservatively for the expected
+steady state of the node.
 
 ## levelds
 

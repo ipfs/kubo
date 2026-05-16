@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem"
 	"go.uber.org/fx"
@@ -15,7 +16,7 @@ func Peerstore(lc fx.Lifecycle) (peerstore.Peerstore, error) {
 	}
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
-			return pstore.Close()
+			return shutdown.CloseWithCtx(ctx, "peerstore", pstore.Close)
 		},
 	})
 

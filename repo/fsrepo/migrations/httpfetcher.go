@@ -64,7 +64,7 @@ const (
 // remaining entries are ordered by typical response speed and serve as
 // fallbacks if it is blocked or unreachable.
 var defaultMigrationGateways = []string{
-	"https://trustless-gateway.link",
+	defaultGatewayURL,
 	"https://gateway.pinata.cloud",
 	"https://ipfs.filebase.io",
 	"https://4everland.io",

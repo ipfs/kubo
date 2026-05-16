@@ -26,6 +26,7 @@ import (
 
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/core/shutdown"
 )
 
 // Docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#internalbitswap
@@ -197,7 +198,7 @@ func Bitswap(serverEnabled, libp2pEnabled, httpEnabled bool) any {
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				return bs.Close()
+				return shutdown.CloseWithCtx(ctx, "bitswap", bs.Close)
 			},
 		})
 		return bs, nil
@@ -213,7 +214,7 @@ func OnlineExchange(isBitswapActive bool) any {
 		}
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				return in.Close()
+				return shutdown.CloseWithCtx(ctx, "bitswap-exchange", in.Close)
 			},
 		})
 		return in
