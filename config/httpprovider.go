@@ -2,9 +2,9 @@ package config
 
 // HTTPProvider configures kubo's role as an HTTP-native source of
 // trustless-gateway block retrieval. When Enabled, the local trustless
-// gateway handler (NoFetch, raw blocks + CARs only, content-addressed
-// verification client-side) is exposed for HTTP retrieval clients such as
-// boxo/bitswap/network/httpnet.
+// gateway handler (NoFetch, raw blocks via ?format=raw only,
+// content-addressed verification client-side) is exposed for HTTP
+// retrieval clients such as boxo/bitswap/network/httpnet.
 //
 // This is the server side of the HTTP retrieval story; the client side
 // lives separately and is configured under HTTPRetrieval.

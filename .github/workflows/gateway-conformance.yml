@@ -151,7 +151,8 @@ jobs:
         run: |
           ./ipfs init --profile=test
           ./ipfs config --json Gateway.PublicGateways "$GATEWAY_PUBLIC_GATEWAYS"
-          ./ipfs config --json Experimental.GatewayOverLibp2p true
+          ./ipfs config --json HTTPProvider.Enabled true
+          ./ipfs config --json HTTPProvider.Libp2p true
           ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/8080"
           ./ipfs config Addresses.API "/ip4/127.0.0.1/tcp/5001"
         working-directory: kubo-gateway/cmd/ipfs
@@ -223,4 +224,92 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: gateway-conformance-libp2p.json
+          path: output.json
+
+  # Testing the trustless gateway subset exposed by HTTPProvider over plain
+  # HTTP/2 (h2c) on the swarm port. HTTPProvider.Cleartext auto-appends a /ws
+  # listener to each /tcp listener in Addresses.Swarm; HTTPProvider then
+  # shares the same TCP port via the shared-TCP demuxer and serves /http
+  # there. No libp2p proxy is needed: the conformance client connects to the
+  # swarm port directly. Complements the libp2p job above so both
+  # HTTPProvider transports are exercised end-to-end.
+  gateway-conformance-http-provider-cleartext:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # 1. Download the gateway-conformance fixtures
+      - name: Download gateway-conformance fixtures
+        uses: ipfs/gateway-conformance/.github/actions/extract-fixtures@v0.13
+        with:
+          output: fixtures
+
+      # 2. Build the kubo-gateway
+      - name: Checkout kubo-gateway
+        uses: actions/checkout@v6
+        with:
+          path: kubo-gateway
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'kubo-gateway/go.mod'
+          cache: true
+          cache-dependency-path: kubo-gateway/go.sum
+      - name: Build kubo-gateway
+        run: make build
+        working-directory: kubo-gateway
+
+      # 3. Init the kubo-gateway with HTTPProvider.Cleartext on the swarm
+      #    port. Libp2p is off; Cleartext is the only HTTPProvider transport
+      #    exercised by this job.
+      - name: Init kubo-gateway
+        run: |
+          ./ipfs init --profile=test
+          ./ipfs config --json Gateway.PublicGateways "$GATEWAY_PUBLIC_GATEWAYS"
+          ./ipfs config --json HTTPProvider.Enabled true
+          ./ipfs config --json HTTPProvider.Libp2p false
+          ./ipfs config --json HTTPProvider.Cleartext true
+          ./ipfs config --json Addresses.Swarm '["/ip4/127.0.0.1/tcp/4001"]'
+          ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/8080"
+          ./ipfs config Addresses.API "/ip4/127.0.0.1/tcp/5001"
+        working-directory: kubo-gateway/cmd/ipfs
+
+      # 4. Populate the Kubo gateway with the gateway-conformance fixtures
+      - name: Import fixtures
+        run: |
+          # Import car files
+          find ./fixtures -name '*.car' -exec kubo-gateway/cmd/ipfs/ipfs dag import --pin-roots=false {} \;
+
+      # 5. Start the kubo-gateway
+      - name: Start kubo-gateway
+        run: |
+          ( ./ipfs daemon & ) | sed '/Daemon is ready/q'
+          while [[ "$(./ipfs id | jq '.Addresses | length')" == '0' ]]; do sleep 1; done
+        working-directory: kubo-gateway/cmd/ipfs
+
+      # 6. Run the gateway-conformance tests over plain HTTP/2 (h2c) on the swarm port
+      - name: Run gateway-conformance tests over h2c
+        uses: ipfs/gateway-conformance/.github/actions/test@v0.13
+        with:
+          gateway-url: http://127.0.0.1:4001
+          args: --specs "trustless-gateway,-trustless-ipns-gateway" -skip 'TestGatewayCar/GET_response_for_application/vnd.ipld.car/Header_Content-Length'
+          json: output.json
+          xml: output.xml
+          html: output.html
+          markdown: output.md
+
+      # 7. Upload the results
+      - name: Upload MD summary
+        if: failure() || success()
+        run: cat output.md >> $GITHUB_STEP_SUMMARY
+      - name: Upload HTML report
+        if: failure() || success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gateway-conformance-http-provider-cleartext.html
+          path: output.html
+      - name: Upload JSON report
+        if: failure() || success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gateway-conformance-http-provider-cleartext.json
           path: output.json

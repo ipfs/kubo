@@ -12,9 +12,9 @@ import (
 // behind the AutoTLS cert is only available later, once IpfsNode is up.
 //
 // Used by the HTTPProvider feature that exposes the trustless gateway
-// (NoFetch, raw blocks + CAR only) on the same TCP port as the /tls/ws
-// AutoWSS listener. See `cmd/ipfs/kubo/daemon.go:serveHTTPProviderOverLibp2p`
-// for the install site.
+// (NoFetch, raw blocks via ?format=raw only) on the same TCP port as the
+// /tls/ws AutoWSS listener. See
+// `cmd/ipfs/kubo/daemon.go:serveHTTPProviderOverLibp2p` for the install site.
 //
 // Until Set is called, the handler responds 503 Service Unavailable, which
 // is the correct signal for the small race between Accept and handler-install
