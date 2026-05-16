@@ -46,23 +46,22 @@ const (
 	tlsHandshakeTimeout = 15 * time.Second
 )
 
-// defaultMigrationGateways lists the public trustless gateways tried in order
-// when Migration.DownloadSources expands the "HTTPS" alias. Each entry was
-// verified on 2026-04-29 to serve application/vnd.ipld.car for the migration
-// distribution path with ?format=car, from an independent backend (not a
-// cross-domain redirect to another entry on this list). Source list:
-// https://github.com/ipfs/public-gateway-checker/blob/main/gateways.json
-// (rendered at https://ipfs.github.io/public-gateway-checker/).
+// defaultMigrationGateways is a last-resort fallback used when
+// Migration.DownloadSources expands the "HTTPS" alias. The first entry
+// (trustless-gateway.link) serves nearly all users; the rest are tried
+// only when it is blocked or unreachable.
 //
-// Including third-party community gateways here is safe: we request CAR
-// archives and the local CAR reader verifies the multihash of every block
-// against the requested CID before any byte is used, so a malicious or
-// misconfigured gateway cannot substitute different content. Trust is in
-// the hash, not the operator.
+// Including third-party gateways is safe: each block is fetched as CAR
+// and verified against the requested CID's multihash, so a malicious
+// operator cannot substitute different content.
 //
-// trustless-gateway.link is tried first as the long-standing default; the
-// remaining entries are ordered by typical response speed and serve as
-// fallbacks if it is blocked or unreachable.
+// TODO: replace this static list with a dynamic source, either the public
+// gateway checker list at
+// https://github.com/ipfs/public-gateway-checker/raw/refs/heads/main/gateways.json
+// or AutoConf. Not done yet because this code path only runs for repos
+// from go-ipfs or Kubo older than v0.27 (roughly 2020 vintage). Modern
+// Kubo ships embedded migrations and never reaches it, so the impact and
+// risk of leaving the list hard-coded are both low.
 var defaultMigrationGateways = []string{
 	defaultGatewayURL,
 	"https://gateway.pinata.cloud",
