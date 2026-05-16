@@ -108,10 +108,7 @@ test_examples:
 # go.mod so kubo's main module stays clean.
 TEST_AUTOTLS_TIMEOUT ?= 4m
 test_autotls: cmd/ipfs/ipfs test/bin/gotestsum $$(DEPS_GO)
-	cd test/autotls && rm -f autotls-tests.json && \
-	  PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" \
-	  gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile autotls-tests.json -- \
-	  -v -timeout=$(TEST_AUTOTLS_TIMEOUT) ./...
+	cd test/autotls && rm -f autotls-tests.json && PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile autotls-tests.json -- -v -timeout=$(TEST_AUTOTLS_TIMEOUT) ./...
 .PHONY: test_autotls
 
 # Build kubo for all platforms from .github/build-platforms.yml

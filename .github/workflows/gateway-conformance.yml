@@ -146,11 +146,12 @@ jobs:
         run: make build
         working-directory: kubo-gateway
 
-      # 3. Init the kubo-gateway
+      # 3. Init the kubo-gateway. The trustless subset this job runs does
+      # not exercise subdomain routing, so Gateway.PublicGateways is
+      # unnecessary here.
       - name: Init kubo-gateway
         run: |
           ./ipfs init --profile=test
-          ./ipfs config --json Gateway.PublicGateways "$GATEWAY_PUBLIC_GATEWAYS"
           ./ipfs config --json HTTPProvider.Enabled true
           ./ipfs config --json HTTPProvider.Libp2p true
           ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/8080"
@@ -260,11 +261,12 @@ jobs:
 
       # 3. Init the kubo-gateway with HTTPProvider.Cleartext on the swarm
       #    port. Libp2p is off; Cleartext is the only HTTPProvider transport
-      #    exercised by this job.
+      #    exercised by this job. The trustless subset run below does not
+      #    exercise subdomain routing, so Gateway.PublicGateways is
+      #    unnecessary here.
       - name: Init kubo-gateway
         run: |
           ./ipfs init --profile=test
-          ./ipfs config --json Gateway.PublicGateways "$GATEWAY_PUBLIC_GATEWAYS"
           ./ipfs config --json HTTPProvider.Enabled true
           ./ipfs config --json HTTPProvider.Libp2p false
           ./ipfs config --json HTTPProvider.Cleartext true
