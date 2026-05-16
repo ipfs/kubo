@@ -9,7 +9,7 @@ type Experiments struct {
 	StrategicProviding            bool `json:",omitempty"` // removed, use Provider.Enabled instead
 	OptimisticProvide             bool
 	OptimisticProvideJobsPoolSize int
-	GatewayOverLibp2p             bool `json:",omitempty"`
+	GatewayOverLibp2p             bool `json:",omitempty"` // Deprecated: use HTTPProvider.Enabled instead.
 
 	GraphsyncEnabled     graphsyncEnabled                 `json:",omitempty"`
 	AcceleratedDHTClient experimentalAcceleratedDHTClient `json:",omitempty"`

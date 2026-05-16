@@ -120,6 +120,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	enableRelayClient := cfg.Swarm.RelayClient.Enabled.WithDefault(enableRelayTransport)
 	enableAutoTLS := cfg.AutoTLS.Enabled.WithDefault(config.DefaultAutoTLSEnabled)
 	enableAutoWSS := cfg.AutoTLS.AutoWSS.WithDefault(config.DefaultAutoWSS)
+	// HTTPProvider master switch.
+	enableHTTPProvider := cfg.HTTPProvider.Enabled.WithDefault(config.DefaultHTTPProviderEnabled)
 	atlsLog := log.Logger("autotls")
 
 	// Log error when relay subsystem could not be initialized due to missing dependency
@@ -200,6 +202,14 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(libp2p.ResourceManager(bcfg.Repo.Path(), cfg.Swarm, userResourceOverrides)),
 		maybeProvide(libp2p.P2PForgeCertMgr(bcfg.Repo.Path(), cfg.AutoTLS, atlsLog), enableAutoTLS),
 		maybeInvoke(libp2p.StartP2PAutoTLS, enableAutoTLS),
+		// When HTTPProvider is enabled, register a placeholder fallback
+		// handler so the WebSocket transport can route non-upgrade requests
+		// on every /ws or /tls/ws listener to the trustless gateway. The
+		// real handler is installed by daemon.go once IpfsNode is up. The
+		// gate is intentionally independent of AutoTLS because cleartext
+		// /ws (manual or HTTPProvider.Cleartext-derived) needs the handler
+		// too.
+		maybeProvide(libp2p.NewHTTPProviderHandler, enableHTTPProvider),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Invoke(libp2p.MonitorDeadListeners(cfg.Swarm.AddrFilters, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),

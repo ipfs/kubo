@@ -398,6 +398,17 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
+	// Reject the removed Experimental.GatewayOverLibp2p flag at startup so
+	// stale configs surface a clear migration error instead of silently
+	// running the wrong feature set.
+	if cfg.Experimental.GatewayOverLibp2p {
+		return errors.New(
+			"Experimental.GatewayOverLibp2p has been removed. " +
+				"Set HTTPProvider.Enabled=true and HTTPProvider.Libp2p=true instead, " +
+				"then unset Experimental.GatewayOverLibp2p.",
+		)
+	}
+
 	// Validate autoconf setup - check for private network conflict
 	swarmKey, _ := repo.SwarmKey()
 	isPrivateNetwork := swarmKey != nil || pnet.ForcePrivateNetwork
@@ -696,7 +707,7 @@ take effect.
 	}
 
 	// add trustless gateway over libp2p
-	p2pGwErrc, err := serveTrustlessGatewayOverLibp2p(cctx)
+	p2pGwErrc, err := serveHTTPProviderOverLibp2p(cctx)
 	if err != nil {
 		return err
 	}
@@ -1167,17 +1178,20 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 const gatewayProtocolID protocol.ID = "/ipfs/gateway" // FIXME: specify https://github.com/ipfs/specs/issues/433
 
-func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
+func serveHTTPProviderOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
 	node, err := cctx.ConstructNode()
 	if err != nil {
-		return nil, fmt.Errorf("serveHTTPGatewayOverLibp2p: ConstructNode() failed: %s", err)
+		return nil, fmt.Errorf("serveHTTPProviderOverLibp2p: ConstructNode() failed: %s", err)
 	}
 	cfg, err := node.Repo.Config()
 	if err != nil {
 		return nil, fmt.Errorf("could not read config: %w", err)
 	}
 
-	if !cfg.Experimental.GatewayOverLibp2p {
+	// Gate on HTTPProvider.Enabled and the libp2p sub-toggle.
+	enableHTTPProvider := cfg.HTTPProvider.Enabled.WithDefault(config.DefaultHTTPProviderEnabled)
+	enableLibp2pStream := cfg.HTTPProvider.Libp2p.WithDefault(config.DefaultHTTPProviderLibp2p)
+	if !enableHTTPProvider || !enableLibp2pStream {
 		errCh := make(chan error)
 		close(errCh)
 		return errCh, nil
