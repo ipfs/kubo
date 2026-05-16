@@ -281,4 +281,3 @@ func mustReadBody(t *testing.T, resp *http.Response) []byte {
 	require.NoError(t, err)
 	return body
 }
-

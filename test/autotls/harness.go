@@ -87,9 +87,9 @@ func NewStack(t *testing.T) *Stack {
 	t.Helper()
 
 	const (
-		forgeDomain       = "libp2p.test"
-		forgeRegHost      = "registration.libp2p.test"
-		forgeAuthToken    = "test-token"
+		forgeDomain    = "libp2p.test"
+		forgeRegHost   = "registration.libp2p.test"
+		forgeAuthToken = "test-token"
 	)
 
 	// p2p-forge reads its auth token from this env var. Pebble skips its

@@ -403,9 +403,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// running the wrong feature set.
 	if cfg.Experimental.GatewayOverLibp2p {
 		return errors.New(
-			"Experimental.GatewayOverLibp2p has been removed. " +
-				"Set HTTPProvider.Enabled=true and HTTPProvider.Libp2p=true instead, " +
-				"then unset Experimental.GatewayOverLibp2p.",
+			"Experimental.GatewayOverLibp2p has been removed; " +
+				"set HTTPProvider.Enabled=true and HTTPProvider.Libp2p=true instead, " +
+				"then unset Experimental.GatewayOverLibp2p",
 		)
 	}
 

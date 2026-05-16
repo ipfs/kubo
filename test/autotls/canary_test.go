@@ -220,4 +220,3 @@ func tailString(s string, n int) string {
 	}
 	return "... (truncated)\n" + s[len(s)-n:]
 }
-

@@ -71,13 +71,13 @@ type AutoTLS struct {
 }
 
 const (
-	DefaultAutoTLSEnabled           = true // with DefaultAutoTLSRegistrationDelay, unless explicitly enabled  in config
-	DefaultDomainSuffix             = p2pforge.DefaultForgeDomain
-	DefaultRegistrationEndpoint     = p2pforge.DefaultForgeEndpoint
-	DefaultCAEndpoint               = p2pforge.DefaultCAEndpoint
-	DefaultAutoWSS                  = true // requires AutoTLS.Enabled
-	DefaultAutoTLSShortAddrs        = true // requires AutoTLS.Enabled
-	DefaultAutoTLSSkipDNSLookup     = true // skip network DNS for p2p-forge domains
-	DefaultAutoTLSRegistrationDelay = 1 * time.Hour
+	DefaultAutoTLSEnabled            = true // with DefaultAutoTLSRegistrationDelay, unless explicitly enabled  in config
+	DefaultDomainSuffix              = p2pforge.DefaultForgeDomain
+	DefaultRegistrationEndpoint      = p2pforge.DefaultForgeEndpoint
+	DefaultCAEndpoint                = p2pforge.DefaultCAEndpoint
+	DefaultAutoWSS                   = true // requires AutoTLS.Enabled
+	DefaultAutoTLSShortAddrs         = true // requires AutoTLS.Enabled
+	DefaultAutoTLSSkipDNSLookup      = true // skip network DNS for p2p-forge domains
+	DefaultAutoTLSRegistrationDelay  = 1 * time.Hour
 	DefaultAutoTLSSelfSignedForTests = false
 )
