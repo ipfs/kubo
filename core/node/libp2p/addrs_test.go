@@ -261,3 +261,91 @@ func TestMakeAddrsFactoryDropsEmptyMultiaddrs(t *testing.T) {
 		}
 	}
 }
+
+// TestParseForgeOverrides exercises the ?dial=/?dns= query-string syntax used
+// to redirect the forge registration request and DNS-01 propagation lookup
+// during tests and local debugging. Both overrides are stripped from the URL
+// handed back to p2p-forge; malformed values are rejected up-front.
+func TestParseForgeOverrides(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name       string
+		input      string
+		wantURL    string
+		wantDial   string
+		wantDNS    string
+		wantErrSub string
+	}{
+		{
+			name:    "no query",
+			input:   "https://registration.libp2p.direct",
+			wantURL: "https://registration.libp2p.direct",
+		},
+		{
+			name:    "unrelated query preserved",
+			input:   "https://registration.libp2p.direct?foo=bar",
+			wantURL: "https://registration.libp2p.direct?foo=bar",
+		},
+		{
+			name:     "dial only is stripped",
+			input:    "http://registration.libp2p.test/?dial=127.0.0.1:42013",
+			wantURL:  "http://registration.libp2p.test/",
+			wantDial: "127.0.0.1:42013",
+		},
+		{
+			name:    "dns only is stripped",
+			input:   "http://registration.libp2p.test/?dns=127.0.0.1:5353",
+			wantURL: "http://registration.libp2p.test/",
+			wantDNS: "127.0.0.1:5353",
+		},
+		{
+			name:     "dial and dns together, both stripped",
+			input:    "http://registration.libp2p.test/?dial=127.0.0.1:42013&dns=127.0.0.1:5353",
+			wantURL:  "http://registration.libp2p.test/",
+			wantDial: "127.0.0.1:42013",
+			wantDNS:  "127.0.0.1:5353",
+		},
+		{
+			name:     "overrides alongside unrelated params",
+			input:    "http://example.test/?foo=bar&dial=127.0.0.1:9000&baz=qux&dns=127.0.0.1:5353",
+			wantURL:  "http://example.test/?baz=qux&foo=bar",
+			wantDial: "127.0.0.1:9000",
+			wantDNS:  "127.0.0.1:5353",
+		},
+		{
+			name:     "ipv6 addresses",
+			input:    "http://example.test/?dial=[::1]:9000&dns=[::1]:5353",
+			wantURL:  "http://example.test/",
+			wantDial: "[::1]:9000",
+			wantDNS:  "[::1]:5353",
+		},
+		{
+			name:       "malformed dial rejected",
+			input:      "http://example.test/?dial=not-a-host-port",
+			wantErrSub: `dial="not-a-host-port"`,
+		},
+		{
+			name:       "malformed dns rejected",
+			input:      "http://example.test/?dns=not-a-host-port",
+			wantErrSub: `dns="not-a-host-port"`,
+		},
+		{
+			name:    "empty override values treated as absent",
+			input:   "http://example.test/?dial=&dns=",
+			wantURL: "http://example.test/?dial=&dns=",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gotURL, ov, err := parseForgeOverrides(tc.input)
+			if tc.wantErrSub != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.wantErrSub)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.wantURL, gotURL)
+			require.Equal(t, tc.wantDial, ov.dial)
+			require.Equal(t, tc.wantDNS, ov.dns)
+		})
+	}
+}

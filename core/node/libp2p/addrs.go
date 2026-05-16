@@ -2,7 +2,11 @@ package libp2p
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -382,23 +386,121 @@ func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEv
 			registrationDelay = 0 * time.Second
 		}
 
+		// Pull the optional ?dial= and ?dns= test/debug overrides off the
+		// URL before handing it to p2p-forge. See docs/config.md.
+		regEndpoint, overrides, err := parseForgeOverrides(cfg.RegistrationEndpoint.WithDefault(config.DefaultRegistrationEndpoint))
+		if err != nil {
+			return nil, fmt.Errorf("AutoTLS.RegistrationEndpoint: %w", err)
+		}
+
 		certStorage := &certmagic.FileStorage{Path: storagePath}
-		certMgr, err := p2pforge.NewP2PForgeCertMgr(
+		opts := []p2pforge.P2PForgeCertMgrOptions{
 			p2pforge.WithLogger(rawLogger.Sugar()),
 			p2pforge.WithForgeDomain(cfg.DomainSuffix.WithDefault(config.DefaultDomainSuffix)),
-			p2pforge.WithForgeRegistrationEndpoint(cfg.RegistrationEndpoint.WithDefault(config.DefaultRegistrationEndpoint)),
+			p2pforge.WithForgeRegistrationEndpoint(regEndpoint),
 			p2pforge.WithRegistrationDelay(registrationDelay),
 			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),
 			p2pforge.WithForgeAuth(cfg.RegistrationToken.WithDefault(os.Getenv(p2pforge.ForgeAuthEnv))),
 			p2pforge.WithUserAgent(version.GetUserAgentVersion()),
 			p2pforge.WithCertificateStorage(certStorage),
 			p2pforge.WithShortForgeAddrs(cfg.ShortAddrs.WithDefault(config.DefaultAutoTLSShortAddrs)),
-		)
+		}
+		// AutoTLS.TrustedCARootsPEM: optional CA bundle for private or
+		// self-hosted ACME deployments (including the in-process Pebble
+		// used by the AutoTLS E2E test).
+		if pem := cfg.TrustedCARootsPEM.WithDefault(""); pem != "" {
+			pool := x509.NewCertPool()
+			if !pool.AppendCertsFromPEM([]byte(pem)) {
+				return nil, fmt.Errorf("AutoTLS.TrustedCARootsPEM did not contain any parseable certificate")
+			}
+			opts = append(opts, p2pforge.WithTrustedRoots(pool))
+		}
+		// AutoTLS.AllowPrivateForgeAddrs: lift the "must be publicly
+		// reachable" gate on cert requests, for private/intranet
+		// deployments and the AutoTLS E2E test (loopback only).
+		if cfg.AllowPrivateForgeAddrs.WithDefault(false) {
+			opts = append(opts, p2pforge.WithAllowPrivateForgeAddrs())
+		}
+		if overrides.dial != "" {
+			opts = append(opts, p2pforge.WithHTTPClient(forgeDialOverrideClient(overrides.dial)))
+		}
+		if overrides.dns != "" {
+			opts = append(opts, p2pforge.WithResolver(forgeDNSOverrideResolver(overrides.dns)))
+		}
+		certMgr, err := p2pforge.NewP2PForgeCertMgr(opts...)
 		if err != nil {
 			return nil, err
 		}
 
 		return certMgr, nil
+	}
+}
+
+// forgeOverrides holds the test/debug overrides parsed off
+// AutoTLS.RegistrationEndpoint. All fields are empty when the URL carries no
+// overrides. See docs/config.md for the user-facing description.
+type forgeOverrides struct {
+	dial string // ?dial=host:port: forces the registration POST to dial here
+	dns  string // ?dns=host:port: forces DNS-01 pre-flight lookups to this server
+}
+
+// parseForgeOverrides strips the recognized ?dial= and ?dns= query parameters
+// from raw, returning the cleaned URL and the parsed overrides. Unrelated
+// query parameters are preserved.
+func parseForgeOverrides(raw string) (cleanURL string, ov forgeOverrides, err error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", forgeOverrides{}, err
+	}
+	q := u.Query()
+	for _, p := range []struct {
+		key string
+		dst *string
+	}{
+		{"dial", &ov.dial},
+		{"dns", &ov.dns},
+	} {
+		v := q.Get(p.key)
+		if v == "" {
+			continue
+		}
+		if _, _, err := net.SplitHostPort(v); err != nil {
+			return "", forgeOverrides{}, fmt.Errorf("%s=%q must be host:port: %w", p.key, v, err)
+		}
+		*p.dst = v
+		q.Del(p.key)
+	}
+	// Return raw unchanged when no override was set, so a no-op call
+	// doesn't reorder unrelated query parameters via Query().Encode().
+	if ov == (forgeOverrides{}) {
+		return raw, ov, nil
+	}
+	u.RawQuery = q.Encode()
+	return u.String(), ov, nil
+}
+
+// forgeDialOverrideClient returns an *http.Client whose Transport always dials
+// dialAddr, ignoring the request URL's host. Used by the ?dial= override.
+func forgeDialOverrideClient(dialAddr string) *http.Client {
+	dialer := &net.Dialer{}
+	return &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return dialer.DialContext(ctx, "tcp", dialAddr)
+			},
+		},
+	}
+}
+
+// forgeDNSOverrideResolver returns a *net.Resolver that sends every lookup to
+// dnsAddr instead of the system resolver. Used by the ?dns= override.
+func forgeDNSOverrideResolver(dnsAddr string) *net.Resolver {
+	dialer := &net.Dialer{}
+	return &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
+			return dialer.DialContext(ctx, network, dnsAddr)
+		},
 	}
 }
 
