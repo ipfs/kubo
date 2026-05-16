@@ -60,11 +60,17 @@ jobs:
         run: make build
         working-directory: kubo-gateway
 
-      # 3. Init the kubo-gateway
+      # 3. Init the kubo-gateway. Every Addresses.* port is set explicitly
+      # and chosen unique across all three conformance jobs (leading 1xxxx
+      # for this one, 2xxxx and 3xxxx for the libp2p and cleartext jobs)
+      # so each job's footprint is unambiguous.
       - name: Init kubo-gateway
         run: |
           ./ipfs init -e
           ./ipfs config --json Gateway.PublicGateways "$GATEWAY_PUBLIC_GATEWAYS"
+          ./ipfs config --json Addresses.Swarm '["/ip4/127.0.0.1/tcp/14001"]'
+          ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/18080"
+          ./ipfs config Addresses.API "/ip4/127.0.0.1/tcp/15001"
         working-directory: kubo-gateway/cmd/ipfs
 
       # 4. Populate the Kubo gateway with the gateway-conformance fixtures
@@ -95,8 +101,8 @@ jobs:
       - name: Run gateway-conformance tests
         uses: ipfs/gateway-conformance/.github/actions/test@v0.13
         with:
-          gateway-url: http://127.0.0.1:8080
-          subdomain-url: http://localhost:8080
+          gateway-url: http://127.0.0.1:18080
+          subdomain-url: http://localhost:18080
           args: -skip 'TestGatewayCar/GET_response_for_application/vnd.ipld.car/Header_Content-Length'
           json: output.json
           xml: output.xml
@@ -148,14 +154,17 @@ jobs:
 
       # 3. Init the kubo-gateway. The trustless subset this job runs does
       # not exercise subdomain routing, so Gateway.PublicGateways is
-      # unnecessary here.
+      # unnecessary here. Ports are in the 2xxxx range so each conformance
+      # job's footprint is unambiguous (1xxxx for the full job, 3xxxx for
+      # the cleartext job).
       - name: Init kubo-gateway
         run: |
           ./ipfs init --profile=test
           ./ipfs config --json HTTPProvider.Enabled true
           ./ipfs config --json HTTPProvider.Libp2p true
-          ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/8080"
-          ./ipfs config Addresses.API "/ip4/127.0.0.1/tcp/5001"
+          ./ipfs config --json Addresses.Swarm '["/ip4/127.0.0.1/tcp/24001"]'
+          ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/28080"
+          ./ipfs config Addresses.API "/ip4/127.0.0.1/tcp/25001"
         working-directory: kubo-gateway/cmd/ipfs
 
       # 4. Populate the Kubo gateway with the gateway-conformance fixtures
@@ -178,8 +187,9 @@ jobs:
         run: |
           ./ipfs init --profile=test -e
           ./ipfs config --json Experimental.Libp2pStreamMounting true
-          ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/8081"
-          ./ipfs config Addresses.API "/ip4/127.0.0.1/tcp/5002"
+          ./ipfs config --json Addresses.Swarm '["/ip4/127.0.0.1/tcp/24002"]'
+          ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/28081"
+          ./ipfs config Addresses.API "/ip4/127.0.0.1/tcp/25002"
         working-directory: kubo-gateway/cmd/ipfs
 
       # 7. Start the kubo http-p2p-proxy
@@ -194,16 +204,16 @@ jobs:
       # 8. Start forwarding data from the http-p2p-proxy to the node serving the Gateway API over libp2p
       - name: Start http-over-libp2p forwarding proxy
         run: |
-          gatewayNodeId=$(./ipfs --api=/ip4/127.0.0.1/tcp/5001 id -f="<id>")
-          ./ipfs --api=/ip4/127.0.0.1/tcp/5002 swarm connect $(./ipfs --api=/ip4/127.0.0.1/tcp/5001 swarm addrs local --id | head -n 1)
-          ./ipfs --api=/ip4/127.0.0.1/tcp/5002 p2p forward --allow-custom-protocol /http/1.1 /ip4/127.0.0.1/tcp/8092 /p2p/$gatewayNodeId
+          gatewayNodeId=$(./ipfs --api=/ip4/127.0.0.1/tcp/25001 id -f="<id>")
+          ./ipfs --api=/ip4/127.0.0.1/tcp/25002 swarm connect $(./ipfs --api=/ip4/127.0.0.1/tcp/25001 swarm addrs local --id | head -n 1)
+          ./ipfs --api=/ip4/127.0.0.1/tcp/25002 p2p forward --allow-custom-protocol /http/1.1 /ip4/127.0.0.1/tcp/28092 /p2p/$gatewayNodeId
         working-directory: kubo-gateway/cmd/ipfs
 
       # 9. Run the gateway-conformance tests over libp2p
       - name: Run gateway-conformance tests over libp2p
         uses: ipfs/gateway-conformance/.github/actions/test@v0.13
         with:
-          gateway-url: http://127.0.0.1:8092
+          gateway-url: http://127.0.0.1:28092
           args: --specs "trustless-gateway,-trustless-ipns-gateway" -skip 'TestGatewayCar/GET_response_for_application/vnd.ipld.car/Header_Content-Length'
           json: output.json
           xml: output.xml
@@ -263,16 +273,18 @@ jobs:
       #    port. Libp2p is off; Cleartext is the only HTTPProvider transport
       #    exercised by this job. The trustless subset run below does not
       #    exercise subdomain routing, so Gateway.PublicGateways is
-      #    unnecessary here.
+      #    unnecessary here. Ports are in the 3xxxx range so each
+      #    conformance job's footprint is unambiguous (1xxxx for the full
+      #    job, 2xxxx for the libp2p job).
       - name: Init kubo-gateway
         run: |
           ./ipfs init --profile=test
           ./ipfs config --json HTTPProvider.Enabled true
           ./ipfs config --json HTTPProvider.Libp2p false
           ./ipfs config --json HTTPProvider.Cleartext true
-          ./ipfs config --json Addresses.Swarm '["/ip4/127.0.0.1/tcp/4001"]'
-          ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/8080"
-          ./ipfs config Addresses.API "/ip4/127.0.0.1/tcp/5001"
+          ./ipfs config --json Addresses.Swarm '["/ip4/127.0.0.1/tcp/34001"]'
+          ./ipfs config Addresses.Gateway "/ip4/127.0.0.1/tcp/38080"
+          ./ipfs config Addresses.API "/ip4/127.0.0.1/tcp/35001"
         working-directory: kubo-gateway/cmd/ipfs
 
       # 4. Populate the Kubo gateway with the gateway-conformance fixtures
@@ -292,7 +304,7 @@ jobs:
       - name: Run gateway-conformance tests over h2c
         uses: ipfs/gateway-conformance/.github/actions/test@v0.13
         with:
-          gateway-url: http://127.0.0.1:4001
+          gateway-url: http://127.0.0.1:34001
           args: --specs "trustless-gateway,-trustless-ipns-gateway" -skip 'TestGatewayCar/GET_response_for_application/vnd.ipld.car/Header_Content-Length'
           json: output.json
           xml: output.xml
