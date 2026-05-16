@@ -706,8 +706,8 @@ take effect.
 		return err
 	}
 
-	// add trustless gateway over libp2p
-	p2pGwErrc, err := serveHTTPProviderOverLibp2p(cctx)
+	// start the HTTPProvider libp2p-stream transport
+	httpProviderErrc, err := serveHTTPProviderOverLibp2p(cctx)
 	if err != nil {
 		return err
 	}
@@ -828,7 +828,7 @@ take effect.
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
 	var errs []error
-	for err := range merge(apiErrc, gwErrc, gcErrc, p2pGwErrc, pluginErrc, unmountErrc) {
+	for err := range merge(apiErrc, gwErrc, gcErrc, httpProviderErrc, pluginErrc, unmountErrc) {
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -1193,18 +1193,20 @@ func newGatewayWellKnown() *p2phttp.WellKnownHandler {
 	return wk
 }
 
-// serveHTTPProviderOverLibp2p starts the libp2p-stream transport of the
-// HTTPProvider feature. It implements the libp2p Gateway specification
-// (https://specs.ipfs.tech/http-gateways/libp2p-gateway/) by mounting the
-// trustless gateway handler under the /ipfs/gateway libp2p protocol ID and
-// advertising it through the .well-known/libp2p/protocols document on the
-// libp2p+HTTP host.
+// serveHTTPProviderOverLibp2p installs the HTTPProvider feature's transports
+// once IpfsNode is fully constructed. It always installs the trustless
+// gateway handler on the AutoWSS-port placeholder (the shared TCP path used
+// by both AutoTLS and HTTPProvider.Cleartext) when HTTPProvider is enabled,
+// and additionally starts the libp2p-stream transport when
+// HTTPProvider.Libp2p is on, mounting the same handler under the
+// /ipfs/gateway libp2p protocol ID per the libp2p Gateway specification
+// (https://specs.ipfs.tech/http-gateways/libp2p-gateway/).
 //
-// The handler is the same one used for every HTTPProvider transport:
-// NoFetch (only blocks already in the local blockstore), no DNSLink, no
-// HTML errors, raw blocks and CARs only. Deserialized UnixFS responses are
-// not served, so clients always get content-addressed bytes they can
-// verify against the requested CID.
+// The handler itself is the same across transports: NoFetch (only blocks
+// already in the local blockstore), no DNSLink, no HTML errors, raw blocks
+// via ?format=raw only. Deserialized UnixFS responses are not served, so
+// clients always get content-addressed bytes they can verify against the
+// requested CID.
 func serveHTTPProviderOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
 	node, err := cctx.ConstructNode()
 	if err != nil {
@@ -1215,13 +1217,14 @@ func serveHTTPProviderOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
 		return nil, fmt.Errorf("could not read config: %w", err)
 	}
 
-	// Gate on HTTPProvider.Enabled and the libp2p sub-toggle.
-	enableHTTPProvider := cfg.HTTPProvider.Enabled.WithDefault(config.DefaultHTTPProviderEnabled)
-	enableLibp2pStream := cfg.HTTPProvider.Libp2p.WithDefault(config.DefaultHTTPProviderLibp2p)
-	if !enableHTTPProvider || !enableLibp2pStream {
+	noop := func() <-chan error {
 		errCh := make(chan error)
 		close(errCh)
-		return errCh, nil
+		return errCh
+	}
+
+	if !cfg.HTTPProvider.Enabled.WithDefault(config.DefaultHTTPProviderEnabled) {
+		return noop(), nil
 	}
 
 	opts := []corehttp.ServeOption{
@@ -1235,12 +1238,12 @@ func serveHTTPProviderOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
 		return nil, err
 	}
 
-	// HTTPProvider: also expose the same trustless handler on the AutoTLS
-	// WSS port. FX provided the placeholder HTTPProvider handler when both
-	// HTTPProvider.Enabled and AutoTLS are on; we install the real handler
-	// now that IpfsNode is fully constructed. Unlike the libp2p-stream
-	// gateway above, this is reachable from any HTTPS client via the
-	// AutoTLS cert.
+	// Install the trustless handler on the AutoWSS-port placeholder. This
+	// path serves the gateway on the shared TCP port behind any /ws or
+	// /tls/ws listener: AutoTLS-issued /tls/http, manually configured /ws,
+	// and HTTPProvider.Cleartext-derived /ws. The placeholder is provided
+	// by FX whenever HTTPProvider.Enabled is true (see core/node/groups.go),
+	// independently of HTTPProvider.Libp2p below.
 	//
 	// The HTTPS mux also serves /.well-known/libp2p/protocols so HTTPS
 	// clients can discover that this peer speaks /ipfs/gateway (and any
@@ -1251,11 +1254,17 @@ func serveHTTPProviderOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
 	// modern public HTTPS endpoints, gives bitswap-httpnet multiplexing)
 	// while the plain /ws path stays permissive for reverse-proxy interop.
 	if node.HTTPProvider != nil {
-		httpsMux := http.NewServeMux()
-		httpsMux.Handle("/", handler)
-		httpsMux.Handle(p2phttp.WellKnownProtocols, newGatewayWellKnown())
-		node.HTTPProvider.Set(libp2p.RequireHTTP2OverTLS(httpsMux))
-		log.Info("HTTPProvider: trustless gateway exposed via AutoWSS port (h2 required over TLS, h1+h2c allowed cleartext, .well-known/libp2p/protocols served)")
+		mux := http.NewServeMux()
+		mux.Handle("/", handler)
+		mux.Handle(p2phttp.WellKnownProtocols, newGatewayWellKnown())
+		node.HTTPProvider.Set(libp2p.RequireHTTP2OverTLS(mux))
+		log.Info("HTTPProvider: trustless gateway exposed on /ws and /tls/ws TCP ports (h2 required over TLS, h1+h2c allowed cleartext, .well-known/libp2p/protocols served)")
+	}
+
+	// libp2p-stream transport. Gated by the Libp2p sub-toggle, independent
+	// of the AutoWSS-port install above.
+	if !cfg.HTTPProvider.Libp2p.WithDefault(config.DefaultHTTPProviderLibp2p) {
+		return noop(), nil
 	}
 
 	if node.PeerHost == nil {
