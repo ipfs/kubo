@@ -1,4 +1,4 @@
-package fsrepo
+package serialize
 
 import (
 	"os"
