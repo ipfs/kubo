@@ -17,6 +17,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 	iface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	gocar "github.com/ipld/go-car/v2"
 	carstorage "github.com/ipld/go-car/v2/storage"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
@@ -39,17 +40,25 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 
 	localOnly, _ := req.Options[localOnlyOptionName].(bool)
 	if localOnly {
-		offlineVal, offlineSet := req.Options["offline"].(bool)
-		if offlineSet && !offlineVal {
+		// --local-only and --offline=false contradict each other.
+		if offline, set := req.Options["offline"].(bool); set && !offline {
 			return fmt.Errorf("--%s implies --offline and cannot be combined with --offline=false; please drop one of them", localOnlyOptionName)
 		}
-		// --local-only implies --offline: a partial CAR is local-only by
-		// definition, so missing blocks must not be fetched over the network.
-		req.Options["offline"] = true
 	}
+
 	api, err := cmdenv.GetApi(env, req)
 	if err != nil {
 		return err
+	}
+	if localOnly {
+		// --local-only implies --offline so api.Block().Stat below cannot
+		// reach out for path resolution. The DAG walk itself uses the raw
+		// blockstore via walker (see exportPartialCAR) and is local by
+		// construction regardless of this setting.
+		api, err = api.WithOptions(options.Api.Offline(true))
+		if err != nil {
+			return err
+		}
 	}
 
 	// Resolve path and confirm the root block is available, fail fast if not
@@ -135,13 +144,16 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 }
 
 // exportPartialCAR is the best-effort engine behind `dag export --local-only`.
-// It walks the DAG rooted at root using only the local blockstore and writes
-// the visited blocks to w as a CARv1 stream. Any block that is missing or
-// unreadable locally (and its entire subtree) is treated as "not available
-// locally" and skipped. The resulting CAR is therefore partial by design.
+// It walks the DAG rooted at root and writes the visited blocks to w as a
+// CARv1 stream.
 //
-// Errors writing the CAR itself (i.e. emit failures) are surfaced — those
-// are output problems, not local-availability problems.
+// The walker reads from the raw blockstore directly (not via the kubo
+// CoreAPI or DAGService), so it is structurally incapable of triggering a
+// network fetch. Any block missing or unreadable locally, plus its entire
+// subtree, is silently skipped: the resulting CAR is partial by design.
+//
+// Errors writing the CAR itself (emit failures) are surfaced: those are
+// output problems, not local-availability problems.
 //
 // This mirrors the MFS+unique provider in core/node/provider.go.
 func exportPartialCAR(ctx context.Context, bs blockstore.Blockstore, root cid.Cid, w io.Writer) error {
@@ -155,8 +167,8 @@ func exportPartialCAR(ctx context.Context, bs blockstore.Blockstore, root cid.Ci
 	emit := func(k cid.Cid) bool {
 		blk, err := bs.Get(ctx, k)
 		if err != nil {
-			// Any read error after locality passed (e.g. GC race,
-			// corruption) is treated as "not available locally" — skip
+			// Any read error after locality passed (e.g. GC race or
+			// corruption) is treated as "not available locally": skip
 			// the block and keep streaming the rest of the partial CAR.
 			return true
 		}
@@ -167,8 +179,10 @@ func exportPartialCAR(ctx context.Context, bs blockstore.Blockstore, root cid.Ci
 		return true
 	}
 
-	// walker.WithLocality + walker.LinksFetcherFromBlockstore also skip-and-log
-	// on locality/fetch errors, which matches the best-effort semantics here.
+	// Both the locality check (bs.Has) and the link fetcher read straight
+	// from the blockstore, so the walk cannot reach the network. Errors
+	// inside walker (locality, fetch) are skip-and-log, matching the
+	// best-effort semantics here.
 	if err := walker.WalkDAG(ctx, root,
 		walker.LinksFetcherFromBlockstore(bs),
 		emit,
