@@ -76,6 +76,10 @@ const (
 
 const (
 	adderOutChanSize = 8
+
+	// pb/v3 template rendering counters, bar, speed, percent, and ETA
+	// once the upload total is known.
+	progressBarFullTemplate = `{{counters . }} {{bar . }} {{speed . }} {{percent .}} {{rtime . "ETA %s"}}`
 )
 
 var AddCmd = &cmds.Command{
@@ -793,7 +797,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 					case size := <-sizeChan:
 						if progress {
 							bar.SetTotal(size)
-							bar.SetTemplateString(`{{counters . }} {{bar . }} {{speed . }} {{percent .}} {{rtime . "ETA %s"}}`)
+							bar.SetTemplateString(progressBarFullTemplate)
 						}
 					case <-req.Context.Done():
 						// don't set or print error here, that happens in the goroutine below
@@ -803,7 +807,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 				if progress && bar.Total() == 0 && bar.Current() != 0 {
 					bar.SetTotal(bar.Current())
-					bar.SetTemplateString(`{{counters . }} {{bar . }} {{speed . }} {{percent .}} {{rtime . "ETA %s"}}`)
+					bar.SetTemplateString(progressBarFullTemplate)
 					bar.Write()
 				}
 			}
