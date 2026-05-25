@@ -24,6 +24,7 @@ const (
 	fastProvideRootOptionName = "fast-provide-root"
 	fastProvideDAGOptionName  = "fast-provide-dag"
 	fastProvideWaitOptionName = "fast-provide-wait"
+	localOnlyOptionName       = "local-only"
 )
 
 // DagCmd provides a subset of commands for interacting with ipld dag objects
@@ -193,6 +194,10 @@ Note:
   currently present in the blockstore does not represent a complete DAG,
   pinning of that individual root will fail.
 
+  Use --local-only to import a partial CAR (e.g. from 'dag export
+  --local-only'). --local-only implies --pin-roots=false because a partial
+  CAR has no full DAG to pin.
+
 FAST PROVIDE OPTIMIZATION:
 
 Root CIDs from CAR headers are immediately provided to the DHT in addition
@@ -213,7 +218,8 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 		cmds.FileArg("path", true, true, "The path of a .car file.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
+		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing. Default: true."),
+		cmds.BoolOption(localOnlyOptionName, "Import a partial CAR (e.g. from 'dag export --local-only'). Implies --pin-roots=false."),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
 		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CIDs to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
@@ -277,6 +283,10 @@ var DagExportCmd = &cmds.Command{
 Note that at present only single root selections / .car files are supported.
 The output of blocks happens in strict DAG-traversal, first-seen, order.
 CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
+
+Use --local-only for a best-effort export from the local blockstore: blocks
+that are missing or unreadable locally (and their subtrees) are skipped, so
+the resulting CAR is partial. --local-only implies --offline.
 `,
 		HTTP: &cmds.HTTPHelpText{
 			ResponseContentType: "application/vnd.ipld.car",
@@ -287,6 +297,7 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data. Defaults to true when stderr is a terminal."),
+		cmds.BoolOption(localOnlyOptionName, "Best-effort export of locally-available blocks; missing or unreadable blocks (and their subtrees) are skipped. Implies --offline."),
 	},
 	Run: dagExport,
 	PostRun: cmds.PostRunMap{

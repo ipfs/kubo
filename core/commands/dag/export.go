@@ -9,13 +9,17 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
+	blockstore "github.com/ipfs/boxo/blockstore"
+	"github.com/ipfs/boxo/dag/walker"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 	iface "github.com/ipfs/kubo/core/coreiface"
+	"github.com/ipfs/kubo/core/coreiface/options"
 	gocar "github.com/ipld/go-car/v2"
+	carstorage "github.com/ipld/go-car/v2/storage"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	selectorparse "github.com/ipld/go-ipld-prime/traversal/selector/parse"
 )
@@ -34,9 +38,27 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
+	localOnly, _ := req.Options[localOnlyOptionName].(bool)
+	if localOnly {
+		// --local-only and --offline=false contradict each other.
+		if offline, set := req.Options["offline"].(bool); set && !offline {
+			return fmt.Errorf("--%s implies --offline and cannot be combined with --offline=false; please drop one of them", localOnlyOptionName)
+		}
+	}
+
 	api, err := cmdenv.GetApi(env, req)
 	if err != nil {
 		return err
+	}
+	if localOnly {
+		// --local-only implies --offline so api.Block().Stat below cannot
+		// reach out for path resolution. The DAG walk itself uses the raw
+		// blockstore via walker (see exportPartialCAR) and is local by
+		// construction regardless of this setting.
+		api, err = api.WithOptions(options.Api.Offline(true))
+		if err != nil {
+			return err
+		}
 	}
 
 	// Resolve path and confirm the root block is available, fail fast if not
@@ -45,6 +67,15 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 	c := b.Path().RootCid()
+
+	var bs blockstore.Blockstore
+	if localOnly {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+		bs = node.Blockstore
+	}
 
 	pipeR, pipeW := io.Pipe()
 
@@ -56,6 +87,13 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			}
 			close(errCh)
 		}()
+
+		if localOnly {
+			if err := exportPartialCAR(req.Context, bs, c, pipeW); err != nil {
+				errCh <- err
+			}
+			return
+		}
 
 		lsys := cidlink.DefaultLinkSystem()
 		lsys.SetReadStorage(&dagStore{dag: api.Dag(), ctx: req.Context})
@@ -103,6 +141,56 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	return err
+}
+
+// exportPartialCAR is the best-effort engine behind `dag export --local-only`.
+// It walks the DAG rooted at root and writes the visited blocks to w as a
+// CARv1 stream.
+//
+// The walker reads from the raw blockstore directly (not via the kubo
+// CoreAPI or DAGService), so it is structurally incapable of triggering a
+// network fetch. Any block missing or unreadable locally, plus its entire
+// subtree, is silently skipped: the resulting CAR is partial by design.
+//
+// Errors writing the CAR itself (emit failures) are surfaced: those are
+// output problems, not local-availability problems.
+//
+// This mirrors the MFS+unique provider in core/node/provider.go.
+func exportPartialCAR(ctx context.Context, bs blockstore.Blockstore, root cid.Cid, w io.Writer) error {
+	writable, err := carstorage.NewWritable(w, []cid.Cid{root}, gocar.WriteAsCarV1(true))
+	if err != nil {
+		return err
+	}
+
+	// Capture the first emit (write-side) error so the walk stops cleanly.
+	var emitErr error
+	emit := func(k cid.Cid) bool {
+		blk, err := bs.Get(ctx, k)
+		if err != nil {
+			// Any read error after locality passed (e.g. GC race or
+			// corruption) is treated as "not available locally": skip
+			// the block and keep streaming the rest of the partial CAR.
+			return true
+		}
+		if err := writable.Put(ctx, k.KeyString(), blk.RawData()); err != nil {
+			emitErr = err
+			return false
+		}
+		return true
+	}
+
+	// Both the locality check (bs.Has) and the link fetcher read straight
+	// from the blockstore, so the walk cannot reach the network. Errors
+	// inside walker (locality, fetch) are skip-and-log, matching the
+	// best-effort semantics here.
+	if err := walker.WalkDAG(ctx, root,
+		walker.LinksFetcherFromBlockstore(bs),
+		emit,
+		walker.WithLocality(func(ctx context.Context, k cid.Cid) (bool, error) { return bs.Has(ctx, k) }),
+	); err != nil {
+		return err
+	}
+	return emitErr
 }
 
 func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
@@ -185,7 +273,7 @@ func cidFromBinString(key string) (cid.Cid, error) {
 		return cid.Undef, fmt.Errorf("dagStore: key was not a cid: %w", err)
 	}
 	if l != len(key) {
-		return cid.Undef, fmt.Errorf("dagSore: key was not a cid: had %d bytes leftover", len(key)-l)
+		return cid.Undef, fmt.Errorf("dagStore: key was not a cid: had %d bytes leftover", len(key)-l)
 	}
 	return k, nil
 }

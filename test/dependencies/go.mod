@@ -149,7 +149,7 @@ require (
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-unixfsnode v1.10.4 // indirect
 	github.com/ipfs/kubo v0.31.0 // indirect
-	github.com/ipld/go-car/v2 v2.16.0 // indirect
+	github.com/ipld/go-car/v2 v2.16.1-0.20260428045700-c4b9f366f20c // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.23.0 // indirect
 	github.com/ipshipyard/p2p-forge v0.8.0 // indirect
