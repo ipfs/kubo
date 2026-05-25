@@ -141,7 +141,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 
 			archive, _ := req.Options[archiveOptionName].(bool)
 			progressExplicit, specified := req.Options[progressOptionName].(bool)
-			showProgress := (specified && progressExplicit) || (!specified && isStderrTTY())
+			showProgress := (specified && progressExplicit) || (!specified && cmdenv.IsTerminal(os.Stderr))
 
 			gw := getWriter{
 				Out:         os.Stdout,
@@ -180,15 +180,6 @@ func progressBarForReader(out io.Writer, r io.Reader, l int64) (*pb.ProgressBar,
 func makeProgressBar(out io.Writer, l int64) *pb.ProgressBar {
 	bar := pb.New64(l).Set(pb.Bytes, true).SetWriter(out)
 	return bar
-}
-
-// returns true when os.Stderr is connected to a terminal.
-func isStderrTTY() bool {
-	stat, err := os.Stderr.Stat()
-	if err != nil {
-		return false
-	}
-	return (stat.Mode() & os.ModeCharDevice) != 0
 }
 
 func getOutPath(req *cmds.Request) string {

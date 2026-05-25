@@ -102,10 +102,7 @@ func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
 	var showProgress bool
 	val, specified := res.Request().Options[progressOptionName]
 	if !specified {
-		// default based on TTY availability
-		if errStat, err := os.Stderr.Stat(); err == nil {
-			showProgress = (errStat.Mode() & os.ModeCharDevice) != 0
-		}
+		showProgress = cmdenv.IsTerminal(os.Stderr)
 	} else if val.(bool) {
 		showProgress = true
 	}

@@ -99,10 +99,7 @@ func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
 	var showProgress bool
 	val, specified := res.Request().Options[progressOptionName]
 	if !specified {
-		// Auto-detect: show progress only if stderr is a TTY
-		if errStat, err := os.Stderr.Stat(); err == nil {
-			showProgress = (errStat.Mode() & os.ModeCharDevice) != 0
-		}
+		showProgress = cmdenv.IsTerminal(os.Stderr)
 	} else {
 		showProgress = val.(bool)
 	}

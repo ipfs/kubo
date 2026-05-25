@@ -295,7 +295,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			// default to showing progress only when stderr is a terminal
 			_, found := req.Options[progressOptionName].(bool)
 			if !found {
-				req.Options[progressOptionName] = isStderrTTY()
+				req.Options[progressOptionName] = cmdenv.IsTerminal(os.Stderr)
 			}
 		}
 
