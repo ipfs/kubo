@@ -880,11 +880,13 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					strategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 					providerLog.Infow("provider keystore sync started", "strategy", strategy)
 					if err := syncKeystore(ctx); err != nil {
-						// ErrClosed means the keystore was closed by the shutdown
-						// hook while this goroutine was still in flight: the
-						// OnStart ctx is not cancelled yet, so we classify the
-						// failure as shutdown explicitly.
-						if ctx.Err() != nil || errors.Is(err, keystore.ErrClosed) {
+						// Shutdown can race ahead of ctx.Err() becoming
+						// visible here: ResetCids returns ctx.Err()
+						// straight from its own ctx-done select, and the
+						// keystore can also close mid-sync (ErrClosed)
+						// before the OnStart ctx is cancelled. Classify
+						// both as shutdown.
+						if ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, keystore.ErrClosed) {
 							providerLog.Debugw("provider keystore sync interrupted by shutdown", "err", err, "strategy", strategy)
 						} else {
 							providerLog.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
@@ -908,7 +910,11 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 							return
 						case <-ticker.C:
 							if err := syncKeystore(gcCtx); err != nil {
-								if gcCtx.Err() != nil || errors.Is(err, keystore.ErrClosed) {
+								// See classifier note on the startup-sync
+								// branch above: context.Canceled can
+								// arrive ahead of gcCtx.Err() becoming
+								// visible to this goroutine.
+								if gcCtx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, keystore.ErrClosed) {
 									providerLog.Debugw("provider keystore sync interrupted by shutdown", "err", err)
 								} else {
 									providerLog.Errorw("provider keystore sync failed", "err", err)
