@@ -483,6 +483,95 @@ func TestValidateImportConfig_DAGLayout(t *testing.T) {
 	}
 }
 
+func TestImport_UnixFSCidBuilder(t *testing.T) {
+	defaultMhType := mh.Names[strings.ToLower(DefaultHashFunction)]
+
+	tests := []struct {
+		name       string
+		cfg        Import
+		wantCidVer uint64
+		wantMhType uint64
+	}{
+		{
+			name:       "CIDv1 explicit",
+			cfg:        Import{CidVersion: *NewOptionalInteger(1)},
+			wantCidVer: 1,
+			wantMhType: defaultMhType,
+		},
+		{
+			name:       "CIDv0 explicit",
+			cfg:        Import{CidVersion: *NewOptionalInteger(0)},
+			wantCidVer: 0,
+			wantMhType: defaultMhType,
+		},
+		{
+			name:       "non-default hash upgrades CIDv0 to CIDv1",
+			cfg:        Import{HashFunction: *NewOptionalString("sha2-512")},
+			wantCidVer: 1,
+			wantMhType: mh.SHA2_512,
+		},
+		{
+			name: "CIDv1 with sha2-512",
+			cfg: Import{
+				CidVersion:   *NewOptionalInteger(1),
+				HashFunction: *NewOptionalString("sha2-512"),
+			},
+			wantCidVer: 1,
+			wantMhType: mh.SHA2_512,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder, err := tt.cfg.UnixFSCidBuilder()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if builder == nil {
+				t.Fatal("expected non-nil builder")
+			}
+			c, err := builder.Sum([]byte("test"))
+			if err != nil {
+				t.Fatalf("builder.Sum failed: %v", err)
+			}
+			pref := c.Prefix()
+			if pref.Version != tt.wantCidVer {
+				t.Errorf("CID version = %d, want %d", pref.Version, tt.wantCidVer)
+			}
+			if pref.MhType != tt.wantMhType {
+				t.Errorf("multihash type = 0x%x, want 0x%x", pref.MhType, tt.wantMhType)
+			}
+		})
+	}
+}
+
+// TestImport_UnixFSCidBuilderDefaults verifies that UnixFSCidBuilder always
+// returns an explicit builder even when no config is set, so that MFS
+// respects kubo's DefaultCidVersion rather than relying on boxo's internal
+// CIDv0 default (relevant for https://github.com/ipfs/kubo/issues/4143).
+func TestImport_UnixFSCidBuilderDefaults(t *testing.T) {
+	cfg := &Import{}
+	builder, err := cfg.UnixFSCidBuilder()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if builder == nil {
+		t.Fatal("expected non-nil builder at defaults")
+	}
+	c, err := builder.Sum([]byte("test"))
+	if err != nil {
+		t.Fatalf("builder.Sum failed: %v", err)
+	}
+	pref := c.Prefix()
+	if pref.Version != uint64(DefaultCidVersion) {
+		t.Errorf("CID version = %d, want DefaultCidVersion (%d)", pref.Version, DefaultCidVersion)
+	}
+	wantMhType := mh.Names[strings.ToLower(DefaultHashFunction)]
+	if pref.MhType != wantMhType {
+		t.Errorf("multihash type = 0x%x, want 0x%x (DefaultHashFunction=%s)", pref.MhType, wantMhType, DefaultHashFunction)
+	}
+}
+
 func TestImport_HAMTSizeEstimationMode(t *testing.T) {
 	tests := []struct {
 		cfg  string

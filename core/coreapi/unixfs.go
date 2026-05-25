@@ -16,7 +16,6 @@ import (
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
-	"github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
 	ds "github.com/ipfs/go-datastore"
@@ -28,7 +27,6 @@ import (
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/core/coreunix"
 	"github.com/ipfs/kubo/tracing"
-	mh "github.com/multiformats/go-multihash"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -110,19 +108,21 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 
 	var dserv ipld.DAGService = merkledag.NewDAGService(bserv)
 
-	// wrap the DAGService in a providingDAG service which provides every block written.
-	// note about strategies:
-	//   - "all" gets handled directly at the blockstore so no need to provide
-	//   - "roots" gets handled in the pinner
-	//   - "mfs" gets handled in mfs
-	// We need to provide the "pinned" cases only. Added blocks are not
-	// going to be provided by the blockstore (wrong strategy for that),
-	// nor by the pinner (the pinner doesn't traverse the pinned DAG itself, it only
-	// handles roots). This wrapping ensures all blocks of pinned content get provided.
-	if settings.Pin && !settings.OnlyHash &&
-		(api.providingStrategy&config.ProvideStrategyPinned) != 0 {
-		dserv = &providingDagService{dserv, api.provider}
-	}
+	// Per-block providing for new content is handled outside the add
+	// pipeline:
+	//
+	//   - Provide.Strategy=all: every block is provided at the
+	//     blockstore level via the blockstore.Provider hook
+	//     (see core/node/storage.go).
+	//   - Selective strategies (pinned, mfs, +unique, +entities) with
+	//     --fast-provide-dag: ExecuteFastProvideDAG walks the DAG once
+	//     after add completes, applying the active strategy and bloom
+	//     dedup. Wiring lives in core/commands/add.go.
+	//   - --fast-provide-root only (default): the root CID is announced
+	//     immediately via ExecuteFastProvideRoot in the command handler.
+	//
+	// The coreapi layer therefore does not wrap the DAGService with
+	// any providing logic.
 
 	// add a sync call to the DagService
 	// this ensures that data written to the DagService is persisted to the underlying datastore
@@ -147,9 +147,8 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	}
 
 	// Note: the dag service gets wrapped multiple times:
-	// 1. providingDagService (if pinned strategy) - provides blocks as they're added
-	// 2. syncDagService - ensures data persistence
-	// 3. batchingDagService (in coreunix.Adder) - batches operations for efficiency
+	// 1. syncDagService - ensures data persistence
+	// 2. batchingDagService (in coreunix.Adder) - batches operations for efficiency
 
 	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, syncDserv)
 	if err != nil {
@@ -393,39 +392,3 @@ type syncDagService struct {
 func (s *syncDagService) Sync() error {
 	return s.syncFn()
 }
-
-type providingDagService struct {
-	ipld.DAGService
-	provider.MultihashProvider
-}
-
-func (pds *providingDagService) Add(ctx context.Context, n ipld.Node) error {
-	if err := pds.DAGService.Add(ctx, n); err != nil {
-		return err
-	}
-	// Provider errors are logged but not propagated.
-	// We don't want DAG operations to fail due to providing issues.
-	// The user's data is still stored successfully even if the
-	// announcement to the routing system fails temporarily.
-	if err := pds.StartProviding(false, n.Cid().Hash()); err != nil {
-		log.Errorf("failed to provide new block: %s", err)
-	}
-	return nil
-}
-
-func (pds *providingDagService) AddMany(ctx context.Context, nds []ipld.Node) error {
-	if err := pds.DAGService.AddMany(ctx, nds); err != nil {
-		return err
-	}
-	keys := make([]mh.Multihash, len(nds))
-	for i, n := range nds {
-		keys[i] = n.Cid().Hash()
-	}
-	// Same error handling philosophy as Add(): log but don't fail.
-	if err := pds.StartProviding(false, keys...); err != nil {
-		log.Errorf("failed to provide new blocks: %s", err)
-	}
-	return nil
-}
-
-var _ ipld.DAGService = (*providingDagService)(nil)

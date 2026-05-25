@@ -138,6 +138,7 @@ help:
 	@echo '  test_short              - Run fast tests (test_go_fmt, test_unit)'
 	@echo '  test_unit               - Run unit tests with coverage (excludes test/cli)'
 	@echo '  test_cli                - Run CLI integration tests (requires built binary)'
+	@echo '  test_fuse               - Run FUSE tests (requires /dev/fuse and fusermount)'
 	@echo '  test_go_fmt             - Check Go source formatting'
 	@echo '  test_go_build           - Build kubo for all platforms from .github/build-platforms.yml'
 	@echo '  test_go_lint            - Run golangci-lint'

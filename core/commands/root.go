@@ -81,7 +81,7 @@ TOOL COMMANDS
   config        Manage configuration
   version       Show IPFS version information
   diag          Generate diagnostic reports
-  update        Download and apply go-ipfs updates
+  update        Update Kubo to a different version
   commands      List all available commands
   log           Manage and show logs of running daemon
 
@@ -157,7 +157,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"refs":      RefsCmd,
 	"resolve":   ResolveCmd,
 	"swarm":     SwarmCmd,
-	"update":    ExternalBinary("Please see https://github.com/ipfs/ipfs-update/blob/master/README.md#install for installation instructions."),
+	"update":    UpdateCmd,
 	"version":   VersionCmd,
 	"shutdown":  daemonShutdownCmd,
 	"cid":       CidCmd,

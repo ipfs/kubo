@@ -93,9 +93,21 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	var stopErr error
 	n.stop = func() error {
 		once.Do(func() {
-			stopErr = app.Stop(context.Background())
+			// Bound app.Stop with a deadline so an FX OnStop hook that
+			// never returns cannot hang the daemon. ShutdownTimeout==0
+			// opts out of the cap entirely and restores the legacy
+			// behavior of waiting forever for hooks to complete. The
+			// daemon's watchdog in cmd/ipfs/kubo/daemon.go fires at the
+			// same deadline and is the unconditional os.Exit fallback.
+			stopCtx := context.Background()
+			if cfg.ShutdownTimeout > 0 {
+				var stopCancel context.CancelFunc
+				stopCtx, stopCancel = context.WithTimeout(stopCtx, cfg.ShutdownTimeout)
+				defer stopCancel()
+			}
+			stopErr = app.Stop(stopCtx)
 			if stopErr != nil {
-				log.Error("failure on stop: ", stopErr)
+				log.Errorf("failure on stop: %v", stopErr)
 			}
 			// Cancel the context _after_ the app has stopped.
 			cancel()

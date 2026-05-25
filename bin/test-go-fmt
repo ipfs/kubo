@@ -11,7 +11,7 @@ if [ -n "$(cat $T)" ]; then
 	echo "-----------------------------------"
 	cat "$T"
 	echo "-----------------------------------"
-	echo "Run 'go fmt ./...' in your source directory"
+	echo "Run 'gofmt -s -w .' in your source directory"
 	rm -f "$T"
 	exit 1
 fi

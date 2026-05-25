@@ -26,20 +26,20 @@
 - [ ] Verify all CI checks on the PR are passing
 - [ ] **FINAL only:** Replace `Changelog` and `Contributors` sections in `release-vX.Y.Z` with `./bin/mkreleaselog` stdout (do **NOT** copy stderr)
 - [ ] **FINAL only:** Merge PR (`release-vX.Y.Z` → `release`) using `Create a merge commit`
-  - ⚠️ do **NOT** use `Squash and merge` nor `Rebase and merge` -- we want the releaser's GPG signature on the merge commit
+  - ⚠️ do **NOT** use `Squash and merge` nor `Rebase and merge`; we want the releaser's GPG signature on the merge commit
   - ⚠️ do **NOT** delete the `release-vX.Y.Z` branch (needed for future patch releases and git history)
 
 ## 2. Tag & Publish
 
 ### Create Tag
-⚠️ **POINT OF NO RETURN:** Once pushed, tags trigger automatic Docker/NPM publishing and are irreversible!
+⚠️ **POINT OF NO RETURN:** once pushed, tags trigger automatic Docker/NPM publishing that cannot be undone!
 If you're making a release for the first time, do pair programming and have the release reviewer verify all commands.
 
 - [ ] **RC:** From `release-vX.Y.Z` branch: `git tag -s vX.Y.Z-rcN -m 'Prerelease X.Y.Z-rcN'`
 - [ ] **FINAL:** After PR merge, from `release` branch: `git tag -s vX.Y.Z -m 'Release X.Y.Z'`
 - [ ] ⚠️ Verify tag is signed and correct: `git show vX.Y.Z(-rcN)`
 - [ ] Push tag: `git push origin vX.Y.Z(-rcN)`
-  - ⚠️ do **NOT** use `git push --tags` (pushes all local tags, polluting the repo with noise)
+  - ⚠️ do **NOT** use `git push --tags` (pushes every local tag, cluttering the repo)
 - [ ] **STOP:** Wait for [Docker build](https://github.com/ipfs/kubo/actions/workflows/docker-image.yml) to complete before proceeding
 
 ### Publish Artifacts
@@ -77,7 +77,7 @@ If you're making a release for the first time, do pair programming and have the 
   - [ ] Merge `master` to `merge-release-vX.Y.Z` first, and resolve conflict in `version.go`
     - ⚠️ **NOTE:** keep the `-dev` version from `master` in [version.go](https://github.com/ipfs/kubo/blob/master/version.go), discard version from `release`
   - [ ] Create and merge PR from `merge-release-vX.Y.Z` to `master` using `Create a merge commit`
-    - ⚠️ do **NOT** use `Squash and merge` nor `Rebase and merge` -- only `Create a merge commit` preserves commit history and audit trail of what was merged where
+    - ⚠️ do **NOT** use `Squash and merge` nor `Rebase and merge`; only `Create a merge commit` preserves commit history and the audit trail of what was merged where
 - [ ] Update [ipshipyard/waterworks-infra](https://github.com/ipshipyard/waterworks-infra)
   - [ ] Update Kubo staging environment ([Running Kubo tests on staging](https://www.notion.so/Running-Kubo-tests-on-staging-488578bb46154f9bad982e4205621af8))
     - [ ] **RC:** Test last release against current RC

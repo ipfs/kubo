@@ -24,6 +24,7 @@ import (
 
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/ipfs/kubo/repo"
 	irouting "github.com/ipfs/kubo/routing"
 )
@@ -71,7 +72,7 @@ func BaseRouting(cfg *config.Config) any {
 
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
-					return dualDHT.Close()
+					return shutdown.CloseWithCtx(ctx, "dht-dual", dualDHT.Close)
 				},
 			})
 		}
@@ -82,7 +83,7 @@ func BaseRouting(cfg *config.Config) any {
 					dualDHT = dht
 					lc.Append(fx.Hook{
 						OnStop: func(ctx context.Context) error {
-							return dualDHT.Close()
+							return shutdown.CloseWithCtx(ctx, "dht-dual-composable", dualDHT.Close)
 						},
 					})
 					break
@@ -116,7 +117,7 @@ func BaseRouting(cfg *config.Config) any {
 
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
-					return fullRTClient.Close()
+					return shutdown.CloseWithCtx(ctx, "dht-fullrt", fullRTClient.Close)
 				},
 			})
 
@@ -337,10 +338,18 @@ func autoRelayFeeder(cfgPeering config.Peering, peerChan chan<- peer.AddrInfo) f
 		}()
 
 		lc.Append(fx.Hook{
-			OnStop: func(_ context.Context) error {
+			OnStop: func(ctx context.Context) error {
 				cancel()
-				<-done
-				return nil
+				// Wait for the feeder goroutine to exit but bound by
+				// the shutdown deadline so a stuck DHT call (downstream
+				// bug ignoring ctx) cannot block fx.Stop. Mirrors the
+				// reprovideAlert pattern in provider.go.
+				select {
+				case <-done:
+					return nil
+				case <-ctx.Done():
+					return ctx.Err()
+				}
 			},
 		})
 	})

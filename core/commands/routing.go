@@ -142,9 +142,27 @@ const (
 )
 
 var provideRefRoutingCmd = &cmds.Command{
-	Status: cmds.Experimental,
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
-		Tagline: "Announce to the network that you are providing given values.",
+		Tagline: "Deprecated, use 'ipfs provide once' instead.",
+		ShortDescription: `
+'ipfs routing provide' has moved to 'ipfs provide once'. This command keeps
+its existing behavior so existing scripts continue to work, but will be
+removed in a future release.
+
+Compared to 'ipfs provide once', this command:
+
+- Buffers all CIDs from arguments and stdin before doing any work,
+  instead of streaming them as they arrive.
+- Emits no per-CID output: there is no JSON event stream and the -v
+  flag's per-peer events do not actually propagate to the encoder.
+- With -r, re-walks subtrees shared between roots and re-announces
+  shared blocks; 'ipfs provide once' deduplicates across all inputs.
+- Issues an extra synchronous DHT lookup per CID on top of the
+  provider system, which defeats sweep batching.
+
+Prefer 'ipfs provide once' for new scripts and any large input.
+`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -269,11 +287,16 @@ var provideRefRoutingCmd = &cmds.Command{
 }
 
 var reprovideRoutingCmd = &cmds.Command{
-	Status: cmds.Experimental,
+	Status: cmds.Deprecated,
 	Helptext: cmds.HelpText{
-		Tagline: "Trigger reprovider.",
+		Tagline: "Trigger a reprovide cycle (legacy provider only).",
 		ShortDescription: `
-Trigger reprovider to announce our data to network.
+Forces the legacy provider to reprovide all locally stored CIDs that match
+Provide.Strategy.
+
+Only works when Provide.DHT.SweepEnabled=false. With the default sweep
+provider, reproviding is continuous and scheduled, so this command returns
+an error. Use 'ipfs provide stat --all' to monitor sweep progress.
 `,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -286,7 +309,6 @@ Trigger reprovider to announce our data to network.
 			return ErrNotOnline
 		}
 
-		// respect global config
 		cfg, err := nd.Repo.Config()
 		if err != nil {
 			return err
@@ -299,7 +321,9 @@ Trigger reprovider to announce our data to network.
 		}
 		provideSys, ok := nd.Provider.(provider.Reprovider)
 		if !ok {
-			return errors.New("manual reprovide only available with legacy provider (Provide.DHT.SweepEnabled=false)")
+			err := errors.New("manual reprovide is not available with the sweep provider; set Provide.DHT.SweepEnabled=false to use the legacy provider, or run 'ipfs provide stat --all' to monitor the sweep schedule")
+			log.Error(err)
+			return err
 		}
 
 		err = provideSys.Reprovide(req.Context)

@@ -28,7 +28,6 @@ import (
 	offline "github.com/ipfs/boxo/exchange/offline"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
-	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
@@ -505,7 +504,7 @@ being GC'ed.
 			return err
 		}
 
-		prefix, err := getPrefixNew(req, &cfg.Import)
+		prefix, err := getPrefix(req, &cfg.Import)
 		if err != nil {
 			return err
 		}
@@ -558,7 +557,11 @@ being GC'ed.
 		if mkParents {
 			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
 			sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
-			err := ensureContainingDirectoryExists(nd.FilesRoot, dst, prefix, maxDirLinks, &sizeEstimationMode)
+			err := ensureContainingDirectoryExists(nd.FilesRoot, dst,
+				mfs.WithCidBuilder(prefix),
+				mfs.WithMaxLinks(maxDirLinks),
+				mfs.WithSizeEstimationMode(sizeEstimationMode),
+			)
 			if err != nil {
 				return err
 			}
@@ -1060,7 +1063,7 @@ See '--to-files' in 'ipfs add --help' for more information.
 			rawLeaves = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
 		}
 
-		prefix, err := getPrefixNew(req, &cfg.Import)
+		prefix, err := getPrefix(req, &cfg.Import)
 		if err != nil {
 			return err
 		}
@@ -1073,7 +1076,11 @@ See '--to-files' in 'ipfs add --help' for more information.
 		if mkParents {
 			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
 			sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
-			err := ensureContainingDirectoryExists(nd.FilesRoot, path, prefix, maxDirLinks, &sizeEstimationMode)
+			err := ensureContainingDirectoryExists(nd.FilesRoot, path,
+				mfs.WithCidBuilder(prefix),
+				mfs.WithMaxLinks(maxDirLinks),
+				mfs.WithSizeEstimationMode(sizeEstimationMode),
+			)
 			if err != nil {
 				return err
 			}
@@ -1203,13 +1210,11 @@ Examples:
 		maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
 		sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
 
-		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{
-			Mkparents:          dashp,
-			Flush:              flush,
-			CidBuilder:         prefix,
-			MaxLinks:           maxDirLinks,
-			SizeEstimationMode: &sizeEstimationMode,
-		})
+		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{Mkparents: dashp, Flush: flush},
+			mfs.WithCidBuilder(prefix),
+			mfs.WithMaxLinks(maxDirLinks),
+			mfs.WithSizeEstimationMode(sizeEstimationMode),
+		)
 
 		return err
 	},
@@ -1264,10 +1269,15 @@ var filesChcidCmd = &cmds.Command{
 		Tagline: "Change the CID version or hash function of the root node of a given path.",
 		ShortDescription: `
 Change the CID version or hash function of the root node of a given path.
+
+Note: the MFS root ('/') CID format is controlled by Import.CidVersion and
+Import.HashFunction in the config and cannot be changed with this command.
+Use 'ipfs config' to modify these values instead. This command only works
+on subdirectories of the MFS root.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", false, false, "Path to change. Default: '/'."),
+		cmds.StringArg("path", true, false, "Path to change (must not be '/')."),
 	},
 	Options: []cmds.Option{
 		cidVersionOption,
@@ -1279,9 +1289,10 @@ Change the CID version or hash function of the root node of a given path.
 			return err
 		}
 
-		path := "/"
-		if len(req.Arguments) > 0 {
-			path = req.Arguments[0]
+		path := req.Arguments[0]
+		if path == "/" {
+			return fmt.Errorf("cannot change CID format of the MFS root; " +
+				"use 'ipfs config Import.CidVersion' and 'ipfs config Import.HashFunction' instead")
 		}
 
 		flush, _ := req.Options[filesFlushOptionName].(bool)
@@ -1446,97 +1457,48 @@ func removePath(filesRoot *mfs.Root, path string, force bool, dashr bool) error 
 	return pdir.Flush()
 }
 
-func getPrefixNew(req *cmds.Request, importCfg *config.Import) (cid.Builder, error) {
-	cidVer, cidVerSet := req.Options[filesCidVersionOptionName].(int)
-	hashFunStr, hashFunSet := req.Options[filesHashOptionName].(string)
-
-	// Fall back to Import config if CLI options not set
-	if !cidVerSet && importCfg != nil && !importCfg.CidVersion.IsDefault() {
-		cidVer = int(importCfg.CidVersion.WithDefault(config.DefaultCidVersion))
-		cidVerSet = true
-	}
-	if !hashFunSet && importCfg != nil && !importCfg.HashFunction.IsDefault() {
-		hashFunStr = importCfg.HashFunction.WithDefault(config.DefaultHashFunction)
-		hashFunSet = true
-	}
-
-	if !cidVerSet && !hashFunSet {
-		return nil, nil
-	}
-
-	if hashFunSet && cidVer == 0 {
-		cidVer = 1
-	}
-
-	prefix, err := dag.PrefixForCidVersion(cidVer)
-	if err != nil {
-		return nil, err
-	}
-
-	if hashFunSet {
-		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
-		if !ok {
-			return nil, fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
-		}
-		prefix.MhType = hashFunCode
-		prefix.MhLength = -1
-	}
-
-	return &prefix, nil
-}
-
+// getPrefix builds a cid.Builder from CLI flags, falling back to importCfg
+// when provided. Returns (nil, nil) when neither CLI nor config set a value.
 func getPrefix(req *cmds.Request, importCfg *config.Import) (cid.Builder, error) {
 	cidVer, cidVerSet := req.Options[filesCidVersionOptionName].(int)
 	hashFunStr, hashFunSet := req.Options[filesHashOptionName].(string)
 
-	// Fall back to Import config if CLI options not set
-	if !cidVerSet && importCfg != nil && !importCfg.CidVersion.IsDefault() {
-		cidVer = int(importCfg.CidVersion.WithDefault(config.DefaultCidVersion))
-		cidVerSet = true
-	}
-	if !hashFunSet && importCfg != nil && !importCfg.HashFunction.IsDefault() {
-		hashFunStr = importCfg.HashFunction.WithDefault(config.DefaultHashFunction)
-		hashFunSet = true
-	}
-
-	if !cidVerSet && !hashFunSet {
-		return nil, nil
-	}
-
-	if hashFunSet && cidVer == 0 {
-		cidVer = 1
-	}
-
-	prefix, err := dag.PrefixForCidVersion(cidVer)
-	if err != nil {
-		return nil, err
-	}
-
-	if hashFunSet {
-		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
-		if !ok {
-			return nil, fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
+	if cidVerSet || hashFunSet {
+		// CLI flags take precedence: build prefix from them directly.
+		if hashFunSet && cidVer == 0 {
+			cidVer = 1
 		}
-		prefix.MhType = hashFunCode
-		prefix.MhLength = -1
+		prefix, err := dag.PrefixForCidVersion(cidVer)
+		if err != nil {
+			return nil, err
+		}
+		if hashFunSet {
+			hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
+			if !ok {
+				return nil, fmt.Errorf("unrecognized hash function: %q", hashFunStr)
+			}
+			prefix.MhType = hashFunCode
+			prefix.MhLength = -1
+		}
+		return &prefix, nil
 	}
 
-	return &prefix, nil
+	// No CLI flags: fall back to Import config.
+	if importCfg != nil {
+		return importCfg.UnixFSCidBuilder()
+	}
+
+	return nil, nil
 }
 
-func ensureContainingDirectoryExists(r *mfs.Root, path string, builder cid.Builder, maxLinks int, sizeEstimationMode *uio.SizeEstimationMode) error {
+func ensureContainingDirectoryExists(r *mfs.Root, path string, opts ...mfs.Option) error {
 	dirtomake := gopath.Dir(path)
 
 	if dirtomake == "/" {
 		return nil
 	}
 
-	return mfs.Mkdir(r, dirtomake, mfs.MkdirOpts{
-		Mkparents:          true,
-		CidBuilder:         builder,
-		MaxLinks:           maxLinks,
-		SizeEstimationMode: sizeEstimationMode,
-	})
+	return mfs.Mkdir(r, dirtomake, mfs.MkdirOpts{Mkparents: true}, opts...)
 }
 
 func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (*mfs.File, error) {
@@ -1744,6 +1706,11 @@ Examples:
 			return errors.New("this is a potentially destructive operation; pass --confirm to proceed")
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		// Determine new root CID
 		var newRootCid cid.Cid
 		if len(req.Arguments) > 0 {
@@ -1780,7 +1747,7 @@ Examples:
 			// Special case: empty dir is always available (hardcoded in boxo)
 			emptyDirCid := ft.EmptyDirNode().Cid()
 			if !newRootCid.Equals(emptyDirCid) {
-				return fmt.Errorf("new root %s does not exist locally; fetch it first with 'ipfs block get'", newRootCid)
+				return fmt.Errorf("new root %s does not exist locally; fetch it first with 'ipfs block get'", enc.Encode(newRootCid))
 			}
 		}
 
@@ -1809,7 +1776,7 @@ Examples:
 		if err == nil {
 			oldRootCid, err := cid.Cast(oldRootBytes)
 			if err == nil {
-				oldRootStr = oldRootCid.String()
+				oldRootStr = enc.Encode(oldRootCid)
 			}
 		} else if !errors.Is(err, datastore.ErrNotFound) {
 			return fmt.Errorf("reading current MFS root: %w", err)
@@ -1822,12 +1789,13 @@ Examples:
 		}
 
 		// Build output message
+		newRootStr := enc.Encode(newRootCid)
 		var msg string
 		if oldRootStr != "" {
-			msg = fmt.Sprintf("MFS root changed from %s to %s\n", oldRootStr, newRootCid)
+			msg = fmt.Sprintf("MFS root changed from %s to %s\n", oldRootStr, newRootStr)
 			msg += fmt.Sprintf("The old root %s will be garbage collected unless pinned.\n", oldRootStr)
 		} else {
-			msg = fmt.Sprintf("MFS root set to %s\n", newRootCid)
+			msg = fmt.Sprintf("MFS root set to %s\n", newRootStr)
 		}
 
 		return cmds.EmitOnce(res, &MessageOutput{Message: msg})

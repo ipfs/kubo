@@ -364,7 +364,7 @@ test_mount_ipfs() {
   test_expect_success FUSE "'ipfs mount' output looks good" '
     echo "IPFS mounted at: $(pwd)/ipfs" >expected &&
     echo "IPNS mounted at: $(pwd)/ipns" >>expected &&
-    echo "MFS mounted at: $(pwd)/mfs" >>expected &&
+    echo "MFS  mounted at: $(pwd)/mfs" >>expected &&
     test_cmp expected actual
   '
 

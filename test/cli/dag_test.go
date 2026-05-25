@@ -109,6 +109,45 @@ func TestDag(t *testing.T) {
 	})
 }
 
+func TestDagImportCARv2(t *testing.T) {
+	t.Parallel()
+	// Regression test for https://github.com/ipfs/kubo/issues/9361
+	// CARv2 import fails with "operation not supported" when using the HTTP API
+	// because the multipart reader doesn't support seeking, but the boxo
+	// ReaderFile falsely advertises io.Seeker compliance.
+
+	carv2Fixture := "./fixtures/TestDagStatCARv2.car"
+
+	t.Run("CARv2 import via HTTP API (online)", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
+
+		r, err := os.Open(carv2Fixture)
+		require.NoError(t, err)
+		defer r.Close()
+
+		// Use Runner.Run (not MustRun) so the test captures errors
+		// instead of panicking -- this lets us assert on the result.
+		res := node.Runner.Run(harness.RunRequest{
+			Path: node.IPFSBin,
+			Args: []string{"dag", "import", "--pin-roots=false"},
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithStdin(r),
+			},
+		})
+		require.Equal(t, 0, res.ExitCode(), "CARv2 import should succeed over HTTP API, stderr: %s", res.Stderr.String())
+
+		// Verify the imported blocks are accessible
+		stat := node.RunIPFS("dag", "stat", "--progress=false", "--enc=json", fixtureCid)
+		var data Data
+		err = json.Unmarshal(stat.Stdout.Bytes(), &data)
+		require.NoError(t, err)
+		// root + node1 + node2 + shared child = 4 unique blocks
+		require.Equal(t, 4, data.UniqueBlocks)
+	})
+}
+
 func TestDagImportFastProvide(t *testing.T) {
 	t.Parallel()
 

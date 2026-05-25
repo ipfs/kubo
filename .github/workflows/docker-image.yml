@@ -66,6 +66,12 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
 
+      # Read the Go version from go.mod so the Docker image is built with the
+      # exact same toolchain that setup-go installs in the rest of CI.
+      - name: Read Go version from go.mod
+        id: go
+        run: echo "version=$(awk '/^go [0-9]/ {print $2; exit}' go.mod)" >> "$GITHUB_OUTPUT"
+
       # We have to build each platform separately because when using multi-arch
       # builds, only one platform is being loaded into the cache. This would
       # prevent us from testing the other platforms.
@@ -78,6 +84,8 @@ jobs:
           load: true
           file: ./Dockerfile
           tags: ${{ env.IMAGE_NAME }}:linux-amd64
+          build-args: |
+            GO_VERSION=${{ steps.go.outputs.version }}
           cache-from: |
             type=gha
             type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
@@ -92,6 +100,8 @@ jobs:
           load: true
           file: ./Dockerfile
           tags: ${{ env.IMAGE_NAME }}:linux-arm-v7
+          build-args: |
+            GO_VERSION=${{ steps.go.outputs.version }}
           cache-from: |
             type=gha
             type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
@@ -106,6 +116,8 @@ jobs:
           load: true
           file: ./Dockerfile
           tags: ${{ env.IMAGE_NAME }}:linux-arm64-v8
+          build-args: |
+            GO_VERSION=${{ steps.go.outputs.version }}
           cache-from: |
             type=gha
             type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
@@ -135,6 +147,8 @@ jobs:
           push: true
           file: ./Dockerfile
           tags: "${{ github.event.inputs.tags || steps.tags.outputs.value }}"
+          build-args: |
+            GO_VERSION=${{ steps.go.outputs.version }}
           cache-from: |
             type=gha
             type=registry,ref=${{ env.IMAGE_NAME }}:buildcache

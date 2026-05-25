@@ -1,8 +1,19 @@
 package config
 
+import "time"
+
 const (
 	// DefaultMFSNoFlushLimit is the default limit for consecutive unflushed MFS operations
 	DefaultMFSNoFlushLimit = 256
+
+	// DefaultShutdownTimeout caps how long graceful shutdown is allowed to
+	// take before the daemon force-exits with status 1. Set generously so
+	// it does not change existing kubo behavior in practice but guarantees
+	// Docker / kubernetes infrastructure can never be stuck indefinitely
+	// on a hung FX OnStop hook. Smaller than the 22h DHT reprovide cycle,
+	// so a hung daemon recovers before missing more than one cycle.
+	// Set Internal.ShutdownTimeout to 0 to opt out and wait forever.
+	DefaultShutdownTimeout = 12 * time.Hour
 )
 
 type Internal struct {
@@ -18,6 +29,11 @@ type Internal struct {
 	// This is an EXPERIMENTAL feature and may change or be removed in future releases.
 	// See https://github.com/ipfs/kubo/issues/10842
 	MFSNoFlushLimit *OptionalInteger `json:",omitempty"`
+	// ShutdownTimeout caps how long graceful shutdown of the daemon is
+	// allowed to take. Defaults to DefaultShutdownTimeout. When the
+	// deadline expires the daemon logs which subsystem failed to close and
+	// exits with status 1. Set to 0 to disable the cap and wait forever.
+	ShutdownTimeout *OptionalDuration `json:",omitempty"`
 }
 
 type InternalBitswap struct {

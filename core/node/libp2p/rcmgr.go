@@ -10,6 +10,7 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/ipfs/kubo/repo"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -124,8 +125,8 @@ filled in with autocomputed defaults.`)
 		opts.Opts = append(opts.Opts, libp2p.ResourceManager(manager))
 
 		lc.Append(fx.Hook{
-			OnStop: func(_ context.Context) error {
-				return manager.Close()
+			OnStop: func(ctx context.Context) error {
+				return shutdown.CloseWithCtx(ctx, "resource-manager", manager.Close)
 			},
 		})
 

@@ -7,6 +7,7 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/ipfs/boxo/filestore"
+	"github.com/ipfs/boxo/provider"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/thirdparty/verifbs"
@@ -41,7 +42,7 @@ func BaseBlockstoreCtor(
 		// Important: Provide calls from blockstore are intentionally BLOCKING.
 		// The Provider implementation (not the blockstore) should handle concurrency/queuing.
 		// This avoids spawning unbounded goroutines for concurrent block additions.
-		strategyFlag := config.ParseProvideStrategy(providingStrategy)
+		strategyFlag := config.MustParseProvideStrategy(providingStrategy)
 		if strategyFlag&config.ProvideStrategyAll != 0 {
 			opts = append(opts, blockstore.Provider(prov))
 		}
@@ -77,14 +78,25 @@ func GcBlockstoreCtor(bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockst
 }
 
 // FilestoreBlockstoreCtor wraps GcBlockstore and adds Filestore support
-func FilestoreBlockstoreCtor(repo repo.Repo, bb BaseBlocks, prov DHTProvider) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
-	gclocker = blockstore.NewGCLocker()
+func FilestoreBlockstoreCtor(
+	providingStrategy string,
+) func(repo repo.Repo, bb BaseBlocks, prov DHTProvider) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
+	return func(repo repo.Repo, bb BaseBlocks, prov DHTProvider) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
+		gclocker = blockstore.NewGCLocker()
 
-	// hash security
-	fstore = filestore.NewFilestore(bb, repo.FileManager(), prov)
-	gcbs = blockstore.NewGCBlockstore(fstore, gclocker)
-	gcbs = &verifbs.VerifBSGC{GCBlockstore: gcbs}
+		var fstoreProv provider.MultihashProvider
+		strategyFlag := config.MustParseProvideStrategy(providingStrategy)
+		if strategyFlag&config.ProvideStrategyAll != 0 {
+			fstoreProv = prov
+		}
 
-	bs = gcbs
-	return
+		fstore = filestore.NewFilestore(bb, repo.FileManager(), fstoreProv)
+
+		// hash security
+		gcbs = blockstore.NewGCBlockstore(fstore, gclocker)
+		gcbs = &verifbs.VerifBSGC{GCBlockstore: gcbs}
+
+		bs = gcbs
+		return
+	}
 }

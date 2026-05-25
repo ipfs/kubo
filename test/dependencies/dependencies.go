@@ -1,3 +1,4 @@
+// Tracks test tool dependencies in go.mod without importing them in production.
 //go:build tools
 
 package tools

@@ -105,6 +105,7 @@ config file at runtime.
         - [`Internal.Bitswap.BroadcastControl.MaxRandomPeers`](#internalbitswapbroadcastcontrolmaxrandompeers)
         - [`Internal.Bitswap.BroadcastControl.SendToPendingPeers`](#internalbitswapbroadcastcontrolsendtopendingpeers)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
+    - [`Internal.ShutdownTimeout`](#internalshutdowntimeout)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
@@ -120,11 +121,12 @@ config file at runtime.
     - [`Mounts.IPNS`](#mountsipns)
     - [`Mounts.MFS`](#mountsmfs)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
+    - [`Mounts.StoreMtime`](#mountsstoremtime)
+    - [`Mounts.StoreMode`](#mountsstoremode)
   - [`OnDemandPinning`](#ondemandpinning)
     - [`OnDemandPinning.ReplicationTarget`](#ondemandpinningreplicationtarget)
     - [`OnDemandPinning.CheckInterval`](#ondemandpinningcheckinterval)
     - [`OnDemandPinning.UnpinGracePeriod`](#ondemandpinningunpingraceperiod)
-
   - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
       - [`Pinning.RemoteServices: API`](#pinningremoteservices-api)
@@ -148,6 +150,8 @@ config file at runtime.
       - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
       - [`Provide.DHT.KeystoreBatchSize`](#providedhtkeystorebatchsize)
       - [`Provide.DHT.OfflineDelay`](#providedhtofflinedelay)
+      - [`Provide.DHT.SendProviderRecordTimeout`](#providedhtsendproviderrecordtimeout)
+    - [`Provide.BloomFPRate`](#providebloomfprate)
   - [`Provider`](#provider)
     - [`Provider.Enabled`](#providerenabled)
     - [`Provider.Strategy`](#providerstrategy)
@@ -242,6 +246,7 @@ config file at runtime.
     - [`Import.UnixFSChunker`](#importunixfschunker)
     - [`Import.HashFunction`](#importhashfunction)
     - [`Import.FastProvideRoot`](#importfastprovideroot)
+    - [`Import.FastProvideDAG`](#importfastprovidedag)
     - [`Import.FastProvideWait`](#importfastprovidewait)
     - [`Import.BatchMaxNodes`](#importbatchmaxnodes)
     - [`Import.BatchMaxSize`](#importbatchmaxsize)
@@ -358,7 +363,8 @@ Supported Transports:
 
 > [!IMPORTANT]
 > Make sure your firewall rules allow incoming connections on both TCP and UDP ports defined here.
-> See [Security section](#security) for network exposure considerations.
+> See [`docs/production/firewall.md`](./production/firewall.md) for a `ufw` walkthrough,
+> and the [Security section](#security) below for wider network exposure considerations.
 
 Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
@@ -397,14 +403,24 @@ Type: `array[string]` ([multiaddrs][multiaddr])
 
 ### `Addresses.NoAnnounce`
 
-An array of swarm addresses not to announce to the network.
-Takes precedence over `Addresses.Announce` and `Addresses.AppendAnnounce`.
+An array of multiaddrs (exact matches or `/ipcidr/` netmasks). Kubo does not
+announce these addresses and strips them from libp2p identify, the DHT
+self-record, and the signed peer record. Matching entries in
+[`Addresses.Announce`](#addressesannounce) and
+[`Addresses.AppendAnnounce`](#addressesappendannounce) are removed as well.
+
+This is the **publish-side** filter: it controls what other peers learn about
+this node's addresses. It does not affect what this node dials. For the
+**dial-side** filter see [`Swarm.AddrFilters`](#swarmaddrfilters). The
+[`server` profile](#server-profile) typically populates both fields together
+so that a range is neither advertised nor dialed.
 
 > [!TIP]
-> The [`server` configuration profile](#server-profile) fills up this list with sensible defaults,
-> preventing announcement of non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
-> which is the [multiaddress][multiaddr] representation of `192.168.0.0/16`) but you should always
-> check settings against your own network and/or hosting provider.
+> The [`server` profile](#server-profile) populates this field with a set of
+> private, local-only, and non-globally-reachable prefixes (RFC 1918 private,
+> RFC 6598 CGNAT, ULA, link-local, and others). See the
+> [`server` profile](#server-profile) section for the full list and for
+> optional entries operators may add manually.
 
 Default: `[]`
 
@@ -958,25 +974,116 @@ Type: `bool`
 
 ### `Datastore.BloomFilterSize`
 
-A number representing the size in bytes of the blockstore's [bloom
-filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents
-the feature is disabled.
+The size in **bytes** of the blockstore's [bloom filter](https://en.wikipedia.org/wiki/Bloom_filter).
+A value of `0` disables the feature.
 
-This site generates useful graphs for various bloom filter values:
-<https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7> You may use it to find a
-preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to
-convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the
-config file. For example, for 1,000,000 blocks, expecting a 1% false-positive
-rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize`
-we'd want to use 1199120 bytes. As of writing, [7 hash
-functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22)
-are used, so the constant `k` is 7 in the formula.
+The bloom filter answers "does the blockstore *not* have this CID?" from RAM
+without touching the datastore. A negative answer is exact (no false
+negatives, so blocks are never falsely reported missing); a positive answer
+is probabilistic and falls through to the underlying blockstore for
+verification. The chance of a false "maybe present" is the filter's
+**false-positive rate (FPR)**. A false positive costs one wasted datastore
+lookup; it never causes data loss or incorrect retrieval. The lower the FPR,
+the more `Has()` calls the filter answers from RAM alone.
 
-Enabling the BloomFilter can provide performance improvements specially when
-responding to many requests for inexistent blocks. It however requires a full
-sweep of all the datastore keys on daemon start. On very large datastores this
-can be a very taxing operation, particularly if the datastore does not support
-querying existing keys without reading their values at the same time (blocks).
+This cache pays off most on nodes that field many requests for content they
+don't host: public gateways, mirrors, and peers asked to serve
+opportunistically-cached blocks.
+
+The complementary cache for the *positive* path (block exists, look up its
+size) is [`Datastore.BlockKeyCacheSize`](#datastoreblockkeycachesize).
+
+#### How kubo's bloom filter is sized
+
+Kubo wires the underlying [`ipfs/bbloom`](https://github.com/ipfs/bbloom)
+filter with `k=7` hash positions. Two kubo-specific behaviors matter for
+sizing:
+
+1. **Power-of-two bit-count rounding.** bbloom rounds the requested bit
+   count up to the next power of two, so a `BloomFilterSize` value that is
+   not itself a power of two in bits silently allocates more memory than
+   configured. For example, `BloomFilterSize: 1199120` (~1.14 MiB)
+   actually allocates a `16,777,216`-bit (= 2 MiB) filter internally. For
+   predictable behavior, pick `BloomFilterSize` values that are
+   power-of-two byte counts: 1 MiB, 2 MiB, 4 MiB, ..., 256 MiB, 512 MiB,
+   1 GiB.
+2. **Fixed `k=7`.** With seven hash positions, FPR for a filter of `m`
+   bits and `n` inserted entries is `(1 - exp(-7n/m))^7`. To hit a
+   target FPR, budget roughly ~1.8 bytes per entry at ~1% FPR, ~2.8
+   bytes per entry at ~0.1% FPR, and ~4.2 bytes per entry at ~0.01%
+   FPR. These figures already include the average ~1.5x penalty from
+   the power-of-two rounding above; the worst case is ~2x.
+
+#### Reference sizing
+
+Power-of-two `BloomFilterSize` values for common blockset sizes, with the
+FPR you can expect at the design point and at 2× growth:
+
+| Expected blocks (`n`) | `BloomFilterSize` | FPR at `n` | FPR at 2× `n` |
+|---:|---:|---:|---:|
+| 10,000,000  | `16777216`  (16 MiB)  | ~0.18% | ~5%  |
+| 25,000,000  | `33554432`  (32 MiB)  | ~0.58% | ~11% |
+| 50,000,000  | `67108864`  (64 MiB)  | ~0.58% | ~11% |
+| 100,000,000 | `134217728` (128 MiB) | ~0.58% | ~11% |
+| 200,000,000 | `268435456` (256 MiB) | ~0.58% | ~11% |
+
+For a tighter FPR at the design point, step up to the next power of two.
+
+The [hur.st/bloomfilter](https://hur.st/bloomfilter/?n=10e6&p=0.01&m=&k=7)
+calculator works as a reference for exploring `(n, p, m)` combinations
+(remember kubo uses `k=7`); just keep in mind that the `m` it suggests
+is the optimal-fit value, while bbloom rounds up to the next power of
+two on top of that.
+
+#### Saturation as the repo grows
+
+A bloom filter is fixed-size after creation. As more CIDs are inserted
+past its design `n`, the false-positive rate climbs steeply. Rough
+behavior with a filter sized for ~0.6% FPR at its design point:
+
+- At `n`: ~0.6% FPR. Every "definitely not" reliably saves a datastore
+  lookup.
+- At ~`2 × n`: ~11% FPR. Most negatives still save lookups, but tail
+  latency rises because each "maybe" still hits the datastore.
+- At ~`4 × n`: ~58% FPR. Most "maybe" answers fall through. The filter
+  is mostly paying CPU and RAM cost without short-circuiting much.
+- At ~`8 × n` or more: above ~95% FPR. Effectively saturated. The
+  filter answers "maybe" for nearly every CID and provides no benefit.
+
+Size for **expected steady-state, not today's count**, and re-tune after
+crossing the design point. Bloom filters cannot grow in place; raising
+`BloomFilterSize` and restarting the daemon rebuilds the filter from
+scratch.
+
+#### Risks of an undersized filter
+
+A poorly-sized filter is **never a correctness issue**. Bloom filters
+have no false negatives, so blocks are never falsely reported missing.
+The risks are operational:
+
+- **Wasted RAM and CPU.** Every `Has()` still runs all seven hash
+  positions. Once the filter saturates, those cycles return nothing.
+- **Silent regression as the pinset grows.** A filter sized for last
+  year's data can drift past saturation without warning; the
+  negative-`Has` short-circuit benefit just quietly disappears.
+- **Recurring startup tax.** The filter rebuilds on every daemon
+  restart (see below). On slow disks this means minutes of
+  `AllKeysChan` walking, paid in full even when the resulting filter
+  is too small to help.
+
+Quick health check: divide `BloomFilterSize` by your current block count.
+Below ~`1` byte/block the filter is past its design point; below
+~`0.5` bytes/block it is effectively saturated.
+
+#### Startup cost
+
+The filter is not persisted across restarts. Every daemon start rebuilds it
+by walking all datastore keys (`AllKeysChan`). On very large blockstores or
+slow disks this can take many minutes, during which `Has()` falls through
+to the datastore and the filter provides no benefit. Datastores that cannot
+enumerate keys without reading values (block content) pay even more here;
+flatfs and pebble both support keys-only iteration, so the rebuild cost
+scales with the keyset, not data volume.
 
 Default: `0` (disabled)
 
@@ -1003,16 +1110,38 @@ Type: `bool`
 
 ### `Datastore.BlockKeyCacheSize`
 
-A number representing the maximum size in bytes of the blockstore's Two-Queue
-cache, which caches block-cids and their block-sizes. Use `0` to disable.
+The maximum **number of entries** held in the blockstore's Two-Queue cache. The
+cache stores per-CID metadata (existence and block size) but never block
+content. Use `0` to disable.
 
-This cache, once primed, can greatly speed up operations like `ipfs repo stat`
-as there is no need to read full blocks to know their sizes. Size should be
-adjusted depending on the number of CIDs on disk (`NumObjects in`ipfs repo stat`).
+A cache hit answers `Has` and `GetSize` from RAM and skips the underlying
+datastore lookup. This includes the per-block `os.Stat` flatfs does to learn a
+block's size, which is the dominant cost on bitswap servers responding to peer
+wantlists.
 
-Default: `65536` (64KiB)
+The cache uses a [Two-Queue (2Q) replacement policy](https://pkg.go.dev/github.com/hashicorp/golang-lru/v2#TwoQueueCache):
+an entry must be touched twice before it is promoted to the frequently-used
+tier. A long one-shot scan (reprovider, GC, `ipfs repo verify`) therefore
+does not evict the hot entries that bitswap repeatedly serves.
 
-Type: `optionalInteger` (non-negative, bytes)
+#### Sizing
+
+Memory usage is roughly the entry count times the per-entry overhead, which
+combines 2Q bookkeeping, the multihash key bytes, and the cached value. As a
+rough estimate, budget ~200 bytes per entry, so `1048576` (1M entries) is on
+the order of ~200 MB resident. The cache only needs to cover the **hot
+working set** of CIDs (the ones repeatedly hit by inbound bitswap, gateway,
+or DAG-resolution traffic), not the entire blockstore.
+
+The default of `65536` is sized for small dev/desktop nodes. Operators
+running public gateways, pinning clusters, or any node serving non-trivial
+bitswap traffic should size this against the active working set. See
+[`Datastore.BloomFilterSize`](#datastorebloomfiltersize) for the
+complementary negative-`Has()` short-circuit that pairs well with this cache.
+
+Default: `65536` (entries)
+
+Type: `optionalInteger` (non-negative, number of entries)
 
 ### `Datastore.Spec`
 
@@ -1802,6 +1931,28 @@ Type: `optionalInteger` (0 disables the limit, strongly discouraged)
 **Note:** This is an EXPERIMENTAL feature and may change or be removed in future releases.
 See [#10842](https://github.com/ipfs/kubo/issues/10842) for more information.
 
+### `Internal.ShutdownTimeout`
+
+Caps how long graceful shutdown is allowed to take. If `node.Close()` does
+not return within this duration, the daemon logs which subsystem failed
+and exits with status `1`. Set to `0` to wait forever (legacy behavior).
+
+The default `12h` guarantees the daemon cannot be stuck indefinitely on a
+hung close hook, which matters for container orchestrators that otherwise
+see a half-shutdown process as `healthy`. The value is smaller than the
+22h DHT reprovide cycle, so a hung daemon recovers before missing more
+than one cycle.
+
+Tune down for fast-restart environments. When tuning, raise the
+orchestrator grace period (`--stop-timeout` for Docker,
+`terminationGracePeriodSeconds` for Kubernetes) to at least this value so
+the daemon exits gracefully before the orchestrator escalates to
+`SIGKILL`.
+
+Default: `12h`
+
+Type: `optionalDuration` (`0` disables the cap)
+
 ## `Ipns`
 
 ### `Ipns.RepublishPeriod`
@@ -1920,11 +2071,19 @@ Default: `"cache"`
 
 > [!CAUTION]
 > **EXPERIMENTAL:**
-> This feature is disabled by default, requires an explicit opt-in with  `ipfs mount` or `ipfs daemon --mount`.
+> This feature is disabled by default, requires an explicit opt-in with `ipfs mount` or `ipfs daemon --mount`.
 >
-> Read about current limitations at [fuse.md](./fuse.md).
+> See [fuse.md](./fuse.md) for setup instructions and platform-specific notes.
 
 FUSE mount point configuration options.
+
+All mounts expose the `ipfs.cid` extended attribute on files and directories, returning the CID of the underlying DAG node:
+
+```console
+$ getfattr -n ipfs.cid /ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Cat
+# file: ipfs/bafybeiaysi4s6lnjev27ln5icwm6tueaw2vdykrtjkwiphwekaywqhcjze/wiki/Cat
+ipfs.cid="bafybeihxislsmn7b2drh6m3vqz3ctcfae46al7ax3543umeso4f5jgij5e"
+```
 
 ### `Mounts.IPFS`
 
@@ -1957,7 +2116,31 @@ Type: `string` (filesystem path)
 
 ### `Mounts.FuseAllowOther`
 
-Sets the 'FUSE allow-other' option on the mount point.
+Sets the FUSE `allow_other` mount option, letting users other than the mounter access the mounted filesystem.
+
+Default: `false`
+
+Type: `flag`
+
+### `Mounts.StoreMtime`
+
+When `true`, writable mounts (`/ipns` and `/mfs`) store the current time as mtime in [UnixFS](https://specs.ipfs.tech/unixfs/) metadata when creating a file or opening it for writing. Setting mtime explicitly via `touch` works on both files and directories. This changes the resulting CID even when the file content is identical, because mtime is stored in the [root block of the UnixFS DAG](https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata).
+
+Most data on IPFS does not include mtime. When mtime is present in the UnixFS metadata, it is always shown in stat responses on all mounts, regardless of this flag. When absent, mtime is reported as zero (epoch).
+
+Default: `false`
+
+Type: `flag`
+
+### `Mounts.StoreMode`
+
+When `true`, writable mounts (`/ipns` and `/mfs`) accept `chmod` requests on both files and directories and persist POSIX permission bits in [UnixFS](https://specs.ipfs.tech/unixfs/) metadata. This changes the resulting CID because mode is stored in the [root block of the UnixFS DAG](https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata).
+
+Most data on IPFS does not include mode. When mode is present in the UnixFS metadata, it is always shown in stat responses on all mounts, regardless of this flag. When absent, a default mode is used (files: `0644` on writable mounts, `0444` on `/ipfs`; directories: `0755` on writable mounts, `0555` on `/ipfs`).
+
+Default: `false`
+
+Type: `flag`
 
 ## `Pinning`
 
@@ -2108,31 +2291,74 @@ Type: `flag`
 
 ### `Provide.Strategy`
 
-Tells the provide system what should be announced. Valid strategies are:
+Controls which CIDs are announced to the content routing system. Valid strategies are:
 
 - `"all"` - announce all CIDs of stored blocks
 - `"pinned"` - only announce recursively pinned CIDs (`ipfs pin add -r`, both roots and child blocks)
   - Order: root blocks of direct and recursive pins are announced first, then the child blocks of recursive pins
-- `"roots"` - only announce the root block of explicitly pinned CIDs (`ipfs pin add`)
-  - **⚠️  BE CAREFUL:** node with `roots` strategy will not announce child blocks.
+- `"roots"` - only announce the top-level root CID of explicitly pinned DAGs (`ipfs pin add`)
+  - **⚠️ BE CAREFUL:** a node with `roots` strategy will not announce child blocks.
     It makes sense only for use cases where the entire DAG is fetched in full,
     and a graceful resume does not have to be guaranteed: the lack of child
     announcements means an interrupted retrieval won't be able to find
     providers for the missing block in the middle of a file, unless the peer
     happens to already be connected to a provider and asks for child CID over
-    bitswap.
+    bitswap. Does not traverse the DAG to discover sub-entity roots
+    (files within directories, HAMT shards, etc.). If you want that, use
+    `"pinned+entities"` instead.
 - `"mfs"` - announce only the local CIDs that are part of the MFS (`ipfs files`)
   - Note: MFS is lazy-loaded. Only the MFS blocks present in local datastore are announced.
 - `"pinned+mfs"` - a combination of the `pinned` and `mfs` strategies.
-  - **ℹ️ NOTE:** This is the suggested strategy for users who run without GC and don't want to provide everything in cache.
   - Order: first `pinned` and then the locally available part of `mfs`.
 
+#### Strategy modifiers: `+unique` and `+entities`
+
+Append `+unique` or `+entities` to `pinned`, `mfs`, or `pinned+mfs` to optimize the reprovide cycle. Neither works with `"all"` or `"roots"`.
+
+- **`+unique`**: uses a bloom filter to deduplicate CIDs across recursive
+  pins that share sub-DAGs. Without it, a node with 1000 pins sharing 99%
+  of their content re-traverses the shared blocks for every pin. With `+unique`,
+  shared subtrees are skipped, cutting traversal from
+  O(pins * total_blocks) to O(unique_blocks). This also cuts the number of
+  CIDs sent to the routing system when similar datasets are pinned multiple
+  times.
+- **`+entities`**: announces only entity roots (file roots, directory roots,
+  HAMT shard nodes) instead of every block. Internal file chunks are not
+  announced. This significantly reduces the number of provider records for
+  repositories with large files while keeping all files and directories
+  discoverable. Implies `+unique`. Non-UnixFS content (e.g. dag-cbor) is
+  still fully announced.
+  - **⚠️ BE CAREFUL:** since internal file chunks are not announced, resuming
+    an interrupted download from a specific byte offset or requesting a byte
+    range may not work unless the client is smart enough to find providers
+    for the entity root CID instead of the chunk CID. This is a work in
+    progress; see [kubo#10251](https://github.com/ipfs/kubo/issues/10251).
+
+**Suggested configurations:**
+
+- `"pinned+mfs+unique"`: safe default for nodes with GC enabled, or desktop
+  users who don't want to announce all blocks cached in the local repository.
+  Handles pins of similar DAGs efficiently (e.g. versioned datasets where pins
+  are added and removed over time).
+- `"pinned+mfs+entities"`: same as above, but also skips internal file chunks
+  for even fewer provider records. Use when the `+entities` trade-off (no
+  chunk-level discoverability) is acceptable.
+
+#### Memory during reprovide
+
+Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million CIDs. This is because the pinner snapshots the pin index into memory at the start of each reprovide cycle so that pin/unpin are not blocked while the DHT reprovider works over the snapshot.
+
+With `+unique` or `+entities`, a bloom filter replaces the in-memory CID set, significantly reducing memory usage:
+
+- 2M CIDs: ~150 MB (default) vs ~8 MB (with `+unique` bloom filter)
+- 10M CIDs: ~750 MB (default) vs ~42 MB (with `+unique` bloom filter)
+- 100M CIDs: ~7.5 GB (default) vs ~713 MB (with `+unique` bloom filter)
+
+The bloom auto-scales: the first cycle starts small and grows as needed; subsequent cycles size correctly from the previous cycle's count.
+
+#### Notes
+
 **Strategy changes automatically clear the provide queue.** When you change `Provide.Strategy` and restart Kubo, the provide queue is automatically cleared to ensure only content matching your new strategy is announced. You can also manually clear the queue using `ipfs provide clear`.
-
-**Memory requirements:**
-
-- Reproviding larger pinsets using the `mfs`, `pinned`, `pinned+mfs` or `roots` strategies requires additional memory, with an estimated ~1 GiB of RAM per 20 million CIDs for reproviding to the Amino DHT.
-- This is due to the use of a buffered provider, which loads all CIDs into memory to avoid holding a lock on the entire pinset during the reprovide cycle.
 
 Default: `"all"`
 
@@ -2206,14 +2432,21 @@ interval (common with large datasets), the next cycle is skipped and provider
 records may expire.
 
 - If unset, it uses the implicit safe default.
-- If set to the value `"0"` it will disable content reproviding to DHT.
+- If set to `"0"`, the periodic reprovide schedule is disabled. New CIDs are
+  still announced immediately via fast-provide-root and `ipfs provide once`.
 
 > [!CAUTION]
-> Disabling this will prevent other nodes from discovering your content via the DHT.
-> Your node will stop announcing data to the DHT, making it
-> inaccessible unless peers connect to you directly. Since provider
-> records expire after `amino.DefaultProvideValidity`, your content will become undiscoverable
-> after this period.
+> `Interval=0` disables only the periodic refresh, not announcements of new
+> content. Once provider records expire after `amino.DefaultProvideValidity`,
+> the affected CIDs become undiscoverable to peers that did not retrieve them
+> within that window. To fully disable providing, set
+> [`Provide.Enabled=false`](#provideenabled) instead.
+
+> [!IMPORTANT]
+> When `Interval=0`, [`Provide.Enabled`](#provideenabled) must be set
+> explicitly. The daemon refuses to start otherwise. This prevents silent
+> behaviour change on upgrade for operators who previously relied on
+> `Interval=0` as a master kill-switch.
 
 Default: `22h`
 
@@ -2409,7 +2642,7 @@ Number of workers dedicated to burst provides. Only applies when `Provide.DHT.Sw
 
 Burst provides are triggered by:
 
-- Manual provide commands (`ipfs routing provide`)
+- Manual provide commands (`ipfs provide once`)
 - New content matching your `Provide.Strategy` (blocks from `ipfs add`, bitswap, or trustless gateway requests)
 - Catch-up reprovides after being disconnected/offline for a while
 
@@ -2489,6 +2722,62 @@ keys to its state, so keys will eventually be provided in the
 Default: `2h`
 
 Type: `optionalDuration`
+
+#### `Provide.DHT.SendProviderRecordTimeout`
+
+Per-peer timeout applied to a single `ADD_PROVIDER` RPC sent during a provide
+or reprovide operation. A peer that accepts the libp2p stream but never reads
+the request can otherwise pin a provide worker goroutine until the connection
+is dropped by the transport layer; this option bounds that wait.
+
+Healthy peers complete the round-trip in well under a second. The default
+leaves significant headroom for slow links while keeping a hung peer from
+stalling a worker.
+
+> [!NOTE]
+> Lowering this value can speed up reprovide cycles when a non-trivial
+> fraction of peers are slow or unresponsive, at the cost of giving up on
+> genuinely slow but healthy peers.
+
+Default: `10s`
+
+Type: `optionalDuration` (positive)
+
+### `Provide.BloomFPRate`
+
+Target false positive rate for the bloom filter used by the [`+unique` and
+`+entities` strategy modifiers](#strategy-modifiers-unique-and-entities) and
+the matching `--fast-provide-dag` walk. Expressed as `1/N` (one false positive
+per `N` lookups), so a higher value means a lower FP rate but more memory per
+CID. Has no effect when `Provide.Strategy` does not include `+unique` or
+`+entities`.
+
+The bloom filter sizes itself from the previous reprovide cycle's CID count
+and the configured FP rate. The auto-scaling described in
+[Memory during reprovide](#memory-during-reprovide) is unaffected; this
+setting only changes the bits-per-CID ratio of each bloom in the chain.
+
+Memory tradeoff (approximate, before `ipfs/bbloom`'s power-of-two rounding):
+
+| `Provide.BloomFPRate` | Approx. FP rate | Bytes per CID |
+|-----------------------|-----------------|---------------|
+| `1000000`             | 1 in 1M         | ~3            |
+| (default)             | ~1 in 4.75M     | ~4            |
+| `10000000`            | 1 in 10M        | ~5            |
+| `100000000`           | 1 in 100M       | ~6            |
+
+A false positive causes the walker to skip a CID it has already been told
+about; the skipped CID is provided in the next reprovide cycle (see
+[`Provide.DHT.Interval`](#providedhtinterval)). At the default rate, fewer
+than ~21 CIDs per 100M are skipped per cycle.
+
+The minimum accepted value is `1000000` (1 in 1M). Below that the bloom
+filter becomes lossy enough to drop a meaningful fraction of CIDs from each
+reprovide cycle.
+
+Default: `4750000` (~1 false positive per 4.75M lookups, ~4 bytes per CID)
+
+Type: `optionalInteger`
 
 ## `Provider`
 
@@ -2720,7 +3009,12 @@ Controls how your node discovers content and peers on the network.
   when reachable from the public internet.
 
 - **`autoclient`**: Same as `auto`, but never runs a DHT server.
-  Use this if your node is behind a firewall or NAT.
+  Use this if your node is behind a firewall or NAT, or if you run a
+  [content denylist](https://github.com/ipfs/kubo/blob/master/docs/content-blocking.md)
+  and do not want to store or serve routing records (provider records,
+  IPNS records) for denied keys on behalf of other peers. See
+  [Scope of denylists](https://github.com/ipfs/kubo/blob/master/docs/content-blocking.md#scope-of-denylists)
+  for why this matters.
 
 - **`dht`**: Uses only the Amino DHT (no HTTP routers). Automatically switches
   between client and server mode based on reachability.
@@ -3017,18 +3311,30 @@ Options for configuring the swarm.
 
 ### `Swarm.AddrFilters`
 
-An array of addresses (multiaddr netmasks) to not dial. By default, IPFS nodes
-advertise _all_ addresses, even internal ones. This makes it easier for nodes on
-the same network to reach each other. Unfortunately, this means that an IPFS
-node will try to connect to one or more private IP addresses whenever dialing
-another node, even if this other node is on a different network. This may
-trigger netscan alerts on some hosting providers or cause strain in some setups.
+An array of multiaddr netmasks. The libp2p connection gater refuses any
+connection (inbound or outbound) whose remote address matches an entry,
+before any handshake.
+
+By default Kubo advertises every interface address, so without this list a
+node may dial private or non-routable addresses learned from other peers.
+Some hosting providers treat such dials as netscan abuse.
+
+This is the **dial-side** filter: it controls which peers this node connects
+to or accepts connections from. It does not affect what this node advertises
+about itself. For the **publish-side** filter see
+[`Addresses.NoAnnounce`](#addressesnoannounce). The
+[`server` profile](#server-profile) typically populates both fields together
+so that a range is neither advertised nor dialed.
 
 > [!TIP]
-> The [`server` configuration profile](#server-profile) fills up this list with sensible defaults,
-> preventing dials to all non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
-> which is the [multiaddress][multiaddr] representation of `192.168.0.0/16`) but you should always
-> check settings against your own network and/or hosting provider.
+> The [`server` profile](#server-profile) populates this field with a set of
+> private, local-only, and non-globally-reachable prefixes (RFC 1918 private,
+> RFC 6598 CGNAT, ULA, link-local, and others). See the
+> [`server` profile](#server-profile) section for the full list and for
+> optional entries operators may add manually.
+
+> [!CAUTION]
+> If an [`Addresses.Swarm`](#addressesswarm) listener (for example a manually configured `/ip4/127.0.0.1/tcp/.../ws` fronted by a local nginx or Caddy reverse proxy) is covered by an entry in this list, Kubo rejects every incoming connection to it, so the proxy cannot reach Kubo. Kubo logs an ERROR at startup naming the offending rule. Remove the rule from `Swarm.AddrFilters` to allow the listener; keep it in [`Addresses.NoAnnounce`](#addressesnoannounce) if you still want to suppress its announcement.
 
 Default: `[]`
 
@@ -3809,29 +4115,41 @@ Type: `optionalString`
 
 ### `Import.FastProvideRoot`
 
-Immediately provide root CIDs to the DHT in addition to the regular provide queue.
+Immediately provide root CIDs to the routing system in addition to the regular provide queue.
 
-This complements the sweep provider system: fast-provide handles the urgent case (root CIDs that users share and reference), while the sweep provider efficiently provides all blocks according to the `Provide.Strategy` over time. Together, they optimize for both immediate discoverability of newly imported content and efficient resource usage for complete DAG provides.
+This complements the reprovide system: fast-provide handles the urgent case (root CIDs that users share and reference), while the reprovide cycle provides all blocks according to the [`Provide.Strategy`](#providestrategy) over time.
 
-When disabled, only the sweep provider's queue is used.
+When disabled, only the reprovide cycle handles content announcement.
 
-This setting applies to both `ipfs add` and `ipfs dag import` commands and can be overridden per-command with the `--fast-provide-root` flag.
-
-Ignored when DHT is not available for routing (e.g., `Routing.Type=none` or delegated-only configurations).
+Applies to `ipfs add`, `ipfs dag import`, `ipfs pin add`, and `ipfs pin update`. Can be overridden per-command with the `--fast-provide-root` flag.
 
 Default: `true`
 
 Type: `flag`
 
+### `Import.FastProvideDAG`
+
+Walk and provide the full DAG immediately after content is added or pinned, using the active [`Provide.Strategy`](#providestrategy) to determine scope.
+
+When enabled with `+unique`, the DAG walk deduplicates via a bloom filter. When enabled with `+entities`, only entity roots (files, directories, HAMT shards) are provided.
+
+When disabled (default), only the root CID is provided immediately (via [`Import.FastProvideRoot`](#importfastprovideroot)) and child blocks are deferred to the reprovide cycle.
+
+Applies to `ipfs add`, `ipfs dag import`, `ipfs pin add`, and `ipfs pin update`. Can be overridden per-command with the `--fast-provide-dag` flag. Has no effect when `Provide.Strategy=all` (the blockstore already provides every block on write).
+
+Default: `false`
+
+Type: `flag`
+
 ### `Import.FastProvideWait`
 
-Wait for the immediate root CID provide to complete before returning.
+Wait for the immediate provide to complete before returning.
 
-When enabled, the command blocks until the provide completes, ensuring guaranteed discoverability before returning. When disabled (default), the provide happens asynchronously in the background without blocking the command.
+When enabled, the command blocks until the provide completes, ensuring guaranteed discoverability before returning. When disabled (default), the provide happens asynchronously in the background without blocking the command. Applies to both [`Import.FastProvideRoot`](#importfastprovideroot) and [`Import.FastProvideDAG`](#importfastprovidedag).
 
 Use this when you need certainty that content is discoverable before the command returns (e.g., sharing a link immediately after adding).
 
-This setting applies to both `ipfs add` and `ipfs dag import` commands and can be overridden per-command with the `--fast-provide-wait` flag.
+Applies to `ipfs add`, `ipfs dag import`, `ipfs pin add`, and `ipfs pin update`. Can be overridden per-command with the `--fast-provide-wait` flag.
 
 Ignored when DHT is not available for routing (e.g., `Routing.Type=none` or delegated-only configurations).
 
@@ -4026,11 +4344,121 @@ documented in `ipfs config profile --help`.
 
 ### `server` profile
 
-Disables local [`Discovery.MDNS`](#discoverymdns), [turns off uPnP NAT port mapping](#swarmdisablenatportmap),  and blocks connections to
-IPv4 and IPv6 prefixes that are [private, local only, or unrouteable](https://github.com/ipfs/kubo/blob/b71cf0d15904bdef21fe2eee5f1118a274309a4d/config/profile.go#L24-L43).
+The `server` profile hardens a node for public-internet operation. Recommended
+on machines with public IPv4 addresses (no NAT, no uPnP) at providers that
+interpret local IPFS discovery and traffic as netscan abuse
+([example](https://github.com/ipfs/kubo/issues/10327)).
 
-Recommended when running IPFS on machines with public IPv4 addresses (no NAT, no uPnP)
-at providers that interpret local IPFS discovery and traffic as netscan abuse ([example](https://github.com/ipfs/kubo/issues/10327)).
+Applying it:
+
+- disables local [`Discovery.MDNS`](#discoverymdns),
+- turns off [uPnP NAT port mapping](#swarmdisablenatportmap),
+- appends a set of IPv4 and IPv6 prefixes to both
+  [`Addresses.NoAnnounce`](#addressesnoannounce) (do not advertise) and
+  [`Swarm.AddrFilters`](#swarmaddrfilters) (do not dial or accept).
+
+The prefix list comes from the IANA [IPv4][iana-ipv4-special] and
+[IPv6][iana-ipv6-special] Special-Purpose Address Registries per
+[RFC 6890], covering entries marked "Not Globally Reachable."
+
+The filters apply only at the libp2p swarm layer. The HTTP
+[`Addresses.API`](#addressesapi) and [`Addresses.Gateway`](#addressesgateway)
+listeners keep working over loopback.
+
+#### IPv4 prefixes filtered by `server` profile
+
+| Multiaddr                     | Description                                      | Reference                            |
+| ----------------------------- | ------------------------------------------------ | ------------------------------------ |
+| `/ip4/10.0.0.0/ipcidr/8`      | Private-use                                      | [RFC 1918]                           |
+| `/ip4/100.64.0.0/ipcidr/10`   | Shared address space (CGNAT)                     | [RFC 6598]                           |
+| `/ip4/127.0.0.0/ipcidr/8`     | Loopback                                         | [RFC 1122 §3.2.1.3][rfc1122-3.2.1.3] |
+| `/ip4/169.254.0.0/ipcidr/16`  | Link-local                                       | [RFC 3927]                           |
+| `/ip4/172.16.0.0/ipcidr/12`   | Private-use                                      | [RFC 1918]                           |
+| `/ip4/192.0.0.0/ipcidr/24`    | IETF protocol assignments                        | [RFC 6890]                           |
+| `/ip4/192.0.2.0/ipcidr/24`    | `TEST-NET-1` (documentation)                     | [RFC 5737]                           |
+| `/ip4/192.168.0.0/ipcidr/16`  | Private-use                                      | [RFC 1918]                           |
+| `/ip4/198.18.0.0/ipcidr/15`   | Benchmarking                                     | [RFC 2544]                           |
+| `/ip4/198.51.100.0/ipcidr/24` | `TEST-NET-2` (documentation)                     | [RFC 5737]                           |
+| `/ip4/203.0.113.0/ipcidr/24`  | `TEST-NET-3` (documentation)                     | [RFC 5737]                           |
+| `/ip4/240.0.0.0/ipcidr/4`     | Reserved (covers broadcast `255.255.255.255/32`) | [RFC 1112 §4][rfc1112-4]             |
+
+#### IPv6 prefixes filtered by `server` profile
+
+| Multiaddr                   | Description                                                        | Reference                    |
+| --------------------------- | ------------------------------------------------------------------ | ---------------------------- |
+| `/ip6/::/ipcidr/3`          | IANA-reserved `0000::/3` (catches unallocated leaks like `1e::/16`) | [RFC 4291 §2.4][rfc4291-2.4] |
+| `/ip6/::1/ipcidr/128`       | Loopback                                                           | [RFC 4291 §2.4][rfc4291-2.4] |
+| `/ip6/100::/ipcidr/64`      | Discard-only                                                       | [RFC 6666]                   |
+| `/ip6/2001:2::/ipcidr/48`   | Benchmarking                                                       | [RFC 5180]                   |
+| `/ip6/2001:db8::/ipcidr/32` | Documentation                                                      | [RFC 3849]                   |
+| `/ip6/fc00::/ipcidr/7`      | Unique local addresses (ULA)                                       | [RFC 4193]                   |
+| `/ip6/fe80::/ipcidr/10`     | Link-local unicast                                                 | [RFC 4291]                   |
+
+#### Overriding specific entries
+
+If you need peering over one of the prefixes above, remove that entry from
+[`Swarm.AddrFilters`](#swarmaddrfilters) and
+[`Addresses.NoAnnounce`](#addressesnoannounce) after applying the profile.
+Or skip the profile and populate those fields manually.
+
+| Scenario                                           | Remove                       |
+| -------------------------------------------------- | ---------------------------- |
+| LAN peering over `10.0.0.0/8`                      | `/ip4/10.0.0.0/ipcidr/8`     |
+| LAN peering over `172.16.0.0/12`                   | `/ip4/172.16.0.0/ipcidr/12`  |
+| LAN peering over `192.168.0.0/16`                  | `/ip4/192.168.0.0/ipcidr/16` |
+| [Tailscale] or other CGNAT overlay (`100.64.0.0/10`) | `/ip4/100.64.0.0/ipcidr/10`  |
+| IPv6 ULA overlay ([WireGuard], [Tailscale], [Nebula], [ZeroTier], [cjdns]) | `/ip6/fc00::/ipcidr/7` |
+| Link-local IPv6 peering                            | `/ip6/fe80::/ipcidr/10`      |
+| Multiple daemons peering over `127.0.0.1`          | `/ip4/127.0.0.0/ipcidr/8`    |
+| Multiple daemons peering over IPv6 loopback `::1`  | `/ip6/::1/ipcidr/128` and `/ip6/::/ipcidr/3` |
+| Local reverse proxy fronting a `/ws` (or other libp2p) listener on `127.0.0.1` | `/ip4/127.0.0.0/ipcidr/8` from `Swarm.AddrFilters` only (keep it in `Addresses.NoAnnounce`); also drop `/ip6/::1/ipcidr/128` and `/ip6/::/ipcidr/3` from `Swarm.AddrFilters` if the proxy uses IPv6 loopback |
+| [Yggdrasil] mesh peering (`200::/8`, `300::/8`)    | `/ip6/::/ipcidr/3`           |
+| NAT64 (`64:ff9b::/96`) reachability                | `/ip6/::/ipcidr/3`           |
+
+#### Notes on `/ip6/::/ipcidr/3`
+
+Added after bogus IPv6 prefixes such as `1e::/16` (unallocated space
+inside `0000::/3`) started leaking into DHT self-records from public
+Kubo nodes with go-libp2p v0.47. See
+[go-libp2p#3460][libp2p/go-libp2p#3460].
+
+Most overlay networks ([WireGuard], [Tailscale], [Nebula], [ZeroTier],
+[cjdns]) use ULA `fc00::/7` and are blocked by the separate
+`/ip6/fc00::/ipcidr/7` entry, not by this one. The notable exception is
+[Yggdrasil], which uses `0200::/7` inside `0000::/3`.
+
+NAT64 translators rarely emit `64:ff9b::` ([RFC 6052]) or
+`64:ff9b:1::/48` ([RFC 8215]) as a source address, so the rule's
+announce-side impact on NAT64 deployments is typically none. Removal is
+warranted only if a `64:ff9b::` address is bound directly to a node
+interface.
+
+[iana-ipv4-special]: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+[iana-ipv6-special]: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+[rfc1112-4]: https://datatracker.ietf.org/doc/html/rfc1112#section-4
+[rfc1122-3.2.1.3]: https://datatracker.ietf.org/doc/html/rfc1122#section-3.2.1.3
+[rfc4291-2.4]: https://datatracker.ietf.org/doc/html/rfc4291#section-2.4
+[RFC 1112]: https://datatracker.ietf.org/doc/html/rfc1112
+[RFC 1918]: https://datatracker.ietf.org/doc/html/rfc1918
+[RFC 2544]: https://datatracker.ietf.org/doc/html/rfc2544
+[RFC 3849]: https://datatracker.ietf.org/doc/html/rfc3849
+[RFC 3927]: https://datatracker.ietf.org/doc/html/rfc3927
+[RFC 4193]: https://datatracker.ietf.org/doc/html/rfc4193
+[RFC 4291]: https://datatracker.ietf.org/doc/html/rfc4291
+[RFC 5180]: https://datatracker.ietf.org/doc/html/rfc5180
+[RFC 5737]: https://datatracker.ietf.org/doc/html/rfc5737
+[RFC 6598]: https://datatracker.ietf.org/doc/html/rfc6598
+[RFC 6666]: https://datatracker.ietf.org/doc/html/rfc6666
+[RFC 6890]: https://datatracker.ietf.org/doc/html/rfc6890
+[libp2p/go-libp2p#3460]: https://github.com/libp2p/go-libp2p/issues/3460
+[WireGuard]: https://www.wireguard.com/
+[Tailscale]: https://tailscale.com/
+[Nebula]: https://nebula.defined.net/
+[ZeroTier]: https://www.zerotier.com/
+[cjdns]: https://github.com/cjdelisle/cjdns
+[Yggdrasil]: https://yggdrasil-network.github.io/
+[RFC 6052]: https://datatracker.ietf.org/doc/html/rfc6052
+[RFC 8215]: https://datatracker.ietf.org/doc/html/rfc8215
 
 ### `randomports` profile
 
@@ -4235,7 +4663,7 @@ Several configuration options expose TCP or UDP ports that can make your Kubo no
 
 - Keep admin services ([`Addresses.API`](#addressesapi)) bound to localhost unless authentication ([`API.Authorizations`](#apiauthorizations)) is configured
 - Use [`Gateway.NoFetch`](#gatewaynofetch) to prevent arbitrary CID retrieval if Kubo is acting as a public gateway available to anyone
-- Configure firewall rules to restrict access to exposed ports. Note that [`Addresses.Swarm`](#addressesswarm) is special - all incoming traffic to swarm ports should be allowed to ensure proper P2P connectivity
+- Configure firewall rules to restrict access to exposed ports. Note that [`Addresses.Swarm`](#addressesswarm) is special - all incoming traffic to swarm ports should be allowed to ensure proper P2P connectivity. See [`docs/production/firewall.md`](./production/firewall.md) for a `ufw` walkthrough.
 - Control which public-facing addresses are announced to other peers using [`Addresses.NoAnnounce`](#addressesnoannounce), [`Addresses.Announce`](#addressesannounce), and [`Addresses.AppendAnnounce`](#addressesappendannounce)
 - Consider using the [`server` profile](#server-profile) for production deployments
 

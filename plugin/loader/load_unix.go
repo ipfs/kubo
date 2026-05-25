@@ -1,4 +1,5 @@
-//go:build cgo && !noplugin && (linux || darwin || freebsd)
+// Plugin loading with cgo (uses dlopen to load .so plugins at runtime).
+//go:build (linux || darwin || freebsd) && cgo && !noplugin
 
 package loader
 

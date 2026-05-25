@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ipfs/boxo/blockstore"
+	"github.com/ipfs/boxo/dag/walker"
 	"github.com/ipfs/boxo/fetcher"
 	"github.com/ipfs/boxo/mfs"
 	pin "github.com/ipfs/boxo/pinning/pinner"
@@ -21,6 +23,7 @@ import (
 	"github.com/ipfs/go-datastore/query"
 	log "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
 	irouting "github.com/ipfs/kubo/routing"
@@ -54,6 +57,11 @@ const (
 
 	// KeystoreDatastorePath is the base directory for the provider keystore datastores.
 	KeystoreDatastorePath = "provider-keystore"
+
+	// reprovideLastUniqueCountKey stores the unique CID count from
+	// the last +unique reprovide cycle, used to size the next cycle's
+	// bloom filter.
+	reprovideLastUniqueCountKey = "/reprovideLastUniqueCount"
 )
 
 var (
@@ -62,6 +70,13 @@ var (
 	// Datastore namespace key for provider keystore data.
 	keystoreDatastoreKey = datastore.NewKey("keystore")
 )
+
+// providerLog is the go-log subsystem used for provide/reprovide-related
+// messages emitted from kubo's own orchestration code. It shares the
+// "provider" subsystem name with boxo's provider package so users can set
+// GOLOG_LOG_LEVEL=provider=<level> to control both layers at once. See
+// docs/debug-guide.md for the full list of provide-related subsystems.
+var providerLog = log.Logger("provider")
 
 var errAcceleratedDHTNotReady = errors.New("AcceleratedDHTClient: routing table not ready")
 
@@ -230,7 +245,7 @@ func LegacyProviderOpt(reprovideInterval time.Duration, strategy string, acceler
 								KeysOnly: true,
 							})
 							if err != nil {
-								logger.Errorf("fetching AllKeysChain in provider ThroughputReport: %v", err)
+								providerLog.Errorf("fetching AllKeysChain in provider ThroughputReport: %v", err)
 								return false
 							}
 							defer qr.Close()
@@ -251,7 +266,7 @@ func LegacyProviderOpt(reprovideInterval time.Duration, strategy string, acceler
 									// How long per block that lasts us.
 									expectedProvideSpeed := reprovideInterval / probableBigBlockstore
 									if avgProvideSpeed > expectedProvideSpeed {
-										logger.Errorf(`
+										providerLog.Errorf(`
 🔔🔔🔔 Reprovide Operations Too Slow 🔔🔔🔔
 
 Your node may be falling behind on DHT reprovides, which could affect content availability.
@@ -280,7 +295,7 @@ Learn more: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide`,
 						}
 
 						if avgProvideSpeed > expectedProvideSpeed {
-							logger.Errorf(`
+							providerLog.Errorf(`
 🔔🔔🔔 Reprovide Operations Too Slow 🔔🔔🔔
 
 Your node is falling behind on DHT reprovides, which will affect content availability.
@@ -307,7 +322,7 @@ Learn more: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide`,
 			}
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
-					return sys.Close()
+					return shutdown.CloseWithCtx(ctx, "legacy-provider", sys.Close)
 				},
 			})
 
@@ -423,7 +438,7 @@ func findRootDatastoreSpec(spec map[string]any) map[string]any {
 		return spec
 	default:
 		if _, hasChild := spec["child"]; hasChild {
-			logger.Warnw("unrecognized datastore wrapper type, using as-is",
+			providerLog.Warnw("unrecognized datastore wrapper type, using as-is",
 				"type", spec["type"])
 		}
 		return spec
@@ -578,13 +593,18 @@ func purgeOrphanedKeystoreData(ctx context.Context, ds datastore.Batching) error
 		}
 	}
 	if count > 0 {
-		logger.Infow("purged orphaned provider keystore data from shared datastore", "keys", count)
+		providerLog.Infow("purged orphaned provider keystore data from shared datastore", "keys", count)
 	}
 	return nil
 }
 
 func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
+	// noScheduleMode is true when the user disabled the periodic reprovide
+	// schedule (Provide.DHT.Interval=0). In this mode the keystore is
+	// inert: kad-dht's burst-only path (ProvideOnce, StartProviding) does
+	// not Put or Delete keys, and no reprovide loop runs to read them.
+	noScheduleMode := reprovideInterval == 0
 	type providerInput struct {
 		fx.In
 		DHT  routing.Routing `name:"dhtc"`
@@ -611,9 +631,9 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if err := validateKeystoreSuffix(suffix); err != nil {
 				return nil, err
 			}
-			// When no datastore spec is configured (e.g., test/mock repos),
-			// fall back to an in-memory datastore.
-			if rootSpec == nil {
+			// In-memory datastore in no-schedule mode (keystore is inert)
+			// or when no datastore spec is configured (test/mock repos).
+			if noScheduleMode || rootSpec == nil {
 				return datastore.NewMapDatastore(), nil
 			}
 			if err := os.MkdirAll(keystoreBasePath, 0o755); err != nil {
@@ -623,7 +643,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if err != nil {
 				return nil, err
 			}
-			logger.Infow("provider keystore: opened datastore", "suffix", suffix, "path", filepath.Join(keystoreBasePath, suffix))
+			providerLog.Infow("provider keystore: opened datastore", "suffix", suffix, "path", filepath.Join(keystoreBasePath, suffix))
 			return ds, nil
 		}
 
@@ -631,8 +651,23 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if err := validateKeystoreSuffix(suffix); err != nil {
 				return err
 			}
-			logger.Infow("provider keystore: removing datastore from disk", "suffix", suffix, "path", filepath.Join(keystoreBasePath, suffix))
+			if noScheduleMode {
+				return nil
+			}
+			providerLog.Infow("provider keystore: removing datastore from disk", "suffix", suffix, "path", filepath.Join(keystoreBasePath, suffix))
 			return os.RemoveAll(filepath.Join(keystoreBasePath, suffix))
+		}
+
+		// In no-schedule mode the on-disk keystore is never used. If a
+		// previous run was in schedule mode it may have left data behind;
+		// purge it once on startup to free disk.
+		if noScheduleMode {
+			if _, statErr := os.Stat(keystoreBasePath); statErr == nil {
+				providerLog.Infow("provider keystore: purging on-disk data (Provide.DHT.Interval=0)", "path", keystoreBasePath)
+				if rmErr := os.RemoveAll(keystoreBasePath); rmErr != nil {
+					providerLog.Warnw("provider keystore: purge failed", "path", keystoreBasePath, "err", rmErr)
+				}
+			}
 		}
 
 		// One-time cleanup of stale keystore data left by older Kubo in the
@@ -649,7 +684,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		// NewResettableKeystore to avoid racing with reads on the same
 		// namespace.
 		if _, statErr := os.Stat(keystoreBasePath); os.IsNotExist(statErr) {
-			logger.Infow("migrating provider keystore data from shared datastore to separate filesystem datastores", "path", keystoreBasePath)
+			providerLog.Infow("migrating provider keystore data from shared datastore to separate filesystem datastores", "path", keystoreBasePath)
 			// Create a cancellable context for the purge. The OnStop hook
 			// below calls purgeCancel when the node receives a shutdown
 			// signal (e.g., SIGINT), which interrupts the purge loop
@@ -663,12 +698,12 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			})
 			if purgeErr := purgeOrphanedKeystoreData(purgeCtx, in.Repo.Datastore()); purgeErr != nil {
 				if purgeCtx.Err() != nil {
-					logger.Infow("provider keystore migration interrupted by shutdown, will resume on next start")
+					providerLog.Infow("provider keystore migration interrupted by shutdown, will resume on next start")
 				} else {
-					logger.Warnw("provider keystore migration failed, will retry on next start", "error", purgeErr)
+					providerLog.Warnw("provider keystore migration failed, will retry on next start", "error", purgeErr)
 				}
 			} else {
-				logger.Infow("provider keystore migration completed")
+				providerLog.Infow("provider keystore migration completed")
 			}
 			purgeCancel()
 		}
@@ -731,6 +766,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
 					ddhtprovider.WithOfflineDelay(cfg.Provide.DHT.OfflineDelay.WithDefault(config.DefaultProvideDHTOfflineDelay)),
 					ddhtprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
+					ddhtprovider.WithSendProviderRecordTimeout(cfg.Provide.DHT.SendProviderRecordTimeout.WithDefault(config.DefaultProvideDHTSendProviderRecordTimeout)),
 
 					ddhtprovider.WithMaxWorkers(int(cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers))),
 					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Provide.DHT.DedicatedPeriodicWorkers.WithDefault(config.DefaultProvideDHTDedicatedPeriodicWorkers))),
@@ -776,6 +812,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			dhtprovider.WithMaxReprovideDelay(time.Hour),
 			dhtprovider.WithOfflineDelay(cfg.Provide.DHT.OfflineDelay.WithDefault(config.DefaultProvideDHTOfflineDelay)),
 			dhtprovider.WithConnectivityCheckOnlineInterval(1 * time.Minute),
+			dhtprovider.WithSendProviderRecordTimeout(cfg.Provide.DHT.SendProviderRecordTimeout.WithDefault(config.DefaultProvideDHTSendProviderRecordTimeout)),
 
 			dhtprovider.WithMaxWorkers(int(cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers))),
 			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Provide.DHT.DedicatedPeriodicWorkers.WithDefault(config.DefaultProvideDHTDedicatedPeriodicWorkers))),
@@ -803,6 +840,12 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		if _, ok := in.Provider.(*NoopProvider); ok {
 			return
 		}
+		// In no-schedule mode no reprovide loop runs, so there is no
+		// reader for the keystore and no need to sync it. The zero
+		// interval would also panic the periodic sync ticker.
+		if noScheduleMode {
+			return
+		}
 
 		var (
 			cancel context.CancelFunc
@@ -818,7 +861,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				return err
 			}
 			if err := in.Provider.RefreshSchedule(); err != nil {
-				logger.Infow("refreshing provider schedule", "err", err)
+				providerLog.Infow("refreshing provider schedule", "err", err)
 			}
 			return nil
 		}
@@ -835,16 +878,20 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					// we need to walk the DAG of objects matching the provide strategy,
 					// which can take a while.
 					strategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
-					logger.Infow("provider keystore sync started", "strategy", strategy)
+					providerLog.Infow("provider keystore sync started", "strategy", strategy)
 					if err := syncKeystore(ctx); err != nil {
-						if ctx.Err() == nil {
-							logger.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
+						// ErrClosed means the keystore was closed by the shutdown
+						// hook while this goroutine was still in flight: the
+						// OnStart ctx is not cancelled yet, so we classify the
+						// failure as shutdown explicitly.
+						if ctx.Err() != nil || errors.Is(err, keystore.ErrClosed) {
+							providerLog.Debugw("provider keystore sync interrupted by shutdown", "err", err, "strategy", strategy)
 						} else {
-							logger.Debugw("provider keystore sync interrupted by shutdown", "err", err, "strategy", strategy)
+							providerLog.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
 						}
 						return
 					}
-					logger.Infow("provider keystore sync completed", "strategy", strategy)
+					providerLog.Infow("provider keystore sync completed", "strategy", strategy)
 				}()
 
 				gcCtx, c := context.WithCancel(context.Background())
@@ -861,7 +908,11 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 							return
 						case <-ticker.C:
 							if err := syncKeystore(gcCtx); err != nil {
-								logger.Errorw("provider keystore sync", "err", err)
+								if gcCtx.Err() != nil || errors.Is(err, keystore.ErrClosed) {
+									providerLog.Debugw("provider keystore sync interrupted by shutdown", "err", err)
+								} else {
+									providerLog.Errorw("provider keystore sync failed", "err", err)
+								}
 							}
 						}
 					}
@@ -905,14 +956,15 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				// Close provider first - waits for all worker goroutines to exit.
-				// This ensures no code can access keystore after this returns.
-				if err := in.Provider.Close(); err != nil {
-					logger.Errorw("error closing provider during shutdown", "error", err)
+				// Close provider first; waits for all worker goroutines
+				// to exit so nothing can access the keystore after this
+				// returns. If ctx fires before provider drains, the
+				// keystore close below sees an expired ctx and returns
+				// immediately; the watchdog is the ultimate backstop.
+				if err := shutdown.CloseWithCtx(ctx, "dht-provider", in.Provider.Close); err != nil {
+					providerLog.Errorw("error closing provider during shutdown", "error", err)
 				}
-
-				// Close keystore - safe now, provider is fully shut down
-				return in.Keystore.Close()
+				return shutdown.CloseWithCtx(ctx, "keystore", in.Keystore.Close)
 			},
 		})
 	})
@@ -973,7 +1025,16 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 						case <-ticker.C:
 						}
 
-						stats := prov.Stats()
+						statsCtx, statsCancel := context.WithTimeout(gcCtx, time.Minute)
+						stats, err := prov.Stats(statsCtx)
+						statsCancel()
+						if err != nil {
+							if gcCtx.Err() != nil {
+								return
+							}
+							providerLog.Debugw("provider stats unavailable for reprovide alert", "err", err)
+							continue
+						}
 						queuedWorkers = stats.Workers.QueuedPeriodic > 0
 						queueSize = int64(stats.Queues.PendingRegionReprovides)
 
@@ -982,7 +1043,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 						if prevQueuedWorkers && queuedWorkers && queueSize > prevQueueSize {
 							count++
 							if count >= consecutiveAlertsThreshold {
-								logger.Errorf(`
+								providerLog.Errorf(`
 🔔🔔🔔 Reprovide Operations Too Slow 🔔🔔🔔
 
 Your node is falling behind on DHT reprovides, which will affect content availability.
@@ -1094,13 +1155,14 @@ func OnlineProviders(provide bool, cfg *config.Config) fx.Option {
 
 	providerStrategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 
-	strategyFlag := config.ParseProvideStrategy(providerStrategy)
-	if strategyFlag == 0 {
-		return fx.Error(fmt.Errorf("provider: unknown strategy %q", providerStrategy))
+	if _, err := config.ParseProvideStrategy(providerStrategy); err != nil {
+		return fx.Error(fmt.Errorf("provider: %w", err))
 	}
 
+	bloomFPRate := uint(cfg.Provide.BloomFPRate.WithDefault(config.DefaultProvideBloomFPRate))
+
 	opts := []fx.Option{
-		fx.Provide(setReproviderKeyProvider(providerStrategy)),
+		fx.Provide(setReproviderKeyProvider(providerStrategy, bloomFPRate)),
 	}
 
 	sweepEnabled := cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled)
@@ -1162,13 +1224,188 @@ type provStrategyOut struct {
 	ProvidingKeyChanFunc provider.KeyChanFunc
 }
 
+// readLastUniqueCount reads the persisted unique CID count from the
+// previous +unique reprovide cycle. Returns 0 if not found or corrupt.
+func readLastUniqueCount(ds datastore.Datastore) uint64 {
+	val, err := ds.Get(context.Background(), datastore.NewKey(reprovideLastUniqueCountKey))
+	if err != nil {
+		return 0
+	}
+	if len(val) != 8 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(val)
+}
+
+// persistUniqueCount stores the unique CID count for the next cycle.
+func persistUniqueCount(ds datastore.Datastore, count uint64) {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, count)
+	if err := ds.Put(context.Background(), datastore.NewKey(reprovideLastUniqueCountKey), buf); err != nil {
+		providerLog.Errorf("failed to persist unique count: %s", err)
+	}
+}
+
+// walkFunc abstracts a DAG walk (WalkDAG or WalkEntityRoots) so the
+// MFS provider can be parameterized without duplicating the
+// flush+walk+channel boilerplate.
+type walkFunc func(ctx context.Context, root cid.Cid, emit func(cid.Cid) bool, opts ...walker.Option) error
+
+// uniqueMFSProvider is the +unique counterpart of mfsProvider. It
+// flushes the MFS root, then walks the MFS DAG with a shared
+// VisitedTracker and a locality check (blockstore.Has) so only
+// locally-present blocks are emitted.
+func uniqueMFSProvider(mfsRoot *mfs.Root, bs blockstore.Blockstore, tracker walker.VisitedTracker) provider.KeyChanFunc {
+	walk := func(ctx context.Context, root cid.Cid, emit func(cid.Cid) bool, opts ...walker.Option) error {
+		return walker.WalkDAG(ctx, root, walker.LinksFetcherFromBlockstore(bs), emit, opts...)
+	}
+	return mfsWalkProvider(mfsRoot, bs, tracker, walk)
+}
+
+// mfsEntityRootsProvider is the +entities counterpart. It walks with
+// WalkEntityRoots, emitting only entity roots and skipping file chunks.
+func mfsEntityRootsProvider(mfsRoot *mfs.Root, bs blockstore.Blockstore, tracker walker.VisitedTracker) provider.KeyChanFunc {
+	walk := func(ctx context.Context, root cid.Cid, emit func(cid.Cid) bool, opts ...walker.Option) error {
+		return walker.WalkEntityRoots(ctx, root, walker.NodeFetcherFromBlockstore(bs), emit, opts...)
+	}
+	return mfsWalkProvider(mfsRoot, bs, tracker, walk)
+}
+
+// mfsWalkProvider builds a KeyChanFunc that flushes MFS, then walks
+// with the given walkFunc using a shared tracker and locality check.
+func mfsWalkProvider(mfsRoot *mfs.Root, bs blockstore.Blockstore, tracker walker.VisitedTracker, walk walkFunc) provider.KeyChanFunc {
+	return func(ctx context.Context) (<-chan cid.Cid, error) {
+		if err := mfsRoot.FlushMemFree(ctx); err != nil {
+			return nil, fmt.Errorf("provider: error flushing MFS: %w", err)
+		}
+		rootNode, err := mfsRoot.GetDirectory().GetNode()
+		if err != nil {
+			return nil, fmt.Errorf("provider: error loading MFS root: %w", err)
+		}
+
+		ch := make(chan cid.Cid)
+		go func() {
+			defer close(ch)
+			locality := func(ctx context.Context, c cid.Cid) (bool, error) {
+				return bs.Has(ctx, c)
+			}
+			_ = walk(ctx, rootNode.Cid(), func(c cid.Cid) bool {
+				select {
+				case ch <- c:
+					return true
+				case <-ctx.Done():
+					return false
+				}
+			}, walker.WithVisitedTracker(tracker), walker.WithLocality(locality))
+		}()
+		return ch, nil
+	}
+}
+
 // createKeyProvider creates the appropriate KeyChanFunc based on strategy.
-// Each strategy has different behavior:
-// - "roots": Only root CIDs of pinned content
-// - "pinned": All pinned content (roots + children)
-// - "mfs": Only MFS content
-// - "all": all blocks
-func createKeyProvider(strategyFlag config.ProvideStrategy, in provStrategyIn) provider.KeyChanFunc {
+// fpRate is the bloom filter target false-positive rate (1/N) used by
+// +unique and +entities cycles. Ignored by other strategies.
+func createKeyProvider(strategyFlag config.ProvideStrategy, fpRate uint, in provStrategyIn) provider.KeyChanFunc {
+	// +unique modifier: use bloom filter cross-DAG dedup
+	useUnique := strategyFlag&config.ProvideStrategyUnique != 0
+	if useUnique {
+		basePinned := strategyFlag&config.ProvideStrategyPinned != 0
+		baseMFS := strategyFlag&config.ProvideStrategyMFS != 0
+		ds := in.Repo.Datastore()
+
+		// return a KeyChanFunc that creates a fresh bloom each cycle
+		return func(ctx context.Context) (<-chan cid.Cid, error) {
+			count := readLastUniqueCount(ds)
+			// size the bloom from the previous cycle's count (with growth
+			// margin for repo changes between cycles), falling back to
+			// DefaultBloomInitialCapacity on the very first cycle. The
+			// bloom chain auto-grows if the repo exceeds this estimate.
+			expectedItems := max(
+				uint64(walker.DefaultBloomInitialCapacity),
+				uint64(float64(count)*walker.BloomGrowthMargin),
+			)
+			// the tracker is shared across all sub-walks (MFS, recursive
+			// pins, direct pins) within a single reprovide cycle. it
+			// detects duplicate sub-DAG branches across recursive pins
+			// that share content (e.g. append-only datasets where each
+			// version differs by a small delta). when a CID is already
+			// in the bloom, its entire subtree is skipped, reducing
+			// traversal from O(pins * total_blocks) to O(unique_blocks).
+			tracker, err := walker.NewBloomTracker(uint(expectedItems), fpRate)
+			if err != nil {
+				return nil, fmt.Errorf("bloom tracker: %w", err)
+			}
+
+			useEntities := strategyFlag&config.ProvideStrategyEntities != 0
+
+			// select provider functions based on +entities modifier:
+			// +entities uses WalkEntityRoots (skips file chunks),
+			// +unique without +entities uses WalkDAG (all blocks).
+			makePinProv := dspinner.NewUniquePinnedProvider
+			makeMFSProv := uniqueMFSProvider
+			if useEntities {
+				makePinProv = dspinner.NewPinnedEntityRootsProvider
+				makeMFSProv = mfsEntityRootsProvider
+			}
+
+			var inner provider.KeyChanFunc
+			switch {
+			case basePinned && baseMFS:
+				// MFS first: walk MFS (locality-filtered), then pinned.
+				// NewConcatProvider (not NewPrioritizedProvider) because
+				// the shared bloom tracker already guarantees each CID
+				// is emitted at most once -- no need for a second dedup
+				// layer. NewBufferedProvider decouples the pinned
+				// provider so the pinner lock is released promptly.
+				inner = provider.NewConcatProvider(
+					makeMFSProv(in.MFSRoot, in.Blockstore, tracker),
+					provider.NewBufferedProvider(
+						makePinProv(in.Pinner, in.Blockstore, tracker)),
+				)
+			case basePinned:
+				inner = provider.NewBufferedProvider(
+					makePinProv(in.Pinner, in.Blockstore, tracker))
+			case baseMFS:
+				inner = makeMFSProv(in.MFSRoot, in.Blockstore, tracker)
+			default:
+				return nil, fmt.Errorf("provider: +unique requires pinned and/or mfs")
+			}
+
+			// wrap inner channel to persist bloom count on successful close
+			innerCh, err := inner(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			ch := make(chan cid.Cid)
+			go func() {
+				defer func() {
+					if ctx.Err() == nil {
+						persistUniqueCount(ds, tracker.Count())
+					}
+					providerLog.Infow("unique reprovide cycle finished",
+						"providedCIDs", tracker.Count(),
+						"skippedBranches", tracker.Deduplicated())
+					close(ch)
+				}()
+				for c := range innerCh {
+					select {
+					case ch <- c:
+					case <-ctx.Done():
+						return
+					}
+				}
+			}()
+
+			providerLog.Infow("unique reprovide cycle started",
+				"expectedItems", expectedItems,
+				"previousCount", count,
+			)
+			return ch, nil
+		}
+	}
+
+	// non-unique strategies (unchanged)
 	switch strategyFlag {
 	case config.ProvideStrategyRoots:
 		return provider.NewBufferedProvider(dspinner.NewPinnedProvider(true, in.Pinner, in.OfflineIPLDFetcher))
@@ -1223,7 +1460,7 @@ func handleStrategyChange(strategy string, provider DHTProvider, ds datastore.Da
 
 	previous, changed, err := detectStrategyChange(ctx, strategy, ds)
 	if err != nil {
-		logger.Error("cannot read previous reprovide strategy", "err", err)
+		providerLog.Error("cannot read previous reprovide strategy", "err", err)
 		return
 	}
 
@@ -1231,20 +1468,20 @@ func handleStrategyChange(strategy string, provider DHTProvider, ds datastore.Da
 		return
 	}
 
-	logger.Infow("Provide.Strategy changed, clearing provide queue", "previous", previous, "current", strategy)
+	providerLog.Infow("Provide.Strategy changed, clearing provide queue", "previous", previous, "current", strategy)
 	provider.Clear()
 
 	if err := persistStrategy(ctx, strategy, ds); err != nil {
-		logger.Error("cannot update reprovide strategy", "err", err)
+		providerLog.Error("cannot update reprovide strategy", "err", err)
 	}
 }
 
-func setReproviderKeyProvider(strategy string) func(in provStrategyIn) provStrategyOut {
-	strategyFlag := config.ParseProvideStrategy(strategy)
+func setReproviderKeyProvider(strategy string, fpRate uint) func(in provStrategyIn) provStrategyOut {
+	strategyFlag := config.MustParseProvideStrategy(strategy)
 
 	return func(in provStrategyIn) provStrategyOut {
 		// Create the appropriate key provider based on strategy
-		kcf := createKeyProvider(strategyFlag, in)
+		kcf := createKeyProvider(strategyFlag, fpRate, in)
 		return provStrategyOut{
 			ProvidingStrategy:    strategyFlag,
 			ProvidingKeyChanFunc: kcf,
