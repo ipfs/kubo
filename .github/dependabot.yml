@@ -18,8 +18,6 @@ updates:
       - dependency-name: "github.com/cockroachdb/pebble*"
       - dependency-name: "github.com/syndtr/goleveldb"
       - dependency-name: "github.com/dgraph-io/badger*"
-      # pb v1/v2 replaced by pb/v3; ignore the old module path
-      - dependency-name: "github.com/cheggaaa/pb"
     groups:
       ipfs-ecosystem:
         patterns:
