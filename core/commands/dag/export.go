@@ -1,7 +1,6 @@
 package dagcmd
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +9,8 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
+	blockstore "github.com/ipfs/boxo/blockstore"
+	"github.com/ipfs/boxo/dag/walker"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -17,10 +18,8 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	gocar "github.com/ipld/go-car/v2"
-	"github.com/ipld/go-ipld-prime/datamodel"
-	"github.com/ipld/go-ipld-prime/linking"
+	carstorage "github.com/ipld/go-car/v2/storage"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
-	"github.com/ipld/go-ipld-prime/traversal"
 	selectorparse "github.com/ipld/go-ipld-prime/traversal/selector/parse"
 )
 
@@ -60,6 +59,15 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	}
 	c := b.Path().RootCid()
 
+	var bs blockstore.Blockstore
+	if localOnly {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+		bs = node.Blockstore
+	}
+
 	pipeR, pipeW := io.Pipe()
 
 	errCh := make(chan error, 2) // we only report the 1st error
@@ -71,26 +79,15 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			close(errCh)
 		}()
 
-		lsys := cidlink.DefaultLinkSystem()
-		ds := &dagStore{dag: api.Dag(), ctx: req.Context}
 		if localOnly {
-			lsys.StorageReadOpener = func(lctx linking.LinkContext, lnk datamodel.Link) (io.Reader, error) {
-				cl, ok := lnk.(cidlink.Link)
-				if !ok {
-					return nil, fmt.Errorf("unsupported link type: %T", lnk)
-				}
-				block, err := ds.dag.Get(lctx.Ctx, cl.Cid)
-				if err != nil {
-					if ipld.IsNotFound(err) {
-						return nil, traversal.SkipMe{}
-					}
-					return nil, fmt.Errorf("local block read failed: %w", err)
-				}
-				return bytes.NewReader(block.RawData()), nil
+			if err := exportPartialCAR(req.Context, bs, c, pipeW); err != nil {
+				errCh <- err
 			}
-		} else {
-			lsys.SetReadStorage(ds)
+			return
 		}
+
+		lsys := cidlink.DefaultLinkSystem()
+		lsys.SetReadStorage(&dagStore{dag: api.Dag(), ctx: req.Context})
 
 		// Uncomment the following to support CARv2 output.
 		/*
@@ -135,6 +132,51 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	return err
+}
+
+// exportPartialCAR is the best-effort engine behind `dag export --local-only`.
+// It walks the DAG rooted at root using only the local blockstore and writes
+// the visited blocks to w as a CARv1 stream. Any block that is missing or
+// unreadable locally (and its entire subtree) is treated as "not available
+// locally" and skipped. The resulting CAR is therefore partial by design.
+//
+// Errors writing the CAR itself (i.e. emit failures) are surfaced — those
+// are output problems, not local-availability problems.
+//
+// This mirrors the MFS+unique provider in core/node/provider.go.
+func exportPartialCAR(ctx context.Context, bs blockstore.Blockstore, root cid.Cid, w io.Writer) error {
+	writable, err := carstorage.NewWritable(w, []cid.Cid{root}, gocar.WriteAsCarV1(true))
+	if err != nil {
+		return err
+	}
+
+	// Capture the first emit (write-side) error so the walk stops cleanly.
+	var emitErr error
+	emit := func(k cid.Cid) bool {
+		blk, err := bs.Get(ctx, k)
+		if err != nil {
+			// Any read error after locality passed (e.g. GC race,
+			// corruption) is treated as "not available locally" — skip
+			// the block and keep streaming the rest of the partial CAR.
+			return true
+		}
+		if err := writable.Put(ctx, k.KeyString(), blk.RawData()); err != nil {
+			emitErr = err
+			return false
+		}
+		return true
+	}
+
+	// walker.WithLocality + walker.LinksFetcherFromBlockstore also skip-and-log
+	// on locality/fetch errors, which matches the best-effort semantics here.
+	if err := walker.WalkDAG(ctx, root,
+		walker.LinksFetcherFromBlockstore(bs),
+		emit,
+		walker.WithLocality(func(ctx context.Context, k cid.Cid) (bool, error) { return bs.Has(ctx, k) }),
+	); err != nil {
+		return err
+	}
+	return emitErr
 }
 
 func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {

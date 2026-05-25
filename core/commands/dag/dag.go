@@ -283,6 +283,10 @@ var DagExportCmd = &cmds.Command{
 Note that at present only single root selections / .car files are supported.
 The output of blocks happens in strict DAG-traversal, first-seen, order.
 CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
+
+Use --local-only for a best-effort export from the local blockstore: blocks
+that are missing or unreadable locally (and their subtrees) are skipped, so
+the resulting CAR is partial. --local-only implies --offline.
 `,
 		HTTP: &cmds.HTTPHelpText{
 			ResponseContentType: "application/vnd.ipld.car",
@@ -293,7 +297,7 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data. Defaults to true when stderr is a terminal."),
-		cmds.BoolOption(localOnlyOptionName, "Export only blocks present in the local blockstore; missing blocks are skipped (partial CAR). Implies --offline."),
+		cmds.BoolOption(localOnlyOptionName, "Best-effort export of locally-available blocks; missing or unreadable blocks (and their subtrees) are skipped. Implies --offline."),
 	},
 	Run: dagExport,
 	PostRun: cmds.PostRunMap{
