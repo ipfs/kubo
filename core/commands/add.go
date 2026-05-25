@@ -13,7 +13,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
-	"github.com/cheggaaa/pb"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/ipfs/boxo/files"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	mfs "github.com/ipfs/boxo/mfs"
@@ -76,6 +76,11 @@ const (
 
 const (
 	adderOutChanSize = 8
+
+	// pb/v3 template used before the upload total is known: only the
+	// running byte counter and current speed. Swapped for
+	// cmdenv.ProgressBarFullTemplate once size discovery reports.
+	progressBarInitTemplate = `{{counters . }} {{speed . "%s/s" "?/s"}}`
 )
 
 var AddCmd = &cmds.Command{
@@ -252,7 +257,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 		cmds.BoolOption(silentOptionName, "Write no output."),
-		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data. Defaults to true when stderr is a terminal."),
 		// Basic Add Behavior
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
@@ -292,10 +297,10 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		silent, _ := req.Options[silentOptionName].(bool)
 
 		if !quiet && !silent {
-			// ipfs cli progress bar defaults to true unless quiet or silent is used
+			// default to showing progress only when stderr is a terminal
 			_, found := req.Options[progressOptionName].(bool)
 			if !found {
-				req.Options[progressOptionName] = true
+				req.Options[progressOptionName] = cmdenv.IsTerminal(os.Stderr)
 			}
 		}
 
@@ -732,11 +737,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 				var bar *pb.ProgressBar
 				if progress {
-					bar = pb.New64(0).SetUnits(pb.U_BYTES)
-					bar.ManualUpdate = true
-					bar.ShowTimeLeft = false
-					bar.ShowPercent = false
-					bar.Output = os.Stderr
+					bar = pb.New64(0).Set(pb.Bytes, true).Set(pb.Static, true).SetWriter(os.Stderr)
+					bar.SetTemplateString(progressBarInitTemplate)
 					bar.Start()
 				}
 
@@ -786,18 +788,17 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 							}
 							lastBytes = output.Bytes
 							delta := prevFiles + lastBytes - totalProgress
-							totalProgress = bar.Add64(delta)
+							bar.Add64(delta)
+							totalProgress = bar.Current()
 						}
 
 						if progress {
-							bar.Update()
+							bar.Write()
 						}
 					case size := <-sizeChan:
 						if progress {
-							bar.Total = size
-							bar.ShowPercent = true
-							bar.ShowBar = true
-							bar.ShowTimeLeft = true
+							bar.SetTotal(size)
+							bar.SetTemplateString(cmdenv.ProgressBarFullTemplate)
 						}
 					case <-req.Context.Done():
 						// don't set or print error here, that happens in the goroutine below
@@ -805,12 +806,19 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 					}
 				}
 
-				if progress && bar.Total == 0 && bar.Get() != 0 {
-					bar.Total = bar.Get()
-					bar.ShowPercent = true
-					bar.ShowBar = true
-					bar.ShowTimeLeft = true
-					bar.Update()
+				if progress {
+					// If size discovery never reported, treat the
+					// observed bytes as the total so the final frame
+					// renders the bar and percent.
+					if bar.Total() == 0 && bar.Current() != 0 {
+						bar.SetTotal(bar.Current())
+						bar.SetTemplateString(cmdenv.ProgressBarFullTemplate)
+					}
+					// Finish first so the speed element switches to
+					// the absolute-rate branch (total/elapsed) when
+					// EWMA never accumulated a sample on fast adds.
+					bar.Finish()
+					bar.Write()
 				}
 			}
 

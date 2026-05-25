@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/cheggaaa/pb"
+	"github.com/cheggaaa/pb/v3"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -19,6 +19,13 @@ import (
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	selectorparse "github.com/ipld/go-ipld-prime/traversal/selector/parse"
 )
+
+// pb/v3 template for `ipfs dag export`: byte counter, speed, and
+// elapsed time. No bar/percent/ETA because the total size of the
+// CAR stream is not known up front. The explicit "%s/s" speed
+// format overrides pb's default "p/s" suffix so the rate renders
+// as "MiB/s".
+const progressBarTemplate = `{{counters . }} {{speed . "%s/s" "?/s"}} {{etime . }}`
 
 func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 	// Accept CID or a content path
@@ -99,28 +106,12 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 }
 
 func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
-	var showProgress bool
-	val, specified := res.Request().Options[progressOptionName]
-	if !specified {
-		// default based on TTY availability
-		errStat, _ := os.Stderr.Stat()
-		if (errStat.Mode() & os.ModeCharDevice) != 0 {
-			showProgress = true
-		}
-	} else if val.(bool) {
-		showProgress = true
-	}
-
-	// simple passthrough, no progress
-	if !showProgress {
+	if !cmdenv.ShouldShowProgress(res.Request(), progressOptionName) {
 		return cmds.Copy(re, res)
 	}
 
-	bar := pb.New64(0).SetUnits(pb.U_BYTES)
-	bar.Output = os.Stderr
-	bar.ShowSpeed = true
-	bar.ShowElapsedTime = true
-	bar.RefreshRate = 500 * time.Millisecond
+	bar := pb.New64(0).Set(pb.Bytes, true).SetWriter(os.Stderr).SetRefreshRate(500 * time.Millisecond)
+	bar.SetTemplateString(progressBarTemplate)
 	bar.Start()
 
 	var processedOneResponse bool
