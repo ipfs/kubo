@@ -77,9 +77,15 @@ const (
 const (
 	adderOutChanSize = 8
 
-	// pb/v3 template rendering counters, bar, speed, percent, and ETA
-	// once the upload total is known.
-	progressBarFullTemplate = `{{counters . }} {{bar . }} {{speed . }} {{percent .}} {{rtime . "ETA %s"}}`
+	// pb/v3 template used before the upload total is known: only the
+	// running byte counter and current speed.
+	progressBarInitTemplate = `{{counters . }} {{speed . "%s/s" "?/s"}}`
+
+	// pb/v3 template used once the upload total is known: byte counter,
+	// bar, speed, percent, and ETA. Explicit format args override pb's
+	// defaults so the rate renders as "MiB/s" (not "MiB p/s") and the
+	// remaining time falls back to "ETA ?" while speed is unknown.
+	progressBarFullTemplate = `{{counters . }} {{bar . }} {{speed . "%s/s" "?/s"}} {{percent . }} {{rtime . "ETA %s" "%s" "ETA ?"}}`
 )
 
 var AddCmd = &cmds.Command{
@@ -737,7 +743,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 				var bar *pb.ProgressBar
 				if progress {
 					bar = pb.New64(0).Set(pb.Bytes, true).Set(pb.Static, true).SetWriter(os.Stderr)
-					bar.SetTemplateString(`{{counters . }} {{speed . }}`)
+					bar.SetTemplateString(progressBarInitTemplate)
 					bar.Start()
 				}
 

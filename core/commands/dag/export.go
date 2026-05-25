@@ -20,6 +20,13 @@ import (
 	selectorparse "github.com/ipld/go-ipld-prime/traversal/selector/parse"
 )
 
+// pb/v3 template for `ipfs dag export`: byte counter, speed, and
+// elapsed time. No bar/percent/ETA because the total size of the
+// CAR stream is not known up front. The explicit "%s/s" speed
+// format overrides pb's default "p/s" suffix so the rate renders
+// as "MiB/s".
+const progressBarTemplate = `{{counters . }} {{speed . "%s/s" "?/s"}} {{etime . }}`
+
 func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 	// Accept CID or a content path
 	p, err := cmdutils.PathOrCidPath(req.Arguments[0])
@@ -104,7 +111,7 @@ func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
 	}
 
 	bar := pb.New64(0).Set(pb.Bytes, true).SetWriter(os.Stderr).SetRefreshRate(500 * time.Millisecond)
-	bar.SetTemplateString(`{{counters . }} {{speed . }} {{etime . }}`)
+	bar.SetTemplateString(progressBarTemplate)
 	bar.Start()
 
 	var processedOneResponse bool
