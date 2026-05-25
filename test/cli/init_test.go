@@ -130,7 +130,7 @@ func TestInit(t *testing.T) {
 		node := harness.NewT(t).NewNode().Init("--profile=server")
 
 		lines := node.IPFS("config", "Swarm.AddrFilters").Stdout.Lines()
-		assert.Len(t, lines, 18)
+		assert.Len(t, lines, 21)
 
 		out := node.IPFS("config", "Bootstrap").Stdout.Trimmed()
 		assert.Equal(t, "[]", out)

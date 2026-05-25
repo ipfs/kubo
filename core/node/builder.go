@@ -4,12 +4,14 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"time"
 
 	"go.uber.org/fx"
 
 	"github.com/ipfs/boxo/autoconf"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/ipfs/kubo/repo"
 
 	ds "github.com/ipfs/go-datastore"
@@ -37,6 +39,11 @@ type BuildCfg struct {
 	Routing libp2p.RoutingOption
 	Host    libp2p.HostOption
 	Repo    repo.Repo
+
+	// ShutdownTimeout caps how long node.Close()'s call to app.Stop is
+	// allowed to take. Zero disables the cap (app.Stop runs with no
+	// deadline, matching the legacy "wait forever" behavior).
+	ShutdownTimeout time.Duration
 }
 
 func (cfg *BuildCfg) getOpt(key string) bool {
@@ -77,7 +84,7 @@ func (cfg *BuildCfg) options(ctx context.Context) (fx.Option, *cfg.Config) {
 	repoOption := fx.Provide(func(lc fx.Lifecycle) repo.Repo {
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				return cfg.Repo.Close()
+				return shutdown.CloseWithCtx(ctx, "repo", cfg.Repo.Close)
 			},
 		})
 

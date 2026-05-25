@@ -1,3 +1,4 @@
+// Excluded from plan9 (no fsnotify support).
 //go:build !plan9
 
 package cli

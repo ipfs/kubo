@@ -1,4 +1,4 @@
-name: Migrations
+name: Migrations & Update
 
 on:
   workflow_dispatch:
@@ -9,6 +9,9 @@ on:
       - 'test/cli/migrations/**'
       # Config and repo handling
       - 'repo/fsrepo/**'
+      # Update command
+      - 'core/commands/update*.go'
+      - 'test/cli/update_test.go'
       # This workflow file itself
       - '.github/workflows/test-migrations.yml'
   push:
@@ -19,6 +22,8 @@ on:
       - 'repo/fsrepo/migrations/**'
       - 'test/cli/migrations/**'
       - 'repo/fsrepo/**'
+      - 'core/commands/update*.go'
+      - 'test/cli/update_test.go'
       - '.github/workflows/test-migrations.yml'
 
 concurrency:
@@ -75,6 +80,28 @@ jobs:
           ipfs version || echo "Failed to run ipfs version"
           go test ./test/cli/migrations/...
 
+      # GitHub's macOS runners occasionally lose DNS for api.github.com,
+      # which breaks the real-network subtests in TestUpdate (see run
+      # 24222365595). Point the resolver at Cloudflare and Google so the
+      # runner is insulated from flaky upstream DNS.
+      - name: Configure DNS (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          networksetup -listallnetworkservices | tail -n +2 | while read -r svc; do
+            sudo networksetup -setdnsservers "$svc" 1.1.1.1 8.8.8.8 || true
+          done
+          sudo dscacheutil -flushcache
+          sudo killall -HUP mDNSResponder || true
+          scutil --dns | head -20 || true
+
+      - name: Run CLI update tests
+        env:
+          IPFS_PATH: ${{ runner.temp }}/ipfs-update-test
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          export PATH="${{ github.workspace }}/cmd/ipfs:$PATH"
+          go test -run "TestUpdate" ./test/cli/...
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
@@ -83,3 +110,4 @@ jobs:
           path: |
             test/**/*.log
             ${{ runner.temp }}/ipfs-test/
+            ${{ runner.temp }}/ipfs-update-test/

@@ -1,3 +1,4 @@
+// Signal handling. Excluded from wasm where os.Signal is unavailable.
 //go:build !wasm
 
 package util

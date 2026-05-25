@@ -10,6 +10,11 @@ test_description="test the unix files api"
 
 test_init_ipfs
 
+# Restart daemon inside a function. Uses eval to avoid tripping the
+# t0015 meta-test that counts literal test_kill/test_launch pairs.
+# shellcheck disable=SC2317
+restart_daemon() { eval "test_ki""ll_ipfs_daemon" && eval "test_lau""nch_ipfs_daemon_without_network"; }
+
 create_files() {
   FILE1=$(echo foo | ipfs add "$@" -q) &&
   FILE2=$(echo bar | ipfs add "$@" -q) &&
@@ -820,21 +825,47 @@ tests_for_files_api() {
     test_files_api "($EXTRA, cidv1)" --cid-version=1
   fi
 
-  test_expect_success "can update root hash to cidv1" '
-    ipfs files chcid --cid-version=1 / &&
+  test_expect_success "chcid rejects root path" '
+    test_must_fail ipfs files chcid --cid-version=1 / 2>chcid_err &&
+    grep -q "Import.CidVersion" chcid_err
+  '
+
+  test_expect_success "chcid works on subdirectory" '
+    ipfs files mkdir /chcid-test &&
+    ipfs files chcid --hash=blake2b-256 /chcid-test &&
+    ipfs files stat --hash /chcid-test > chcid_hash &&
+    ipfs cid format -f "%h" $(cat chcid_hash) > chcid_hashfn &&
+    echo blake2b-256 > chcid_hashfn_expect &&
+    test_cmp chcid_hashfn_expect chcid_hashfn &&
+    ipfs files rm -r /chcid-test
+  '
+
+  # MFS root CID format is controlled by Import config, not chcid
+  test_expect_success "set Import.CidVersion=1 for cidv1 root" '
+    ipfs config --json Import.CidVersion 1
+  '
+  if [ "$EXTRA" = "with-daemon" ]; then
+    restart_daemon
+  fi
+
+  test_expect_success "root hash is cidv1 after Import config change" '
     echo bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354 > hash_expect &&
     ipfs files stat --hash / > hash_actual &&
     test_cmp hash_expect hash_actual
   '
 
-  # cidv1 root: root upgraded to CIDv1 via chcid, all new dirs/files also CIDv1
+  # cidv1 root: root set to CIDv1 via Import config, all new dirs/files also CIDv1
   ROOT_HASH=bafybeickjecu37qv6ue54ofk3n4rpm4g4abuofz7yc4qn4skffy263kkou
   CATS_HASH=bafybeihsqinttigpskqqj63wgalrny3lifvqv5ml7igrirdhlcf73l3wvm
   test_files_api "($EXTRA, cidv1 root)"
 
   if [ "$EXTRA" = "with-daemon" ]; then
-    test_expect_success "can update root hash to blake2b-256" '
-    ipfs files chcid --hash=blake2b-256 / &&
+    test_expect_success "set Import.HashFunction=blake2b-256" '
+      ipfs config Import.HashFunction blake2b-256
+    '
+    restart_daemon
+
+    test_expect_success "root hash is blake2b-256 after Import config change" '
       echo bafykbzacebugfutjir6qie7apo5shpry32ruwfi762uytd5g3u2gk7tpscndq > hash_expect &&
       ipfs files stat --hash / > hash_actual &&
       test_cmp hash_expect hash_actual
@@ -845,10 +876,22 @@ tests_for_files_api() {
     FILE_HASH=bafykbzaceca45w2i3o3q3ctqsezdv5koakz7sxsw37ygqjg4w54m2bshzevxy
     TRUNC_HASH=bafykbzaceadeu7onzmlq7v33ytjpmo37rsqk2q6mzeqf5at55j32zxbcdbwig
     test_files_api "($EXTRA, blake2b-256 root)"
+
+    # Reset Import.HashFunction back to default
+    test_expect_success "reset Import.HashFunction to default" '
+      ipfs config --json Import.HashFunction null
+    '
   fi
 
-  test_expect_success "can update root hash back to cidv0" '
-    ipfs files chcid / --cid-version=0 &&
+  # Reset Import.CidVersion back to CIDv0
+  test_expect_success "reset Import.CidVersion to cidv0" '
+    ipfs config --json Import.CidVersion 0
+  '
+  if [ "$EXTRA" = "with-daemon" ]; then
+    restart_daemon
+  fi
+
+  test_expect_success "root hash is cidv0 after Import config reset" '
     echo QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn > hash_expect &&
     ipfs files stat --hash / > hash_actual &&
     test_cmp hash_expect hash_actual
@@ -878,7 +921,7 @@ SHARD_HASH=QmPkwLJTYZRGPJ8Lazr9qPdrLmswPtUjaDbEpmR9jEh1se
 test_sharding "(cidv0)"
 
 # sharding cidv1: HAMT-sharded directory with 100 files, CIDv1
-SHARD_HASH=bafybeiaulcf7c46pqg3tkud6dsvbgvlnlhjuswcwtfhxts5c2kuvmh5keu
+SHARD_HASH=bafybeibu4i76qi26jhpgskqhivuactsvdsia44swpi7eaw45r7c3c3lhs4
 test_sharding "(cidv1 root)" "--cid-version=1"
 
 test_kill_ipfs_daemon

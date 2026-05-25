@@ -121,5 +121,5 @@ These metrics are automatically added to Gateway handlers, Hostname Gateway, Lib
 
 Kubo uses Prometheus for metrics collection for historical reasons, but OpenTelemetry metrics are automatically exposed through the same Prometheus endpoint. These metadata metrics provide context about the instrumentation:
 
-- `otel_scope_info` - Information about instrumentation libraries producing metrics
+- `otel_scope_name`, `otel_scope_version`, `otel_scope_schema_url` - Per-metric labels identifying the instrumentation library that produced each metric
 - `target_info` - Service metadata including version and instance information

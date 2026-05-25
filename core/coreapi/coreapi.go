@@ -28,6 +28,7 @@ import (
 	"github.com/ipfs/kubo/config"
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/options"
+	"github.com/ipfs/kubo/internal/fusemount"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
@@ -69,12 +70,11 @@ type CoreAPI struct {
 	ipldPathResolver   pathresolver.Resolver
 	unixFSPathResolver pathresolver.Resolver
 
-	provider          node.DHTProvider
-	providingStrategy config.ProvideStrategy
+	provider node.DHTProvider
 
 	pubSub *pubsub.PubSub
 
-	checkPublishAllowed func() error
+	checkPublishAllowed func(ctx context.Context) error
 	checkOnline         func(allowOffline bool) error
 
 	// ONLY for re-applying options in WithOptions, DO NOT USE ANYWHERE ELSE
@@ -185,8 +185,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		ipldPathResolver:   n.IPLDPathResolver,
 		unixFSPathResolver: n.UnixFSPathResolver,
 
-		provider:          n.Provider,
-		providingStrategy: n.ProvidingStrategy,
+		provider: n.Provider,
 
 		pubSub: n.PubSub,
 
@@ -201,7 +200,10 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		return nil
 	}
 
-	subAPI.checkPublishAllowed = func() error {
+	subAPI.checkPublishAllowed = func(ctx context.Context) error {
+		if fusemount.IsPublish(ctx) {
+			return nil
+		}
 		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
 			return errors.New("cannot manually publish while IPNS is mounted")
 		}

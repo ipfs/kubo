@@ -47,6 +47,7 @@ If you're experiencing an issue with IPFS, please [file an issue](https://github
 ## Production
 
 - [Reverse proxy setup](production/reverse-proxy.md)
+- [Firewall setup (ufw)](production/firewall.md)
 
 ## Specifications
 

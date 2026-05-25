@@ -1,3 +1,4 @@
+// Ulimit tests. Skipped on windows and plan9 (no getrlimit).
 //go:build !windows && !plan9
 
 package util

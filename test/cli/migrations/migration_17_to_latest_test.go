@@ -213,8 +213,8 @@ func testInvalidStrategyMigration(t *testing.T) {
 	outputStr := string(output)
 	t.Logf("Daemon output with invalid strategy: %s", outputStr)
 
-	// The error should mention unknown strategy
-	require.Contains(t, outputStr, "unknown strategy", "Should report unknown strategy error")
+	// The error should mention unknown strategy token
+	require.Contains(t, outputStr, "unknown provide strategy token", "Should report unknown strategy error")
 }
 
 func testRepoProviderReproviderMigration(t *testing.T) {

@@ -27,6 +27,7 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/ipfs/kubo/repo"
 )
 
@@ -42,7 +43,7 @@ func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blocks
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				return bsvc.Close()
+				return shutdown.CloseWithCtx(ctx, "blockservice", bsvc.Close)
 			},
 		})
 
@@ -50,14 +51,19 @@ func BlockService(cfg *config.Config) func(lc fx.Lifecycle, bs blockstore.Blocks
 	}
 }
 
-// Pinning creates new pinner which tells GC which blocks should be kept
-func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov DHTProvider) (pin.Pinner, error) {
-	// Parse strategy at function creation time (not inside the returned function)
-	// This happens before the provider is created, which is why we pass the strategy
-	// string and parse it here, rather than using fx-provided ProvidingStrategy.
-	strategyFlag := config.ParseProvideStrategy(strategy)
+// Pinning builds the pinner that GC uses to decide which blocks to keep.
+//
+// An fx OnStop hook closes the pinner before the repo (and its
+// datastore). The order matters: in-flight pinner operations hold a
+// reference to the datastore, and some datastores (pebble) panic on
+// use after Close. Pinner.Close cancels those operations and waits
+// for them to return. See
+// [github.com/ipfs/boxo/pinning/pinner.Pinner.Close].
+func Pinning(strategy string) func(lc fx.Lifecycle, bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo, prov DHTProvider) (pin.Pinner, error) {
+	strategyFlag := config.MustParseProvideStrategy(strategy)
 
-	return func(bstore blockstore.Blockstore,
+	return func(lc fx.Lifecycle,
+		bstore blockstore.Blockstore,
 		ds format.DAGService,
 		repo repo.Repo,
 		prov DHTProvider,
@@ -93,6 +99,21 @@ func Pinning(strategy string) func(bstore blockstore.Blockstore, ds format.DAGSe
 		if err != nil {
 			return nil, err
 		}
+
+		// fx runs OnStop hooks in reverse registration order. The
+		// repo provider registers its close hook earlier (in
+		// builder.go), so this hook runs first and the repo hook
+		// runs after, without an explicit dependency between them.
+		//
+		// Wrapped with CloseWithCtx because the boxo Pinner.Close
+		// contract notes that an in-flight op which ignores its ctx
+		// (a downstream bug) can block Close; the host must bound it
+		// at the call site so the shutdown deadline is honored.
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return shutdown.CloseWithCtx(ctx, "pinner", pinning.Close)
+			},
+		})
 
 		return pinning, nil
 	}
@@ -238,7 +259,7 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 		// strategy - it ensures all MFS content gets announced as it's added or
 		// modified. For non-mfs strategies, we set provider to nil to avoid
 		// unnecessary providing.
-		strategyFlag := config.ParseProvideStrategy(strategy)
+		strategyFlag := config.MustParseProvideStrategy(strategy)
 		if strategyFlag&config.ProvideStrategyMFS == 0 {
 			prov = nil
 		}
@@ -248,19 +269,12 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 		if err != nil {
 			return nil, fmt.Errorf("failed to get config: %w", err)
 		}
-		chunkerGen := cfg.Import.UnixFSSplitterFunc()
-		maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
-		maxHAMTFanout := int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
-		hamtShardingSize := int(cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold))
-		sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
+		mfsOpts, err := cfg.Import.MFSRootOptions()
+		if err != nil {
+			return nil, fmt.Errorf("failed to build MFS options from Import config: %w", err)
+		}
 
-		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov,
-			mfs.WithChunker(chunkerGen),
-			mfs.WithMaxLinks(maxDirLinks),
-			mfs.WithMaxHAMTFanout(maxHAMTFanout),
-			mfs.WithHAMTShardingSize(hamtShardingSize),
-			mfs.WithSizeEstimationMode(sizeEstimationMode),
-		)
+		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov, mfsOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize MFS root from %s stored at %s: %w. "+
 				"If corrupted, use 'ipfs files chroot' to reset (see --help)", nd.Cid(), FilesRootDatastoreKey, err)
@@ -268,7 +282,7 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				return root.Close()
+				return shutdown.CloseWithCtx(ctx, "mfs-root", root.Close)
 			},
 		})
 

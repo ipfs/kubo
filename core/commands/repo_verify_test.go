@@ -1,3 +1,4 @@
+// Requires Go 1.25+ for testing/synctest.
 //go:build go1.25
 
 package commands

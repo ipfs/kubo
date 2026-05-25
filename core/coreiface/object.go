@@ -50,7 +50,7 @@ type ObjectAPI interface {
 	AddLink(ctx context.Context, base path.Path, name string, child path.Path, opts ...options.ObjectAddLinkOption) (path.ImmutablePath, error)
 
 	// RmLink removes a link from the node
-	RmLink(ctx context.Context, base path.Path, link string) (path.ImmutablePath, error)
+	RmLink(ctx context.Context, base path.Path, link string, opts ...options.ObjectRmLinkOption) (path.ImmutablePath, error)
 
 	// Diff returns a set of changes needed to transform the first object into the
 	// second.

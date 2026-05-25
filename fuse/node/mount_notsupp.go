@@ -1,4 +1,7 @@
-//go:build (!nofuse && openbsd) || (!nofuse && netbsd) || (!nofuse && plan9)
+// Stub for platforms where go-fuse does not compile but the user
+// has not set the nofuse build tag. Returns a clear error instead
+// of a build failure. See https://github.com/ipfs/kubo/issues/5334.
+//go:build (openbsd || netbsd || plan9) && !nofuse
 
 package node
 

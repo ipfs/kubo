@@ -1,3 +1,4 @@
+// Systemd readiness notification (sd_notify). Linux only.
 //go:build linux
 
 package kubo

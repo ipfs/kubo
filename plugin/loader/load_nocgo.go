@@ -1,4 +1,5 @@
-//go:build !cgo && !noplugin && (linux || darwin || freebsd)
+// Plugin preloading without cgo (no dlopen, plugins are compiled in).
+//go:build (linux || darwin || freebsd) && !cgo && !noplugin
 
 package loader
 

@@ -29,6 +29,12 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 	if err != nil {
 		return err
 	}
+
+	enc, err := cmdenv.GetCidEncoder(req)
+	if err != nil {
+		return err
+	}
+
 	nodeGetter := mdag.NewSession(req.Context, api.Dag())
 
 	cidSet := cid.NewSet()
@@ -50,7 +56,7 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 		if err != nil {
 			return err
 		}
-		dagstats := &DagStat{Cid: rp.RootCid()}
+		dagstats := &DagStat{Cid: enc.Encode(rp.RootCid())}
 		dagStatSummary.appendStats(dagstats)
 		err = traverse.Traverse(obj, traverse.Options{
 			DAG:   nodeGetter,
@@ -89,17 +95,7 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 }
 
 func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
-	// Determine whether to show progress based on TTY detection or explicit flag
-	var showProgress bool
-	val, specified := res.Request().Options[progressOptionName]
-	if !specified {
-		// Auto-detect: show progress only if stderr is a TTY
-		if errStat, err := os.Stderr.Stat(); err == nil {
-			showProgress = (errStat.Mode() & os.ModeCharDevice) != 0
-		}
-	} else {
-		showProgress = val.(bool)
-	}
+	showProgress := cmdenv.ShouldShowProgress(res.Request(), progressOptionName)
 
 	var dagStats *DagStatSummary
 	for {

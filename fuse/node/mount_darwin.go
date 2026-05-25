@@ -1,248 +1,36 @@
-//go:build !nofuse && darwin
+// macFUSE/OSXFUSE availability check. Darwin only.
+//go:build darwin && !nofuse
 
 package node
 
 import (
-	"bytes"
 	"fmt"
-	"os/exec"
-	"runtime"
-	"strings"
+	"os"
 
 	core "github.com/ipfs/kubo/core"
-
-	"github.com/blang/semver/v4"
-	unix "golang.org/x/sys/unix"
 )
 
 func init() {
-	// this is a hack, but until we need to do it another way, this works.
-	platformFuseChecks = darwinFuseCheckVersion
+	platformFuseChecks = darwinFuseCheck
 }
 
-// dontCheckOSXFUSEConfigKey is a key used to let the user tell us to
-// skip fuse checks.
-const dontCheckOSXFUSEConfigKey = "DontCheckOSXFUSE"
-
-// fuseVersionPkg is the go pkg url for fuse-version.
-const fuseVersionPkg = "github.com/jbenet/go-fuse-version/fuse-version"
-
-// errStrFuseRequired is returned when we're sure the user does not have fuse.
-const errStrFuseRequired = `OSXFUSE not found.
-
-OSXFUSE is required to mount, please install it.
-NOTE: Version 2.7.2 or higher required; prior versions are known to kernel panic!
-It is recommended you install it from the OSXFUSE website:
-
-	http://osxfuse.github.io/
-
-For more help, see:
-
-	https://github.com/ipfs/kubo/issues/177
-`
-
-// errStrNoFuseHeaders is included in the output of `go get <fuseVersionPkg>` if there
-// are no fuse headers. this means they don't have OSXFUSE installed.
-var errStrNoFuseHeaders = "no such file or directory: '/usr/local/lib/libosxfuse.dylib'"
-
-var errStrUpgradeFuse = `OSXFUSE version %s not supported.
-
-OSXFUSE versions <2.7.2 are known to cause kernel panics!
-Please upgrade to the latest OSXFUSE version.
-It is recommended you install it from the OSXFUSE website:
-
-	http://osxfuse.github.io/
-
-For more help, see:
-
-	https://github.com/ipfs/kubo/issues/177
-`
-
-type errNeedFuseVersion struct {
-	cause string
+// macFUSE mount helper paths, checked in the same order as go-fuse.
+var macFUSEPaths = []string{
+	"/Library/Filesystems/macfuse.fs/Contents/Resources/mount_macfuse",
+	"/Library/Filesystems/osxfuse.fs/Contents/Resources/mount_osxfuse",
 }
 
-func (me errNeedFuseVersion) Error() string {
-	return fmt.Sprintf(`unable to check fuse version.
-
-Dear User,
-
-Before mounting, we must check your version of OSXFUSE. We are protecting
-you from a nasty kernel panic we found in OSXFUSE versions <2.7.2.[1]. To
-make matters worse, it's harder than it should be to check whether you have
-the right version installed...[2]. We've automated the process with the
-help of a little tool. We tried to install it, but something went wrong[3].
-Please install it yourself by running:
-
-	go get %s
-
-You can also stop ipfs from running these checks and use whatever OSXFUSE
-version you have by running:
-
-	ipfs config --bool %s true
-
-[1]: https://github.com/ipfs/kubo/issues/177
-[2]: https://github.com/ipfs/kubo/pull/533
-[3]: %s
-`, fuseVersionPkg, dontCheckOSXFUSEConfigKey, me.cause)
-}
-
-var errStrFailedToRunFuseVersion = `unable to check fuse version.
-
-Dear User,
-
-Before mounting, we must check your version of OSXFUSE. We are protecting
-you from a nasty kernel panic we found in OSXFUSE versions <2.7.2.[1]. To
-make matters worse, it's harder than it should be to check whether you have
-the right version installed...[2]. We've automated the process with the
-help of a little tool. We tried to run it, but something went wrong[3].
-Please, try to run it yourself with:
-
-	go get %s
-	fuse-version
-
-You should see something like this:
-
-	> fuse-version
-	fuse-version -only agent
-	OSXFUSE.AgentVersion: 2.7.3
-
-Just make sure the number is 2.7.2 or higher. You can then stop ipfs from
-trying to run these checks with:
-
-	ipfs config --bool %s true
-
-[1]: https://github.com/ipfs/kubo/issues/177
-[2]: https://github.com/ipfs/kubo/pull/533
-[3]: %s
-`
-
-var errStrFixConfig = `config key invalid: %s %v
-You may be able to get this error to go away by setting it again:
-
-	ipfs config --bool %s true
-
-Either way, please tell us at: http://github.com/ipfs/kubo/issues
-`
-
-func darwinFuseCheckVersion(node *core.IpfsNode) error {
-	// on OSX, check FUSE version.
-	if runtime.GOOS != "darwin" {
-		return nil
-	}
-
-	ov, errGFV := tryGFV()
-	if errGFV != nil {
-		// if we failed AND the user has told us to ignore the check we
-		// continue. this is in case fuse-version breaks or the user cannot
-		// install it, but is sure their fuse version will work.
-		if skip, err := userAskedToSkipFuseCheck(node); err != nil {
-			return err
-		} else if skip {
-			return nil // user told us not to check version... ok....
+func darwinFuseCheck(_ *core.IpfsNode) error {
+	for _, p := range macFUSEPaths {
+		if _, err := os.Stat(p); err == nil {
+			return nil
 		}
-		return errGFV
 	}
+	return fmt.Errorf(`macFUSE not found.
 
-	log.Debug("mount: osxfuse version:", ov)
+macFUSE is required to mount FUSE filesystems on macOS.
+Install it from https://osxfuse.github.io/ or via Homebrew:
 
-	min := semver.MustParse("2.7.2")
-	curr, err := semver.Make(ov)
-	if err != nil {
-		return err
-	}
-
-	if curr.LT(min) {
-		return fmt.Errorf(errStrUpgradeFuse, ov)
-	}
-	return nil
-}
-
-func tryGFV() (string, error) {
-	// first try sysctl. it may work!
-	ov, err := trySysctl()
-	if err == nil {
-		return ov, nil
-	}
-	log.Debug(err)
-
-	return tryGFVFromFuseVersion()
-}
-
-func trySysctl() (string, error) {
-	v, err := unix.Sysctl("osxfuse.version.number")
-	if err != nil {
-		log.Debug("mount: sysctl osxfuse.version.number:", "failed")
-		return "", err
-	}
-	log.Debug("mount: sysctl osxfuse.version.number:", v)
-	return v, nil
-}
-
-func tryGFVFromFuseVersion() (string, error) {
-	if err := ensureFuseVersionIsInstalled(); err != nil {
-		return "", err
-	}
-
-	cmd := exec.Command("fuse-version", "-q", "-only", "agent", "-s", "OSXFUSE")
-	out := new(bytes.Buffer)
-	cmd.Stdout = out
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf(errStrFailedToRunFuseVersion, fuseVersionPkg, dontCheckOSXFUSEConfigKey, err)
-	}
-
-	return out.String(), nil
-}
-
-func ensureFuseVersionIsInstalled() error {
-	// see if fuse-version is there
-	if _, err := exec.LookPath("fuse-version"); err == nil {
-		return nil // got it!
-	}
-
-	// try installing it...
-	log.Debug("fuse-version: no fuse-version. attempting to install.")
-	cmd := exec.Command("go", "install", "github.com/jbenet/go-fuse-version/fuse-version")
-	cmdout := new(bytes.Buffer)
-	cmd.Stdout = cmdout
-	cmd.Stderr = cmdout
-	if err := cmd.Run(); err != nil {
-		// Ok, install fuse-version failed. is it they don't have fuse?
-		cmdoutstr := cmdout.String()
-		if strings.Contains(cmdoutstr, errStrNoFuseHeaders) {
-			// yes! it is! they don't have fuse!
-			return fmt.Errorf(errStrFuseRequired)
-		}
-
-		log.Debug("fuse-version: failed to install.")
-		s := err.Error() + "\n" + cmdoutstr
-		return errNeedFuseVersion{s}
-	}
-
-	// ok, try again...
-	if _, err := exec.LookPath("fuse-version"); err != nil {
-		log.Debug("fuse-version: failed to install?")
-		return errNeedFuseVersion{err.Error()}
-	}
-
-	log.Debug("fuse-version: install success")
-	return nil
-}
-
-func userAskedToSkipFuseCheck(node *core.IpfsNode) (skip bool, err error) {
-	val, err := node.Repo.GetConfigKey(dontCheckOSXFUSEConfigKey)
-	if err != nil {
-		return false, nil // failed to get config value. don't skip check.
-	}
-
-	switch val := val.(type) {
-	case string:
-		return val == "true", nil
-	case bool:
-		return val, nil
-	default:
-		// got config value, but it's invalid... don't skip check, ask the user to fix it...
-		return false, fmt.Errorf(errStrFixConfig, dontCheckOSXFUSEConfigKey, val,
-			dontCheckOSXFUSEConfigKey)
-	}
+    brew install macfuse
+`)
 }
