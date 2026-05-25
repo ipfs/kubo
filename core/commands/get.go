@@ -140,8 +140,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			}
 
 			archive, _ := req.Options[archiveOptionName].(bool)
-			progressExplicit, specified := req.Options[progressOptionName].(bool)
-			showProgress := (specified && progressExplicit) || (!specified && cmdenv.IsTerminal(os.Stderr))
+			showProgress := cmdenv.ShouldShowProgress(req, progressOptionName)
 
 			gw := getWriter{
 				Out:         os.Stdout,

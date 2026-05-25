@@ -99,16 +99,7 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 }
 
 func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
-	var showProgress bool
-	val, specified := res.Request().Options[progressOptionName]
-	if !specified {
-		showProgress = cmdenv.IsTerminal(os.Stderr)
-	} else if val.(bool) {
-		showProgress = true
-	}
-
-	// simple passthrough, no progress
-	if !showProgress {
+	if !cmdenv.ShouldShowProgress(res.Request(), progressOptionName) {
 		return cmds.Copy(re, res)
 	}
 

@@ -100,9 +100,7 @@ var CatCmd = &cmds.Command{
 				case io.Reader:
 					reader := val
 
-					req := res.Request()
-					progressExplicit, specified := req.Options[progressOptionName].(bool)
-					if (specified && progressExplicit) || (!specified && cmdenv.IsTerminal(os.Stderr)) {
+					if cmdenv.ShouldShowProgress(res.Request(), progressOptionName) {
 						var bar *pb.ProgressBar
 						bar, reader = progressBarForReader(os.Stderr, val, int64(res.Length()))
 						bar.Start()

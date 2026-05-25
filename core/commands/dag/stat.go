@@ -95,14 +95,7 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 }
 
 func finishCLIStat(res cmds.Response, re cmds.ResponseEmitter) error {
-	// Determine whether to show progress based on TTY detection or explicit flag
-	var showProgress bool
-	val, specified := res.Request().Options[progressOptionName]
-	if !specified {
-		showProgress = cmdenv.IsTerminal(os.Stderr)
-	} else {
-		showProgress = val.(bool)
-	}
+	showProgress := cmdenv.ShouldShowProgress(res.Request(), progressOptionName)
 
 	var dagStats *DagStatSummary
 	for {
