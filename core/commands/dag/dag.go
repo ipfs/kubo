@@ -286,7 +286,7 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 		cmds.StringArg("root", true, false, "CID of a root to recursively export").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(progressOptionName, "p", "Display progress on CLI. Defaults to true when STDERR is a TTY."),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data. Defaults to true when stderr is a terminal."),
 	},
 	Run: dagExport,
 	PostRun: cmds.PostRunMap{
@@ -352,7 +352,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 		cmds.StringArg("root", true, true, "CID of a DAG root to get statistics for").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(progressOptionName, "p", "Show progress on stderr. Auto-detected if stderr is a terminal."),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data. Defaults to true when stderr is a terminal."),
 	},
 	Run:  dagStat,
 	Type: DagStatSummary{},

@@ -10,7 +10,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
-	"github.com/cheggaaa/pb"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	iface "github.com/ipfs/kubo/core/coreiface"
@@ -34,7 +34,7 @@ var CatCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.Int64Option(offsetOptionName, "o", "Byte offset to begin reading from."),
 		cmds.Int64Option(lengthOptionName, "l", "Maximum number of bytes to read."),
-		cmds.BoolOption(progressOptionName, "p", "Stream progress data.").WithDefault(true),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data. Defaults to true when stderr is a terminal."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -101,9 +101,7 @@ var CatCmd = &cmds.Command{
 				case io.Reader:
 					reader := val
 
-					req := res.Request()
-					progress, _ := req.Options[progressOptionName].(bool)
-					if progress {
+					if cmdenv.ShouldShowProgress(res.Request(), progressOptionName) {
 						var bar *pb.ProgressBar
 						bar, reader = progressBarForReader(os.Stderr, val, int64(res.Length()))
 						bar.Start()
