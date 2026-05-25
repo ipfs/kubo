@@ -78,14 +78,9 @@ const (
 	adderOutChanSize = 8
 
 	// pb/v3 template used before the upload total is known: only the
-	// running byte counter and current speed.
+	// running byte counter and current speed. Swapped for
+	// cmdenv.ProgressBarFullTemplate once size discovery reports.
 	progressBarInitTemplate = `{{counters . }} {{speed . "%s/s" "?/s"}}`
-
-	// pb/v3 template used once the upload total is known: byte counter,
-	// bar, speed, percent, and ETA. Explicit format args override pb's
-	// defaults so the rate renders as "MiB/s" (not "MiB p/s") and the
-	// remaining time falls back to "ETA ?" while speed is unknown.
-	progressBarFullTemplate = `{{counters . }} {{bar . }} {{speed . "%s/s" "?/s"}} {{percent . }} {{rtime . "ETA %s" "%s" "ETA ?"}}`
 )
 
 var AddCmd = &cmds.Command{
@@ -803,7 +798,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 					case size := <-sizeChan:
 						if progress {
 							bar.SetTotal(size)
-							bar.SetTemplateString(progressBarFullTemplate)
+							bar.SetTemplateString(cmdenv.ProgressBarFullTemplate)
 						}
 					case <-req.Context.Done():
 						// don't set or print error here, that happens in the goroutine below
@@ -817,7 +812,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 					// renders the bar and percent.
 					if bar.Total() == 0 && bar.Current() != 0 {
 						bar.SetTotal(bar.Current())
-						bar.SetTemplateString(progressBarFullTemplate)
+						bar.SetTemplateString(cmdenv.ProgressBarFullTemplate)
 					}
 					// Finish first so the speed element switches to
 					// the absolute-rate branch (total/elapsed) when

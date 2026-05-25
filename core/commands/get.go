@@ -29,12 +29,6 @@ const (
 	archiveOptionName          = "archive"
 	compressOptionName         = "compress"
 	compressionLevelOptionName = "compression-level"
-
-	// pb/v3 template for downloads with a known total size. Explicit
-	// format args override pb's defaults so the rate renders as "MiB/s"
-	// (not "MiB p/s") and the remaining time falls back to "ETA ?"
-	// while speed is unknown.
-	progressBarTemplate = `{{counters . }} {{bar . }} {{speed . "%s/s" "?/s"}} {{percent . }} {{rtime . "ETA %s" "%s" "ETA ?"}}`
 )
 
 var GetCmd = &cmds.Command{
@@ -183,7 +177,7 @@ func progressBarForReader(out io.Writer, r io.Reader, l int64) (*pb.ProgressBar,
 }
 
 func makeProgressBar(out io.Writer, l int64) *pb.ProgressBar {
-	return pb.New64(l).Set(pb.Bytes, true).SetTemplateString(progressBarTemplate).SetWriter(out)
+	return pb.New64(l).Set(pb.Bytes, true).SetTemplateString(cmdenv.ProgressBarFullTemplate).SetWriter(out)
 }
 
 func getOutPath(req *cmds.Request) string {
