@@ -39,6 +39,15 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	localOnly, _ := req.Options[localOnlyOptionName].(bool)
+	if localOnly {
+		offlineVal, offlineSet := req.Options["offline"].(bool)
+		if offlineSet && !offlineVal {
+			return fmt.Errorf("--%s implies --offline and cannot be combined with --offline=false; please drop one of them", localOnlyOptionName)
+		}
+		// --local-only implies --offline: a partial CAR is local-only by
+		// definition, so missing blocks must not be fetched over the network.
+		req.Options["offline"] = true
+	}
 	api, err := cmdenv.GetApi(env, req)
 	if err != nil {
 		return err

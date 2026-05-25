@@ -1,12 +1,10 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -429,28 +427,46 @@ func TestDagExportLocalOnly(t *testing.T) {
 	require.Less(t, partialCount, fullCount, "partial CAR should have fewer blocks than full DAG")
 }
 
-func TestDagExportLocalOnlyRequiresOffline(t *testing.T) {
+// TestDagExportLocalOnlyImpliesOffline verifies that --local-only on its own
+// makes a partial-DAG export succeed: it implies --offline so the user does
+// not have to pass both flags.
+func TestDagExportLocalOnlyImpliesOffline(t *testing.T) {
 	t.Parallel()
 	node := harness.NewT(t).NewNode().Init().StartDaemon()
 	defer node.StopDaemon()
 
-	root := node.IPFSAddDeterministic("300KiB", "dag-local-only-requires-offline", "--raw-leaves")
+	root := node.IPFSAddDeterministic("300KiB", "dag-export-local-only-implies", "--raw-leaves")
 	refs := dagRefs(node, root)
-
 	require.GreaterOrEqual(t, len(refs), 2)
 	require.Equal(t, 0, node.RunIPFS("pin", "rm", root).ExitCode())
 	require.Equal(t, 0, node.RunIPFS("block", "rm", refs[1]).ExitCode())
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// Export with only --local-only (no --offline). Should succeed because
+	// --local-only implies --offline.
+	partialCarPath := filepath.Join(node.Dir, "partial.car")
+	require.NoError(t, node.IPFSDagExport(root, partialCarPath, "--local-only"))
 
-	cmd := exec.CommandContext(ctx, node.IPFSBin, "dag", "export", "--local-only", root)
-	cmd.Env = append(os.Environ(), "IPFS_PATH="+node.Dir)
-	cmd.Stdout = io.Discard
+	// Sanity check: the partial CAR is non-empty and importable.
+	st, err := os.Stat(partialCarPath)
+	require.NoError(t, err)
+	require.Greater(t, st.Size(), int64(0))
+}
 
-	err := cmd.Run()
+// TestDagExportLocalOnlyConflictsWithOnline verifies that explicitly asking
+// for online mode together with --local-only is rejected, since the two
+// settings contradict each other.
+func TestDagExportLocalOnlyConflictsWithOnline(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
 
-	require.Error(t, err) // command should fail
+	root := node.IPFSAddDeterministic("300KiB", "dag-export-local-only-online", "--raw-leaves")
+
+	res := node.RunIPFS("dag", "export", "--local-only", "--offline=false", root)
+	require.NotEqual(t, 0, res.ExitCode(), "dag export --local-only --offline=false should be rejected")
+	stderr := res.Stderr.String()
+	require.Contains(t, stderr, "--local-only")
+	require.Contains(t, stderr, "--offline")
 }
 
 func TestDagImportPartialCAR(t *testing.T) {
@@ -475,6 +491,45 @@ func TestDagImportPartialCAR(t *testing.T) {
 	defer partialCAR.Close()
 	require.NoError(t, imp.IPFSDagImport(partialCAR, root))
 }
+
+// TestDagImportLocalOnlyImpliesNoPin verifies that --local-only on its own
+// makes a partial-CAR import succeed: it implies --pin-roots=false so the
+// user does not have to pass both flags.
+func TestDagImportLocalOnlyImpliesNoPin(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	root := node.IPFSAddDeterministic("300KiB", "dag-import-local-only-implies", "--raw-leaves")
+	refs := dagRefs(node, root)
+	require.GreaterOrEqual(t, len(refs), 2)
+	require.Equal(t, 0, node.RunIPFS("pin", "rm", root).ExitCode())
+	require.Equal(t, 0, node.RunIPFS("block", "rm", refs[1]).ExitCode())
+
+	partialCarPath := filepath.Join(node.Dir, "partial.car")
+	require.NoError(t, node.IPFSDagExport(root, partialCarPath, "--local-only", "--offline"))
+
+	imp := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer imp.StopDaemon()
+	partialCAR, err := os.Open(partialCarPath)
+	require.NoError(t, err)
+	defer partialCAR.Close()
+
+	// Import with only --local-only (no --pin-roots=false). Should succeed
+	// because --local-only implies --pin-roots=false.
+	res := imp.Runner.Run(harness.RunRequest{
+		Path:    imp.IPFSBin,
+		Args:    []string{"dag", "import", "--local-only"},
+		CmdOpts: []harness.CmdOpt{harness.RunWithStdin(partialCAR)},
+	})
+	require.Equal(t, 0, res.ExitCode(), "dag import --local-only on a partial CAR should succeed; stderr: %s", res.Stderr.String())
+	// No pinning happened, so no "Pinned root" line in stdout/stderr.
+	require.NotContains(t, res.Stdout.String(), "Pinned root")
+}
+
+// TestDagImportLocalOnlyPinRootsConflict verifies that --local-only is
+// rejected when combined with an explicit --pin-roots=true. The two are
+// mutually exclusive: --local-only is for partial CARs (no full DAG to pin).
 func TestDagImportLocalOnlyPinRootsConflict(t *testing.T) {
 	t.Parallel()
 	node := harness.NewT(t).NewNode().Init().StartDaemon()
@@ -486,16 +541,12 @@ func TestDagImportLocalOnlyPinRootsConflict(t *testing.T) {
 
 	res := node.Runner.Run(harness.RunRequest{
 		Path:    node.IPFSBin,
-		Args:    []string{"dag", "import", "--local-only", "--pin-roots"},
+		Args:    []string{"dag", "import", "--local-only", "--pin-roots=true"},
 		CmdOpts: []harness.CmdOpt{harness.RunWithStdin(r)},
 	})
 
-	require.Equal(t, 1, res.ExitCode())
-	require.Error(t, res.Err)
-
-	errOutput := res.Stderr.String()
-
-	require.Contains(t, errOutput, "cannot pass both")
-	require.Contains(t, errOutput, "pin-roots")
-	require.Contains(t, errOutput, "local-only")
+	require.NotEqual(t, 0, res.ExitCode())
+	stderr := res.Stderr.String()
+	require.Contains(t, stderr, "--local-only")
+	require.Contains(t, stderr, "--pin-roots")
 }

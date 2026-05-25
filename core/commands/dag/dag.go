@@ -194,8 +194,9 @@ Note:
   currently present in the blockstore does not represent a complete DAG,
   pinning of that individual root will fail.
 
-  Use --local-only and --pin-roots=false for partial CARs (e.g. from
-  'dag export --local-only').
+  Use --local-only to import a partial CAR (e.g. from 'dag export
+  --local-only'). --local-only implies --pin-roots=false because a partial
+  CAR has no full DAG to pin.
 
 FAST PROVIDE OPTIMIZATION:
 
@@ -217,8 +218,8 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 		cmds.FileArg("path", true, true, "The path of a .car file.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
-		cmds.BoolOption(localOnlyOptionName, "Import partial CAR without pinning roots (e.g. from dag export --local-only)."),
+		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing. Default: true."),
+		cmds.BoolOption(localOnlyOptionName, "Import a partial CAR (e.g. from 'dag export --local-only'). Implies --pin-roots=false."),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
 		cmds.BoolOption(fastProvideRootOptionName, "Immediately provide root CIDs to DHT in addition to regular queue, for faster discovery. Default: Import.FastProvideRoot"),
@@ -292,7 +293,7 @@ CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(progressOptionName, "p", "Stream progress data. Defaults to true when stderr is a terminal."),
-		cmds.BoolOption(localOnlyOptionName, "If set, only blocks present locally are exported; missing blocks are skipped (partial CAR). Use with --offline for a local-only DAG walk."),
+		cmds.BoolOption(localOnlyOptionName, "Export only blocks present in the local blockstore; missing blocks are skipped (partial CAR). Implies --offline."),
 	},
 	Run: dagExport,
 	PostRun: cmds.PostRunMap{
