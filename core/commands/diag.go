@@ -5,15 +5,25 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
+	"github.com/ipfs/boxo/path"
+	cid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/mount"
 	"github.com/ipfs/go-datastore/query"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	oldcmds "github.com/ipfs/kubo/commands"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 	node "github.com/ipfs/kubo/core/node"
+	"github.com/ipfs/kubo/core/shutdown"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 )
+
+// diagHealthyProbeCIDStr is the well-known empty UnixFS directory,
+// built into every kubo node. Fetching it succeeds regardless of peers,
+// DHT, or user content, so it isolates the DAG/blockstore pipeline.
+const diagHealthyProbeCIDStr = "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn"
 
 var DiagCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -25,6 +35,41 @@ var DiagCmd = &cmds.Command{
 		"cmds":      ActiveReqsCmd,
 		"profile":   sysProfileCmd,
 		"datastore": diagDatastoreCmd,
+		"healthy":   diagHealthyCmd,
+	},
+}
+
+// diagHealthyCmd is a container-healthcheck probe. It fails when shutdown
+// has been initiated (even if the RPC API still answers) or when the DAG
+// pipeline cannot resolve a built-in CID.
+var diagHealthyCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Report whether the daemon is operational.",
+		ShortDescription: `
+Exits 0 if the daemon is running and can resolve the well-known empty
+UnixFS directory. Exits non-zero if shutdown has started or the DAG
+pipeline is broken. Intended for container healthchecks.
+`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		if t := shutdown.StartedAt(); !t.IsZero() {
+			return fmt.Errorf("daemon is shutting down (started %s ago)", time.Since(t).Round(time.Second))
+		}
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+		probeCID, err := cid.Decode(diagHealthyProbeCIDStr)
+		if err != nil {
+			return fmt.Errorf("invalid probe CID: %w", err)
+		}
+		if _, _, err := api.ResolvePath(req.Context, path.FromCid(probeCID)); err != nil {
+			return fmt.Errorf("probe resolve: %w", err)
+		}
+		if _, err := api.Dag().Get(req.Context, probeCID); err != nil {
+			return fmt.Errorf("probe fetch: %w", err)
+		}
+		return cmds.EmitOnce(res, "ok")
 	},
 }
 

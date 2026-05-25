@@ -157,21 +157,26 @@ func ReadMigrationConfig(repoRoot string, userConfigFile string) (*config.Migrat
 	return &cfg.Migration, nil
 }
 
-// GetMigrationFetcher creates one or more fetchers according to
-// downloadSources.
+// GetMigrationFetcher creates one or more fetchers from downloadSources.
+// Multiple fetchers are wrapped in a MultiFetcher that rotates to the next
+// gateway when one errors and quarantines failed gateways for the session.
 //
 // Deprecated: This function is used by legacy migration downloads and will be removed
 // in a future version. Use RunHybridMigrations or RunEmbeddedMigrations instead.
 func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetcher func(string) Fetcher) (Fetcher, error) {
 	const httpUserAgent = "kubo/migration"
-	const numTriesPerHTTP = 3
 
 	var fetchers []Fetcher
 	for _, src := range downloadSources {
 		src := strings.TrimSpace(src)
 		switch src {
 		case "HTTPS", "https", "HTTP", "http":
-			fetchers = append(fetchers, &RetryFetcher{NewHttpFetcher(distPath, "", httpUserAgent, 0), numTriesPerHTTP})
+			// Expand the alias into the full ordered list of trustless
+			// community-provided gateways so migration survives a
+			// single-gateway outage.
+			for _, gw := range defaultMigrationGateways {
+				fetchers = append(fetchers, NewHttpFetcher(distPath, gw, httpUserAgent, 0))
+			}
 		case "IPFS", "ipfs":
 			return nil, errors.New("IPFS downloads are not supported for legacy migrations (repo versions <16). Please use only HTTPS in Migration.DownloadSources")
 		case "":
@@ -188,7 +193,7 @@ func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetch
 			default:
 				return nil, errors.New("bad gateway address: url scheme must be http or https")
 			}
-			fetchers = append(fetchers, &RetryFetcher{NewHttpFetcher(distPath, u.String(), httpUserAgent, 0), numTriesPerHTTP})
+			fetchers = append(fetchers, NewHttpFetcher(distPath, u.String(), httpUserAgent, 0))
 		}
 	}
 

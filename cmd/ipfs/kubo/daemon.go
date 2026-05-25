@@ -31,6 +31,7 @@ import (
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	corerepo "github.com/ipfs/kubo/core/corerepo"
 	libp2p "github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/core/shutdown"
 	nodeMount "github.com/ipfs/kubo/fuse/node"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
@@ -432,6 +433,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		ipnsps = cfg.Ipns.UsePubsub.WithDefault(false)
 	}
 
+	// Resolve graceful-shutdown timeout. The generous 12h default leaves
+	// normal operation unchanged while guaranteeing the daemon cannot be
+	// stuck indefinitely on a hung FX OnStop hook. A value of 0 opts out
+	// entirely and restores the legacy "wait forever" behavior.
+	shutdownTimeout := max(cfg.Internal.ShutdownTimeout.WithDefault(config.DefaultShutdownTimeout), 0)
+
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
 		Repo:                        repo,
@@ -442,6 +449,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			"pubsub": pubsub,
 			"ipnsps": ipnsps,
 		},
+		ShutdownTimeout: shutdownTimeout,
 		// TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
 
@@ -583,6 +591,17 @@ take effect.
 	}
 
 	defer func() {
+		// Watchdog: if node.Close() does not return within shutdownTimeout,
+		// force-exit so orchestrators can restart the daemon.
+		// shutdownTimeout==0 disables the watchdog (wait forever).
+		if shutdownTimeout > 0 {
+			killSwitch := time.AfterFunc(shutdownTimeout, func() {
+				log.Errorf("shutdown watchdog: node.Close() did not return after %s; exiting", shutdownTimeout)
+				os.Exit(1)
+			})
+			defer killSwitch.Stop()
+		}
+
 		// We wait for the node to close first, as the node has children
 		// that it will wait for before closing, such as the API server.
 		node.Close()
@@ -708,6 +727,7 @@ take effect.
 	// Give the user some immediate feedback when they hit C-c
 	go func() {
 		<-req.Context.Done()
+		shutdown.MarkStarted()
 		notifyStopping()
 		fmt.Println("Received interrupt signal, shutting down...")
 		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")

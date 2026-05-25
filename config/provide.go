@@ -29,15 +29,16 @@ const (
 	MinProvideBloomFPRate = 1_000_000
 
 	// DHT provider defaults
-	DefaultProvideDHTInterval                 = 22 * time.Hour // https://github.com/ipfs/kubo/pull/9326
-	DefaultProvideDHTMaxWorkers               = 16             // Unified default for both sweep and legacy providers
-	DefaultProvideDHTSweepEnabled             = true
-	DefaultProvideDHTResumeEnabled            = true
-	DefaultProvideDHTDedicatedPeriodicWorkers = 2
-	DefaultProvideDHTDedicatedBurstWorkers    = 1
-	DefaultProvideDHTMaxProvideConnsPerWorker = 20
-	DefaultProvideDHTKeystoreBatchSize        = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
-	DefaultProvideDHTOfflineDelay             = 2 * time.Hour
+	DefaultProvideDHTInterval                  = 22 * time.Hour // https://github.com/ipfs/kubo/pull/9326
+	DefaultProvideDHTMaxWorkers                = 16             // Unified default for both sweep and legacy providers
+	DefaultProvideDHTSweepEnabled              = true
+	DefaultProvideDHTResumeEnabled             = true
+	DefaultProvideDHTDedicatedPeriodicWorkers  = 2
+	DefaultProvideDHTDedicatedBurstWorkers     = 1
+	DefaultProvideDHTMaxProvideConnsPerWorker  = 20
+	DefaultProvideDHTKeystoreBatchSize         = 1 << 14 // ~544 KiB per batch (1 multihash = 34 bytes)
+	DefaultProvideDHTOfflineDelay              = 2 * time.Hour
+	DefaultProvideDHTSendProviderRecordTimeout = 10 * time.Second
 
 	// DefaultFastProvideTimeout is the maximum time allowed for fast-provide operations.
 	// Prevents hanging on network issues when providing root CID.
@@ -120,6 +121,13 @@ type ProvideDHT struct {
 	// OfflineDelay sets the delay after which the provider switches from Disconnected to Offline state (sweep mode only).
 	// Default: DefaultProvideDHTOfflineDelay
 	OfflineDelay *OptionalDuration `json:",omitempty"`
+
+	// SendProviderRecordTimeout sets the per-peer timeout applied to a single
+	// ADD_PROVIDER RPC. A peer that accepts the libp2p stream but never reads
+	// the request must not pin a provide worker goroutine indefinitely; this
+	// timeout bounds the wait (sweep mode only).
+	// Default: DefaultProvideDHTSendProviderRecordTimeout
+	SendProviderRecordTimeout *OptionalDuration `json:",omitempty"`
 
 	// ResumeEnabled controls whether the provider resumes from its previous state on restart.
 	// When enabled, the provider persists its reprovide cycle state and provide queue to the datastore,
@@ -209,6 +217,19 @@ func ValidateProvideConfig(cfg *Provide) error {
 		if interval < 0 {
 			return fmt.Errorf("Provide.DHT.Interval must be non-negative, got %v", interval)
 		}
+		// Provide.DHT.Interval=0 used to disable the entire provide system as a
+		// side effect. It now disables only the periodic reprovide schedule:
+		// new CIDs still announce via fast-provide-root and 'ipfs provide once'.
+		// Operators upgrading from earlier kubo versions must opt in to one of
+		// the two semantics by setting Provide.Enabled explicitly:
+		//   - Provide.Enabled=false fully disables providing (the old behaviour).
+		//   - Provide.Enabled=true keeps ad-hoc providing while disabling the
+		//     periodic reprovide schedule.
+		if interval == 0 && cfg.Enabled == Default {
+			return fmt.Errorf("Provide.DHT.Interval=0 no longer disables the provide system on its own; set Provide.Enabled explicitly: " +
+				"Provide.Enabled=false to fully disable providing, or Provide.Enabled=true to keep ad-hoc 'ipfs provide once' " +
+				"and fast-provide-root working while skipping the periodic reprovide schedule")
+		}
 	}
 
 	// Validate MaxWorkers
@@ -256,6 +277,14 @@ func ValidateProvideConfig(cfg *Provide) error {
 		delay := cfg.DHT.OfflineDelay.WithDefault(DefaultProvideDHTOfflineDelay)
 		if delay < 0 {
 			return fmt.Errorf("Provide.DHT.OfflineDelay must be non-negative, got %v", delay)
+		}
+	}
+
+	// Validate SendProviderRecordTimeout
+	if !cfg.DHT.SendProviderRecordTimeout.IsDefault() {
+		timeout := cfg.DHT.SendProviderRecordTimeout.WithDefault(DefaultProvideDHTSendProviderRecordTimeout)
+		if timeout <= 0 {
+			return fmt.Errorf("Provide.DHT.SendProviderRecordTimeout must be positive, got %v", timeout)
 		}
 	}
 

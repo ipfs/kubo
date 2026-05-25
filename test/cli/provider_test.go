@@ -235,17 +235,239 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 		assert.Equal(t, 0, res.ExitCode(), "Should succeed with exit code 0")
 	})
 
-	// Right now Provide and Reprovide are tied together
-	t.Run("Reprovide.Interval=0 disables announcement of new CID too", func(t *testing.T) {
+	t.Run("ipfs provide once works when Provide.DHT.Interval=0", func(t *testing.T) {
 		t.Parallel()
 
 		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			// No periodic reprovide schedule; provide once is the only
+			// way new content reaches peers in this configuration.
+			n.SetIPFSConfig("Provide.DHT.Interval", "0")
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		publisher := nodes[0]
+		cid := publisher.IPFSAddStr(uniq("interval=0"), "--pin=false")
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		res := publisher.RunIPFS("provide", "once", cid)
+		assert.Equal(t, 0, res.ExitCode(), "provide once should succeed with Interval=0")
+		expectProviders(t, cid, publisher.PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("Provide.Enabled=false disables ipfs provide once", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", false)
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(time.Now().String())
+		res := nodes[0].RunIPFS("provide", "once", cid)
+		assert.Contains(t, res.Stderr.Trimmed(), "cannot provide: Provide.Enabled is false")
+		assert.Equal(t, 1, res.ExitCode())
+
+		expectNoProviders(t, cid, nodes[1:]...)
+	})
+
+	t.Run("ipfs provide once announces a CID and finds providers", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			// "roots" so add-time providing is skipped and we know the
+			// announcement comes from `provide once`, not from ipfs add.
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		cid := nodes[0].IPFSAddStr(uniq("provide once"), "--pin=false")
+		expectNoProviders(t, cid, nodes[1:]...)
+
+		res := nodes[0].RunIPFS("provide", "once", cid)
+		assert.Equal(t, 0, res.ExitCode(), "provide once should succeed")
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("ipfs provide once errors when CID is not in local blockstore", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 1, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+		})
+		defer nodes.StopDaemons()
+
+		// CID for content the node has never seen.
+		missing := "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy"
+		res := nodes[0].RunIPFS("provide", "once", missing)
+		assert.Contains(t, res.Stderr.Trimmed(), "not found locally, cannot provide")
+		assert.Equal(t, 1, res.ExitCode())
+	})
+
+	t.Run("ipfs provide once --recursive announces every block in the DAG", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			// Selective strategy + --pin=false below means nothing is
+			// auto-provided; everything findable comes from `provide once`.
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+			// 1 MiB chunks so a 2 MiB file produces multiple leaf blocks.
+			n.SetIPFSConfig("Import.UnixFSChunker", "size-1048576")
+		})
+		defer nodes.StopDaemons()
+
+		publisher := nodes[0]
+		data := random.Bytes(2 * 1024 * 1024)
+		cidRoot := publisher.IPFSAdd(bytes.NewReader(data), "-Q", "--pin=false")
+
+		// Discover a chunk CID via the root's DAG links.
+		dagOut := publisher.IPFS("dag", "get", cidRoot)
+		var dagNode struct {
+			Links []struct {
+				Hash map[string]string `json:"Hash"`
+			} `json:"Links"`
+		}
+		require.NoError(t, json.Unmarshal(dagOut.Stdout.Bytes(), &dagNode))
+		require.Greater(t, len(dagNode.Links), 1, "2 MiB file with 1 MiB chunker should have multiple chunks")
+		cidChunk := dagNode.Links[0].Hash["/"]
+		require.NotEmpty(t, cidChunk)
+
+		// Recursive provide should announce both the root and every chunk.
+		res := publisher.RunIPFS("provide", "once", "-r", cidRoot)
+		assert.Equal(t, 0, res.ExitCode(), "provide once -r should succeed")
+		expectProviders(t, cidRoot, publisher.PeerID().String(), nodes[1:]...)
+		expectProviders(t, cidChunk, publisher.PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("ipfs provide once accepts multiple CIDs and reports count", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		publisher := nodes[0]
+		c1 := publisher.IPFSAddStr(uniq("multi 1"), "--pin=false")
+		c2 := publisher.IPFSAddStr(uniq("multi 2"), "--pin=false")
+		c3 := publisher.IPFSAddStr(uniq("multi 3"), "--pin=false")
+
+		res := publisher.RunIPFS("provide", "once", c1, c2, c3)
+		assert.Equal(t, 0, res.ExitCode(), "provide once with multiple CIDs should succeed")
+		assert.Contains(t, res.Stdout.Trimmed(), "queued 3 CID(s) for immediate provide")
+
+		expectProviders(t, c1, publisher.PeerID().String(), nodes[1:]...)
+		expectProviders(t, c2, publisher.PeerID().String(), nodes[1:]...)
+		expectProviders(t, c3, publisher.PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("ipfs provide once reads CIDs streamed from stdin", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		publisher := nodes[0]
+		c1 := publisher.IPFSAddStr(uniq("stdin 1"), "--pin=false")
+		c2 := publisher.IPFSAddStr(uniq("stdin 2"), "--pin=false")
+		c3 := publisher.IPFSAddStr(uniq("stdin 3"), "--pin=false")
+
+		res := publisher.Runner.Run(harness.RunRequest{
+			Path: publisher.IPFSBin,
+			Args: []string{"provide", "once"},
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithStdinStr(c1 + "\n" + c2 + "\n" + c3 + "\n"),
+			},
+		})
+		assert.Equal(t, 0, res.ExitCode(), "provide once with stdin should succeed")
+		assert.Contains(t, res.Stdout.Trimmed(), "queued 3 CID(s) for immediate provide")
+
+		expectProviders(t, c1, publisher.PeerID().String(), nodes[1:]...)
+		expectProviders(t, c2, publisher.PeerID().String(), nodes[1:]...)
+		expectProviders(t, c3, publisher.PeerID().String(), nodes[1:]...)
+	})
+
+	t.Run("ipfs provide once deduplicates repeated CIDs", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 1, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		publisher := nodes[0]
+		c1 := publisher.IPFSAddStr(uniq("dedup 1"), "--pin=false")
+		c2 := publisher.IPFSAddStr(uniq("dedup 2"), "--pin=false")
+
+		// 4 args, 2 unique CIDs. The repeated ones should not produce
+		// extra events on the wire.
+		res := publisher.RunIPFS("provide", "once", "--enc=json", c1, c2, c1, c2)
+		assert.Equal(t, 0, res.ExitCode())
+
+		var queued []string
+		for line := range strings.Lines(res.Stdout.String()) {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			var ev struct{ Queued string }
+			require.NoError(t, json.Unmarshal([]byte(line), &ev))
+			queued = append(queued, ev.Queued)
+		}
+		assert.ElementsMatch(t, []string{c1, c2}, queued, "duplicates should be filtered")
+	})
+
+	t.Run("ipfs provide once --enc=json streams one event per CID", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 1, func(n *harness.Node) {
+			n.SetIPFSConfig("Provide.Enabled", true)
+			n.SetIPFSConfig("Provide.Strategy", "roots")
+		})
+		defer nodes.StopDaemons()
+
+		publisher := nodes[0]
+		c1 := publisher.IPFSAddStr(uniq("json 1"), "--pin=false")
+		c2 := publisher.IPFSAddStr(uniq("json 2"), "--pin=false")
+
+		res := publisher.RunIPFS("provide", "once", "--enc=json", c1, c2)
+		assert.Equal(t, 0, res.ExitCode(), "provide once --enc=json should succeed")
+
+		// Parse one JSON object per non-empty line.
+		var queued []string
+		for line := range strings.Lines(res.Stdout.String()) {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			var ev struct{ Queued string }
+			require.NoError(t, json.Unmarshal([]byte(line), &ev), "each line must parse as JSON: %q", line)
+			queued = append(queued, ev.Queued)
+		}
+		assert.ElementsMatch(t, []string{c1, c2}, queued)
+	})
+
+	t.Run("Provide.DHT.Interval=0 keeps announcing new CIDs (fast-provide-root)", func(t *testing.T) {
+		t.Parallel()
+
+		nodes := initNodes(t, 2, func(n *harness.Node) {
+			// Required: Interval=0 alone is rejected by the validator
+			// since the new semantic only disables the schedule.
+			n.SetIPFSConfig("Provide.Enabled", true)
 			n.SetIPFSConfig("Provide.DHT.Interval", "0")
 		})
 		defer nodes.StopDaemons()
 
 		cid := nodes[0].IPFSAddStr(time.Now().String())
-		expectNoProviders(t, cid, nodes[1:]...)
+		expectProviders(t, cid, nodes[0].PeerID().String(), nodes[1:]...)
 	})
 
 	// `routing reprovide` is only available with the legacy provider.
@@ -255,19 +477,14 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 			t.Parallel()
 
 			nodes := initNodes(t, 2, func(n *harness.Node) {
+				n.SetIPFSConfig("Provide.Enabled", true)
 				n.SetIPFSConfig("Provide.DHT.Interval", "0")
 			})
 			defer nodes.StopDaemons()
 
-			cid := nodes[0].IPFSAddStr(time.Now().String())
-
-			expectNoProviders(t, cid, nodes[1:]...)
-
 			res := nodes[0].RunIPFS("routing", "reprovide")
 			assert.Contains(t, res.Stderr.Trimmed(), "invalid configuration: Provide.DHT.Interval is set to '0'")
 			assert.Equal(t, 1, res.ExitCode())
-
-			expectNoProviders(t, cid, nodes[1:]...)
 		})
 
 		t.Run("Manual Reprovide trigger does not work when Provide system is disabled", func(t *testing.T) {
