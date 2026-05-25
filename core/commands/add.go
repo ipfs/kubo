@@ -811,9 +811,18 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 					}
 				}
 
-				if progress && bar.Total() == 0 && bar.Current() != 0 {
-					bar.SetTotal(bar.Current())
-					bar.SetTemplateString(progressBarFullTemplate)
+				if progress {
+					// If size discovery never reported, treat the
+					// observed bytes as the total so the final frame
+					// renders the bar and percent.
+					if bar.Total() == 0 && bar.Current() != 0 {
+						bar.SetTotal(bar.Current())
+						bar.SetTemplateString(progressBarFullTemplate)
+					}
+					// Finish first so the speed element switches to
+					// the absolute-rate branch (total/elapsed) when
+					// EWMA never accumulated a sample on fast adds.
+					bar.Finish()
 					bar.Write()
 				}
 			}
