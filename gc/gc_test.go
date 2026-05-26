@@ -87,6 +87,59 @@ func TestGC(t *testing.T) {
 	require.ElementsMatch(t, expectedKept, kept)
 }
 
+func TestGCNoBestEffortRoots(t *testing.T) {
+	ctx := context.Background()
+
+	ds := dssync.MutexWrap(datastore.NewMapDatastore())
+	bs := blockstore.NewGCBlockstore(blockstore.NewBlockstore(ds), blockstore.NewGCLocker())
+	bserv := blockservice.New(bs, offline.Exchange(bs))
+	dserv := merkledag.NewDAGService(bserv)
+	pinner, err := dspinner.New(ctx, ds, dserv)
+	require.NoError(t, err)
+
+	daggen := mdutils.NewDAGGenerator()
+
+	var expectedKept []multihash.Multihash
+	var expectedDiscarded []multihash.Multihash
+
+	// add some recursive pins
+	for range 2 {
+		root, allCids, err := daggen.MakeDagNode(dserv.Add, 3, 2)
+		require.NoError(t, err)
+		err = pinner.PinWithMode(ctx, root, pin.Recursive, "")
+		require.NoError(t, err)
+		expectedKept = append(expectedKept, toMHs(allCids)...)
+	}
+
+	err = pinner.Flush(ctx)
+	require.NoError(t, err)
+
+	// add unpinned dags to be GCed
+	for range 2 {
+		_, allCids, err := daggen.MakeDagNode(dserv.Add, 3, 2)
+		require.NoError(t, err)
+		expectedDiscarded = append(expectedDiscarded, toMHs(allCids)...)
+	}
+
+	// GC with nil bestEffortRoots
+	ch := GC(ctx, bs, ds, pinner, nil)
+	var discarded []multihash.Multihash
+	for res := range ch {
+		require.NoError(t, res.Error)
+		discarded = append(discarded, res.KeyRemoved.Hash())
+	}
+
+	allKeys, err := bs.AllKeysChan(ctx)
+	require.NoError(t, err)
+	var kept []multihash.Multihash
+	for key := range allKeys {
+		kept = append(kept, key.Hash())
+	}
+
+	require.ElementsMatch(t, expectedDiscarded, discarded)
+	require.ElementsMatch(t, expectedKept, kept)
+}
+
 func toMHs(cids []cid.Cid) []multihash.Multihash {
 	res := make([]multihash.Multihash, len(cids))
 	for i, c := range cids {
