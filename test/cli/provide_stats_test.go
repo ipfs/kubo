@@ -506,7 +506,7 @@ func TestProvideStatDisabledConfig(t *testing.T) {
 		assert.Contains(t, res.Stderr.String(), "stats not available")
 	})
 
-	t.Run("Provide.Enabled=true with Provide.DHT.Interval=0 returns error stats not available", func(t *testing.T) {
+	t.Run("Provide.Enabled=true with Provide.DHT.Interval=0 returns stats with zero schedule fields", func(t *testing.T) {
 		t.Parallel()
 
 		h := harness.NewT(t)
@@ -517,8 +517,11 @@ func TestProvideStatDisabledConfig(t *testing.T) {
 		node.StartDaemon()
 		defer node.StopDaemon()
 
+		// Interval=0 disables only the periodic schedule; the provider
+		// is still wired and 'provide stat' returns valid stats with
+		// the schedule-related timing fields zeroed out.
 		res := node.RunIPFS("provide", "stat")
-		assert.Error(t, res.Err)
-		assert.Contains(t, res.Stderr.String(), "stats not available")
+		assert.Equal(t, 0, res.ExitCode())
+		assert.NotContains(t, res.Stderr.String(), "stats not available")
 	})
 }

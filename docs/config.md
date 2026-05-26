@@ -104,6 +104,7 @@ config file at runtime.
         - [`Internal.Bitswap.BroadcastControl.MaxRandomPeers`](#internalbitswapbroadcastcontrolmaxrandompeers)
         - [`Internal.Bitswap.BroadcastControl.SendToPendingPeers`](#internalbitswapbroadcastcontrolsendtopendingpeers)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
+    - [`Internal.ShutdownTimeout`](#internalshutdowntimeout)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
@@ -144,6 +145,7 @@ config file at runtime.
       - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
       - [`Provide.DHT.KeystoreBatchSize`](#providedhtkeystorebatchsize)
       - [`Provide.DHT.OfflineDelay`](#providedhtofflinedelay)
+      - [`Provide.DHT.SendProviderRecordTimeout`](#providedhtsendproviderrecordtimeout)
     - [`Provide.BloomFPRate`](#providebloomfprate)
   - [`Provider`](#provider)
     - [`Provider.Enabled`](#providerenabled)
@@ -356,7 +358,8 @@ Supported Transports:
 
 > [!IMPORTANT]
 > Make sure your firewall rules allow incoming connections on both TCP and UDP ports defined here.
-> See [Security section](#security) for network exposure considerations.
+> See [`docs/production/firewall.md`](./production/firewall.md) for a `ufw` walkthrough,
+> and the [Security section](#security) below for wider network exposure considerations.
 
 Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
@@ -1909,6 +1912,28 @@ Type: `optionalInteger` (0 disables the limit, strongly discouraged)
 **Note:** This is an EXPERIMENTAL feature and may change or be removed in future releases.
 See [#10842](https://github.com/ipfs/kubo/issues/10842) for more information.
 
+### `Internal.ShutdownTimeout`
+
+Caps how long graceful shutdown is allowed to take. If `node.Close()` does
+not return within this duration, the daemon logs which subsystem failed
+and exits with status `1`. Set to `0` to wait forever (legacy behavior).
+
+The default `12h` guarantees the daemon cannot be stuck indefinitely on a
+hung close hook, which matters for container orchestrators that otherwise
+see a half-shutdown process as `healthy`. The value is smaller than the
+22h DHT reprovide cycle, so a hung daemon recovers before missing more
+than one cycle.
+
+Tune down for fast-restart environments. When tuning, raise the
+orchestrator grace period (`--stop-timeout` for Docker,
+`terminationGracePeriodSeconds` for Kubernetes) to at least this value so
+the daemon exits gracefully before the orchestrator escalates to
+`SIGKILL`.
+
+Default: `12h`
+
+Type: `optionalDuration` (`0` disables the cap)
+
 ## `Ipns`
 
 ### `Ipns.RepublishPeriod`
@@ -2356,14 +2381,21 @@ interval (common with large datasets), the next cycle is skipped and provider
 records may expire.
 
 - If unset, it uses the implicit safe default.
-- If set to the value `"0"` it will disable content reproviding to DHT.
+- If set to `"0"`, the periodic reprovide schedule is disabled. New CIDs are
+  still announced immediately via fast-provide-root and `ipfs provide once`.
 
 > [!CAUTION]
-> Disabling this will prevent other nodes from discovering your content via the DHT.
-> Your node will stop announcing data to the DHT, making it
-> inaccessible unless peers connect to you directly. Since provider
-> records expire after `amino.DefaultProvideValidity`, your content will become undiscoverable
-> after this period.
+> `Interval=0` disables only the periodic refresh, not announcements of new
+> content. Once provider records expire after `amino.DefaultProvideValidity`,
+> the affected CIDs become undiscoverable to peers that did not retrieve them
+> within that window. To fully disable providing, set
+> [`Provide.Enabled=false`](#provideenabled) instead.
+
+> [!IMPORTANT]
+> When `Interval=0`, [`Provide.Enabled`](#provideenabled) must be set
+> explicitly. The daemon refuses to start otherwise. This prevents silent
+> behaviour change on upgrade for operators who previously relied on
+> `Interval=0` as a master kill-switch.
 
 Default: `22h`
 
@@ -2559,7 +2591,7 @@ Number of workers dedicated to burst provides. Only applies when `Provide.DHT.Sw
 
 Burst provides are triggered by:
 
-- Manual provide commands (`ipfs routing provide`)
+- Manual provide commands (`ipfs provide once`)
 - New content matching your `Provide.Strategy` (blocks from `ipfs add`, bitswap, or trustless gateway requests)
 - Catch-up reprovides after being disconnected/offline for a while
 
@@ -2639,6 +2671,26 @@ keys to its state, so keys will eventually be provided in the
 Default: `2h`
 
 Type: `optionalDuration`
+
+#### `Provide.DHT.SendProviderRecordTimeout`
+
+Per-peer timeout applied to a single `ADD_PROVIDER` RPC sent during a provide
+or reprovide operation. A peer that accepts the libp2p stream but never reads
+the request can otherwise pin a provide worker goroutine until the connection
+is dropped by the transport layer; this option bounds that wait.
+
+Healthy peers complete the round-trip in well under a second. The default
+leaves significant headroom for slow links while keeping a hung peer from
+stalling a worker.
+
+> [!NOTE]
+> Lowering this value can speed up reprovide cycles when a non-trivial
+> fraction of peers are slow or unresponsive, at the cost of giving up on
+> genuinely slow but healthy peers.
+
+Default: `10s`
+
+Type: `optionalDuration` (positive)
 
 ### `Provide.BloomFPRate`
 
@@ -2906,7 +2958,12 @@ Controls how your node discovers content and peers on the network.
   when reachable from the public internet.
 
 - **`autoclient`**: Same as `auto`, but never runs a DHT server.
-  Use this if your node is behind a firewall or NAT.
+  Use this if your node is behind a firewall or NAT, or if you run a
+  [content denylist](https://github.com/ipfs/kubo/blob/master/docs/content-blocking.md)
+  and do not want to store or serve routing records (provider records,
+  IPNS records) for denied keys on behalf of other peers. See
+  [Scope of denylists](https://github.com/ipfs/kubo/blob/master/docs/content-blocking.md#scope-of-denylists)
+  for why this matters.
 
 - **`dht`**: Uses only the Amino DHT (no HTTP routers). Automatically switches
   between client and server mode based on reachability.
@@ -3224,6 +3281,9 @@ so that a range is neither advertised nor dialed.
 > RFC 6598 CGNAT, ULA, link-local, and others). See the
 > [`server` profile](#server-profile) section for the full list and for
 > optional entries operators may add manually.
+
+> [!CAUTION]
+> If an [`Addresses.Swarm`](#addressesswarm) listener (for example a manually configured `/ip4/127.0.0.1/tcp/.../ws` fronted by a local nginx or Caddy reverse proxy) is covered by an entry in this list, Kubo rejects every incoming connection to it, so the proxy cannot reach Kubo. Kubo logs an ERROR at startup naming the offending rule. Remove the rule from `Swarm.AddrFilters` to allow the listener; keep it in [`Addresses.NoAnnounce`](#addressesnoannounce) if you still want to suppress its announcement.
 
 Default: `[]`
 
@@ -4300,6 +4360,7 @@ Or skip the profile and populate those fields manually.
 | Link-local IPv6 peering                            | `/ip6/fe80::/ipcidr/10`      |
 | Multiple daemons peering over `127.0.0.1`          | `/ip4/127.0.0.0/ipcidr/8`    |
 | Multiple daemons peering over IPv6 loopback `::1`  | `/ip6/::1/ipcidr/128` and `/ip6/::/ipcidr/3` |
+| Local reverse proxy fronting a `/ws` (or other libp2p) listener on `127.0.0.1` | `/ip4/127.0.0.0/ipcidr/8` from `Swarm.AddrFilters` only (keep it in `Addresses.NoAnnounce`); also drop `/ip6/::1/ipcidr/128` and `/ip6/::/ipcidr/3` from `Swarm.AddrFilters` if the proxy uses IPv6 loopback |
 | [Yggdrasil] mesh peering (`200::/8`, `300::/8`)    | `/ip6/::/ipcidr/3`           |
 | NAT64 (`64:ff9b::/96`) reachability                | `/ip6/::/ipcidr/3`           |
 
@@ -4551,7 +4612,7 @@ Several configuration options expose TCP or UDP ports that can make your Kubo no
 
 - Keep admin services ([`Addresses.API`](#addressesapi)) bound to localhost unless authentication ([`API.Authorizations`](#apiauthorizations)) is configured
 - Use [`Gateway.NoFetch`](#gatewaynofetch) to prevent arbitrary CID retrieval if Kubo is acting as a public gateway available to anyone
-- Configure firewall rules to restrict access to exposed ports. Note that [`Addresses.Swarm`](#addressesswarm) is special - all incoming traffic to swarm ports should be allowed to ensure proper P2P connectivity
+- Configure firewall rules to restrict access to exposed ports. Note that [`Addresses.Swarm`](#addressesswarm) is special - all incoming traffic to swarm ports should be allowed to ensure proper P2P connectivity. See [`docs/production/firewall.md`](./production/firewall.md) for a `ufw` walkthrough.
 - Control which public-facing addresses are announced to other peers using [`Addresses.NoAnnounce`](#addressesnoannounce), [`Addresses.Announce`](#addressesannounce), and [`Addresses.AppendAnnounce`](#addressesappendannounce)
 - Consider using the [`server` profile](#server-profile) for production deployments
 

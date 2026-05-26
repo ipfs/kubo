@@ -148,9 +148,6 @@ func ExecuteFastProvideRoot(
 	case !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled):
 		log.Debugw("fast-provide-root: skipped", "reason", "Provide.Enabled is false")
 		return nil
-	case cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval) == 0:
-		log.Debugw("fast-provide-root: skipped", "reason", "Provide.DHT.Interval is 0")
-		return nil
 	case !ipfsNode.HasActiveDHTClient():
 		log.Debugw("fast-provide-root: skipped", "reason", "DHT not available")
 		return nil

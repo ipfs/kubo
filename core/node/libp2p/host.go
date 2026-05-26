@@ -13,6 +13,7 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/ipfs/kubo/repo"
 
 	"go.uber.org/fx"
@@ -104,7 +105,10 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
-			return out.Host.Close()
+			// Host.Close() does not accept a ctx and can block draining
+			// peer connections on busy nodes. CloseWithCtx returns when
+			// either the close finishes or the shutdown deadline expires.
+			return shutdown.CloseWithCtx(ctx, "libp2p-host", out.Host.Close)
 		},
 	})
 

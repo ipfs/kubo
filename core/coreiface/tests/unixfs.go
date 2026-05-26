@@ -938,9 +938,14 @@ func (tp *TestSuite) TestGetSeek(t *testing.T) {
 		t.Fatal("not a file")
 	}
 
+	fSeeker, ok := f.(io.Seeker)
+	if !ok {
+		t.Fatal("file does not support seeking")
+	}
+
 	test := func(offset int64, whence int, read int, expect int64, shouldEof bool) {
 		t.Run(fmt.Sprintf("seek%d+%d-r%d-%d", whence, offset, read, expect), func(t *testing.T) {
-			n, err := f.Seek(offset, whence)
+			n, err := fSeeker.Seek(offset, whence)
 			if err != nil {
 				t.Fatal(err)
 			}

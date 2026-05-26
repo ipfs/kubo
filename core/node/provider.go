@@ -23,6 +23,7 @@ import (
 	"github.com/ipfs/go-datastore/query"
 	log "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
 	irouting "github.com/ipfs/kubo/routing"
@@ -321,7 +322,7 @@ Learn more: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide`,
 			}
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
-					return sys.Close()
+					return shutdown.CloseWithCtx(ctx, "legacy-provider", sys.Close)
 				},
 			})
 
@@ -599,6 +600,11 @@ func purgeOrphanedKeystoreData(ctx context.Context, ds datastore.Batching) error
 
 func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	reprovideInterval := cfg.Provide.DHT.Interval.WithDefault(config.DefaultProvideDHTInterval)
+	// noScheduleMode is true when the user disabled the periodic reprovide
+	// schedule (Provide.DHT.Interval=0). In this mode the keystore is
+	// inert: kad-dht's burst-only path (ProvideOnce, StartProviding) does
+	// not Put or Delete keys, and no reprovide loop runs to read them.
+	noScheduleMode := reprovideInterval == 0
 	type providerInput struct {
 		fx.In
 		DHT  routing.Routing `name:"dhtc"`
@@ -625,9 +631,9 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if err := validateKeystoreSuffix(suffix); err != nil {
 				return nil, err
 			}
-			// When no datastore spec is configured (e.g., test/mock repos),
-			// fall back to an in-memory datastore.
-			if rootSpec == nil {
+			// In-memory datastore in no-schedule mode (keystore is inert)
+			// or when no datastore spec is configured (test/mock repos).
+			if noScheduleMode || rootSpec == nil {
 				return datastore.NewMapDatastore(), nil
 			}
 			if err := os.MkdirAll(keystoreBasePath, 0o755); err != nil {
@@ -645,8 +651,23 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			if err := validateKeystoreSuffix(suffix); err != nil {
 				return err
 			}
+			if noScheduleMode {
+				return nil
+			}
 			providerLog.Infow("provider keystore: removing datastore from disk", "suffix", suffix, "path", filepath.Join(keystoreBasePath, suffix))
 			return os.RemoveAll(filepath.Join(keystoreBasePath, suffix))
+		}
+
+		// In no-schedule mode the on-disk keystore is never used. If a
+		// previous run was in schedule mode it may have left data behind;
+		// purge it once on startup to free disk.
+		if noScheduleMode {
+			if _, statErr := os.Stat(keystoreBasePath); statErr == nil {
+				providerLog.Infow("provider keystore: purging on-disk data (Provide.DHT.Interval=0)", "path", keystoreBasePath)
+				if rmErr := os.RemoveAll(keystoreBasePath); rmErr != nil {
+					providerLog.Warnw("provider keystore: purge failed", "path", keystoreBasePath, "err", rmErr)
+				}
+			}
 		}
 
 		// One-time cleanup of stale keystore data left by older Kubo in the
@@ -745,6 +766,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					ddhtprovider.WithMaxReprovideDelay(time.Hour),
 					ddhtprovider.WithOfflineDelay(cfg.Provide.DHT.OfflineDelay.WithDefault(config.DefaultProvideDHTOfflineDelay)),
 					ddhtprovider.WithConnectivityCheckOnlineInterval(1*time.Minute),
+					ddhtprovider.WithSendProviderRecordTimeout(cfg.Provide.DHT.SendProviderRecordTimeout.WithDefault(config.DefaultProvideDHTSendProviderRecordTimeout)),
 
 					ddhtprovider.WithMaxWorkers(int(cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers))),
 					ddhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Provide.DHT.DedicatedPeriodicWorkers.WithDefault(config.DefaultProvideDHTDedicatedPeriodicWorkers))),
@@ -790,6 +812,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			dhtprovider.WithMaxReprovideDelay(time.Hour),
 			dhtprovider.WithOfflineDelay(cfg.Provide.DHT.OfflineDelay.WithDefault(config.DefaultProvideDHTOfflineDelay)),
 			dhtprovider.WithConnectivityCheckOnlineInterval(1 * time.Minute),
+			dhtprovider.WithSendProviderRecordTimeout(cfg.Provide.DHT.SendProviderRecordTimeout.WithDefault(config.DefaultProvideDHTSendProviderRecordTimeout)),
 
 			dhtprovider.WithMaxWorkers(int(cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers))),
 			dhtprovider.WithDedicatedPeriodicWorkers(int(cfg.Provide.DHT.DedicatedPeriodicWorkers.WithDefault(config.DefaultProvideDHTDedicatedPeriodicWorkers))),
@@ -815,6 +838,12 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 	initKeystore := fx.Invoke(func(lc fx.Lifecycle, in keystoreInput) {
 		// Skip keystore initialization for NoopProvider
 		if _, ok := in.Provider.(*NoopProvider); ok {
+			return
+		}
+		// In no-schedule mode no reprovide loop runs, so there is no
+		// reader for the keystore and no need to sync it. The zero
+		// interval would also panic the periodic sync ticker.
+		if noScheduleMode {
 			return
 		}
 
@@ -851,11 +880,13 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 					strategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 					providerLog.Infow("provider keystore sync started", "strategy", strategy)
 					if err := syncKeystore(ctx); err != nil {
-						// ErrClosed means the keystore was closed by the shutdown
-						// hook while this goroutine was still in flight: the
-						// OnStart ctx is not cancelled yet, so we classify the
-						// failure as shutdown explicitly.
-						if ctx.Err() != nil || errors.Is(err, keystore.ErrClosed) {
+						// Shutdown can race ahead of ctx.Err() becoming
+						// visible here: ResetCids returns ctx.Err()
+						// straight from its own ctx-done select, and the
+						// keystore can also close mid-sync (ErrClosed)
+						// before the OnStart ctx is cancelled. Classify
+						// both as shutdown.
+						if ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, keystore.ErrClosed) {
 							providerLog.Debugw("provider keystore sync interrupted by shutdown", "err", err, "strategy", strategy)
 						} else {
 							providerLog.Errorw("provider keystore sync failed", "err", err, "strategy", strategy)
@@ -879,7 +910,11 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 							return
 						case <-ticker.C:
 							if err := syncKeystore(gcCtx); err != nil {
-								if gcCtx.Err() != nil || errors.Is(err, keystore.ErrClosed) {
+								// See classifier note on the startup-sync
+								// branch above: context.Canceled can
+								// arrive ahead of gcCtx.Err() becoming
+								// visible to this goroutine.
+								if gcCtx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, keystore.ErrClosed) {
 									providerLog.Debugw("provider keystore sync interrupted by shutdown", "err", err)
 								} else {
 									providerLog.Errorw("provider keystore sync failed", "err", err)
@@ -927,14 +962,15 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				// Close provider first - waits for all worker goroutines to exit.
-				// This ensures no code can access keystore after this returns.
-				if err := in.Provider.Close(); err != nil {
+				// Close provider first; waits for all worker goroutines
+				// to exit so nothing can access the keystore after this
+				// returns. If ctx fires before provider drains, the
+				// keystore close below sees an expired ctx and returns
+				// immediately; the watchdog is the ultimate backstop.
+				if err := shutdown.CloseWithCtx(ctx, "dht-provider", in.Provider.Close); err != nil {
 					providerLog.Errorw("error closing provider during shutdown", "error", err)
 				}
-
-				// Close keystore - safe now, provider is fully shut down
-				return in.Keystore.Close()
+				return shutdown.CloseWithCtx(ctx, "keystore", in.Keystore.Close)
 			},
 		})
 	})
@@ -995,7 +1031,16 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 						case <-ticker.C:
 						}
 
-						stats := prov.Stats()
+						statsCtx, statsCancel := context.WithTimeout(gcCtx, time.Minute)
+						stats, err := prov.Stats(statsCtx)
+						statsCancel()
+						if err != nil {
+							if gcCtx.Err() != nil {
+								return
+							}
+							providerLog.Debugw("provider stats unavailable for reprovide alert", "err", err)
+							continue
+						}
 						queuedWorkers = stats.Workers.QueuedPeriodic > 0
 						queueSize = int64(stats.Queues.PendingRegionReprovides)
 
