@@ -2,8 +2,11 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -343,4 +346,269 @@ func TestDagImportFastProvide(t *testing.T) {
 		// Flag should disable it despite config saying true
 		require.Contains(t, daemonLog, "fast-provide-root: skipped")
 	})
+}
+
+// dagRefs returns root plus recursive ref CIDs from "ipfs refs -r --unique root".
+func dagRefs(node *harness.Node, root string) []string {
+	refsRes := node.IPFS("refs", "-r", "--unique", root)
+	refs := []string{root}
+	for _, line := range testutils.SplitLines(strings.TrimSpace(refsRes.Stdout.String())) {
+		if line != "" {
+			refs = append(refs, line)
+		}
+	}
+	return refs
+}
+
+// countCARBlocks imports the CAR at carPath onto a fresh node and returns the
+// number of blocks reported by `dag import --stats`. The fresh node guarantees
+// the count reflects what is in the CAR, not what was already in the store.
+func countCARBlocks(t *testing.T, carPath string) int {
+	t.Helper()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	car, err := os.Open(carPath)
+	require.NoError(t, err)
+	defer car.Close()
+
+	res := node.Runner.Run(harness.RunRequest{
+		Path:    node.IPFSBin,
+		Args:    []string{"dag", "import", "--pin-roots=false", "--stats"},
+		CmdOpts: []harness.CmdOpt{harness.RunWithStdin(car)},
+	})
+	require.Equal(t, 0, res.ExitCode(), "dag import --stats failed: %s", res.Stderr.String())
+
+	var n int
+	for _, line := range testutils.SplitLines(res.Stdout.String()) {
+		if _, err := fmt.Sscanf(line, "Imported %d blocks", &n); err == nil {
+			break
+		}
+	}
+	require.Greater(t, n, 0, "expected 'Imported N blocks' in stdout: %q", res.Stdout.String())
+	return n
+}
+
+// shallowDAGArgs are the `ipfs add` args used by the partial-DAG helpers
+// below. Chunker and max-file-links are pinned so the resulting DAG shape
+// (root + 2 raw leaves) is independent of changes to Import.* defaults or
+// applied profiles.
+var shallowDAGArgs = []string{"--raw-leaves", "--chunker=size-262144", "--max-file-links=174"}
+
+// makePartialDAG adds a 300 KiB file with shallowDAGArgs (yielding root + 2
+// raw leaves) and then deletes the first leaf so the node holds a DAG with
+// one missing block. Returns the root CID and the CID that was removed.
+func makePartialDAG(t *testing.T, node *harness.Node, seed string, addArgs ...string) (root, removed string) {
+	t.Helper()
+	root = node.IPFSAddDeterministic("300KiB", seed, append(shallowDAGArgs, addArgs...)...)
+	refs := dagRefs(node, root)
+	require.Equal(t, 3, len(refs), "expected exactly root + 2 raw leaves with pinned chunker/max-links, got %v", refs)
+	require.Equal(t, 0, node.RunIPFS("pin", "rm", root).ExitCode())
+	require.Equal(t, 0, node.RunIPFS("block", "rm", refs[1]).ExitCode())
+	return root, refs[1]
+}
+
+// TestDagExportLocalOnly verifies the core promise of --local-only: a DAG
+// with a single missing leaf can still be exported as a partial CAR, and
+// the partial CAR contains exactly the full DAG minus the removed block.
+func TestDagExportLocalOnly(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	// Snapshot the full DAG to a CAR before the block is removed, so we
+	// have a baseline block count to compare against.
+	root := node.IPFSAddDeterministic("300KiB", "dag-export-local-only", shallowDAGArgs...)
+	fullCarPath := filepath.Join(node.Dir, "full.car")
+	require.NoError(t, node.IPFSDagExport(root, fullCarPath))
+	fullCount := countCARBlocks(t, fullCarPath)
+	require.Equal(t, 3, fullCount, "expected root + 2 raw leaves (full=%d)", fullCount)
+
+	// Drop one leaf so the local DAG is partial.
+	refs := dagRefs(node, root)
+	require.Equal(t, 0, node.RunIPFS("pin", "rm", root).ExitCode())
+	require.Equal(t, 0, node.RunIPFS("block", "rm", refs[1]).ExitCode())
+
+	// Sanity: plain --offline (without --local-only) must fail loudly
+	// when a block is missing. This guards the existing behavior.
+	res := node.Runner.Run(harness.RunRequest{
+		Path:    node.IPFSBin,
+		Args:    []string{"dag", "export", "--offline", root},
+		CmdOpts: []harness.CmdOpt{harness.RunWithStdout(io.Discard)},
+	})
+	require.NotEqual(t, 0, res.ExitCode(), "dag export --offline must fail when a block is missing")
+	require.Contains(t, res.Stderr.String(), "block was not found locally")
+
+	// --local-only must succeed and produce a CAR with exactly the
+	// full DAG minus the one removed leaf.
+	partialCarPath := filepath.Join(node.Dir, "partial.car")
+	require.NoError(t, node.IPFSDagExport(root, partialCarPath, "--local-only", "--offline"))
+	partialCount := countCARBlocks(t, partialCarPath)
+
+	require.Equal(t, fullCount-1, partialCount,
+		"partial CAR should be exactly the full DAG minus the one removed leaf (full=%d, partial=%d)",
+		fullCount, partialCount)
+}
+
+// TestDagExportLocalOnlyImpliesOffline verifies that --local-only on its own
+// makes a partial-DAG export succeed: it implies --offline so the user does
+// not have to pass both flags.
+func TestDagExportLocalOnlyImpliesOffline(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	root, _ := makePartialDAG(t, node, "dag-export-local-only-implies")
+
+	// Export with only --local-only (no --offline) and confirm the
+	// resulting CAR has the right number of blocks (full DAG minus one).
+	partialCarPath := filepath.Join(node.Dir, "partial.car")
+	require.NoError(t, node.IPFSDagExport(root, partialCarPath, "--local-only"))
+
+	// 300KiB --raw-leaves yields root + 2 leaves, so removing one leaf
+	// leaves 2 blocks. Asserting the exact count proves --offline was
+	// actually applied (without it, the export would either fetch the
+	// missing block or fail differently).
+	require.Equal(t, 2, countCARBlocks(t, partialCarPath))
+}
+
+// TestDagExportLocalOnlySkipsSubtree verifies that when a non-leaf block is
+// missing, --local-only skips the entire subtree under it, not just the
+// missing block. Uses a small chunk size to force a depth>1 DAG so removing
+// an intermediate prunes many descendant blocks.
+func TestDagExportLocalOnlySkipsSubtree(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	// chunker=size-256 + 64 KiB → 256 leaves; max-file-links=174 forces
+	// at least one intermediate dag-pb layer between root and leaves
+	// (256 > 174). Both values are pinned so the DAG shape (and the
+	// counts below) survives any change to Import.* defaults or profiles.
+	root := node.IPFSAddDeterministic("64KiB", "dag-export-local-only-subtree",
+		"--raw-leaves", "--chunker=size-256", "--max-file-links=174")
+	fullCarPath := filepath.Join(node.Dir, "full.car")
+	require.NoError(t, node.IPFSDagExport(root, fullCarPath))
+	fullCount := countCARBlocks(t, fullCarPath)
+	// 1 root + 2 intermediates (174 + 82 children) + 256 leaves = 259.
+	require.Equal(t, 259, fullCount, "expected root + 2 intermediates + 256 leaves, got %d", fullCount)
+
+	// Find the first intermediate ref: a non-leaf whose codec is dag-pb.
+	// "ipfs refs -r --unique" lists CIDs depth-first; the root's first
+	// child in a balanced UnixFS DAG with >174 leaves is an intermediate.
+	refs := dagRefs(node, root)
+	intermediate := refs[1]
+	intermediateChildren := dagRefs(node, intermediate)
+	require.Greater(t, len(intermediateChildren), 10,
+		"expected refs[1] to be a non-leaf with many children, got %d", len(intermediateChildren))
+
+	// Remove the intermediate. Its subtree blocks remain locally, but
+	// without the intermediate the walker cannot reach them, so they
+	// must be skipped along with it.
+	require.Equal(t, 0, node.RunIPFS("pin", "rm", root).ExitCode())
+	require.Equal(t, 0, node.RunIPFS("block", "rm", intermediate).ExitCode())
+
+	partialCarPath := filepath.Join(node.Dir, "partial.car")
+	require.NoError(t, node.IPFSDagExport(root, partialCarPath, "--local-only"))
+	partialCount := countCARBlocks(t, partialCarPath)
+
+	expectedDropped := len(intermediateChildren) // includes the intermediate itself
+	require.Equal(t, fullCount-expectedDropped, partialCount,
+		"removing intermediate %s should drop it and its %d descendants (full=%d, partial=%d)",
+		intermediate, expectedDropped-1, fullCount, partialCount)
+}
+
+// TestDagExportLocalOnlyConflictsWithOnline verifies that explicitly asking
+// for online mode together with --local-only is rejected, since the two
+// settings contradict each other.
+func TestDagExportLocalOnlyConflictsWithOnline(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	root := node.IPFSAddDeterministic("300KiB", "dag-export-local-only-online", "--raw-leaves")
+
+	res := node.RunIPFS("dag", "export", "--local-only", "--offline=false", root)
+	require.NotEqual(t, 0, res.ExitCode(), "dag export --local-only --offline=false should be rejected")
+	stderr := res.Stderr.String()
+	require.Contains(t, stderr, "--local-only")
+	require.Contains(t, stderr, "--offline")
+}
+
+// TestDagImportPartialCAR is the round-trip happy path: a partial CAR from
+// --local-only can be imported on a fresh node with default flags (the
+// IPFSDagImport harness helper passes --pin-roots=false). The helper also
+// confirms the root resolves offline on the receiver.
+func TestDagImportPartialCAR(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	root, _ := makePartialDAG(t, node, "dag-import-partial")
+
+	partialCarPath := filepath.Join(node.Dir, "partial.car")
+	require.NoError(t, node.IPFSDagExport(root, partialCarPath, "--local-only", "--offline"))
+
+	imp := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer imp.StopDaemon()
+	partialCAR, err := os.Open(partialCarPath)
+	require.NoError(t, err)
+	defer partialCAR.Close()
+	require.NoError(t, imp.IPFSDagImport(partialCAR, root))
+}
+
+// TestDagImportLocalOnlyImpliesNoPin verifies that --local-only on its own
+// makes a partial-CAR import succeed: it implies --pin-roots=false so the
+// user does not have to pass both flags.
+func TestDagImportLocalOnlyImpliesNoPin(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	root, _ := makePartialDAG(t, node, "dag-import-local-only-implies")
+	partialCarPath := filepath.Join(node.Dir, "partial.car")
+	require.NoError(t, node.IPFSDagExport(root, partialCarPath, "--local-only", "--offline"))
+
+	imp := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer imp.StopDaemon()
+	partialCAR, err := os.Open(partialCarPath)
+	require.NoError(t, err)
+	defer partialCAR.Close()
+
+	// Import with only --local-only (no --pin-roots=false). Should
+	// succeed because --local-only implies --pin-roots=false, and the
+	// receiver must not attempt to pin (pin would fail on a partial DAG).
+	res := imp.Runner.Run(harness.RunRequest{
+		Path:    imp.IPFSBin,
+		Args:    []string{"dag", "import", "--local-only"},
+		CmdOpts: []harness.CmdOpt{harness.RunWithStdin(partialCAR)},
+	})
+	require.Equal(t, 0, res.ExitCode(),
+		"dag import --local-only on a partial CAR should succeed; stderr: %s", res.Stderr.String())
+	require.NotContains(t, res.Stdout.String(), "Pinned root",
+		"import must not pin when --local-only is set")
+}
+
+// TestDagImportLocalOnlyPinRootsConflict verifies that --local-only is
+// rejected when combined with an explicit --pin-roots=true. The two are
+// mutually exclusive: --local-only is for partial CARs (no full DAG to pin).
+func TestDagImportLocalOnlyPinRootsConflict(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	r, err := os.Open(fixtureFile)
+	require.NoError(t, err)
+	defer r.Close()
+
+	res := node.Runner.Run(harness.RunRequest{
+		Path:    node.IPFSBin,
+		Args:    []string{"dag", "import", "--local-only", "--pin-roots=true"},
+		CmdOpts: []harness.CmdOpt{harness.RunWithStdin(r)},
+	})
+
+	require.NotEqual(t, 0, res.ExitCode())
+	stderr := res.Stderr.String()
+	require.Contains(t, stderr, "--local-only")
+	require.Contains(t, stderr, "--pin-roots")
 }
