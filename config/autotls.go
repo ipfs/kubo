@@ -40,15 +40,44 @@ type AutoTLS struct {
 
 	// Optional, controls if features like AutoWSS should generate shorter /dnsX instead of /ipX/../sni/..
 	ShortAddrs Flag `json:",omitempty"`
+
+	// SelfSignedForTests is a test-only escape hatch. When true, the daemon
+	// skips the AutoTLS / p2p-forge / ACME pipeline entirely and provides
+	// the WebSocket transport with an in-memory self-signed TLS config.
+	// Test clients pair this with tls.Config{InsecureSkipVerify: true} to
+	// drive the /tls/ws and /tls/http paths without real ACME issuance.
+	//
+	// Never set this in a production config. The cert is regenerated on
+	// every daemon start and is not trusted by any browser or CA.
+	SelfSignedForTests Flag `json:",omitempty"`
+
+	// TrustedCARootsPEM is an optional PEM-encoded bundle of CA
+	// certificates that the ACME client trusts in addition to the system
+	// trust store. Set this when AutoTLS.CAEndpoint points at a CA whose
+	// root is not in the system store: private or self-hosted ACME
+	// deployments, and the in-process Pebble used by the AutoTLS E2E test
+	// in test/autotls/.
+	TrustedCARootsPEM *OptionalString `json:",omitempty"`
+
+	// AllowPrivateForgeAddrs lifts the p2p-forge client's requirement that
+	// the libp2p host report a publicly reachable address before requesting
+	// a certificate. Set this for private/intranet libp2p deployments
+	// (where reachability is asymmetric or implicit) and for the AutoTLS
+	// E2E test in test/autotls/, which runs entirely on loopback.
+	//
+	// Leave this off in normal public deployments; the default behavior
+	// avoids wasting ACME issuance on a node that no one can reach.
+	AllowPrivateForgeAddrs Flag `json:",omitempty"`
 }
 
 const (
-	DefaultAutoTLSEnabled           = true // with DefaultAutoTLSRegistrationDelay, unless explicitly enabled  in config
-	DefaultDomainSuffix             = p2pforge.DefaultForgeDomain
-	DefaultRegistrationEndpoint     = p2pforge.DefaultForgeEndpoint
-	DefaultCAEndpoint               = p2pforge.DefaultCAEndpoint
-	DefaultAutoWSS                  = true // requires AutoTLS.Enabled
-	DefaultAutoTLSShortAddrs        = true // requires AutoTLS.Enabled
-	DefaultAutoTLSSkipDNSLookup     = true // skip network DNS for p2p-forge domains
-	DefaultAutoTLSRegistrationDelay = 1 * time.Hour
+	DefaultAutoTLSEnabled            = true // with DefaultAutoTLSRegistrationDelay, unless explicitly enabled  in config
+	DefaultDomainSuffix              = p2pforge.DefaultForgeDomain
+	DefaultRegistrationEndpoint      = p2pforge.DefaultForgeEndpoint
+	DefaultCAEndpoint                = p2pforge.DefaultCAEndpoint
+	DefaultAutoWSS                   = true // requires AutoTLS.Enabled
+	DefaultAutoTLSShortAddrs         = true // requires AutoTLS.Enabled
+	DefaultAutoTLSSkipDNSLookup      = true // skip network DNS for p2p-forge domains
+	DefaultAutoTLSRegistrationDelay  = 1 * time.Hour
+	DefaultAutoTLSSelfSignedForTests = false
 )

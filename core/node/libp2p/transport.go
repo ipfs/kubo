@@ -20,8 +20,10 @@ import (
 func Transports(tptConfig config.Transports) any {
 	return func(params struct {
 		fx.In
-		Fprint   PNetFingerprint         `optional:"true"`
-		ForgeMgr *client.P2PForgeCertMgr `optional:"true"`
+		Fprint        PNetFingerprint          `optional:"true"`
+		ForgeMgr      *client.P2PForgeCertMgr  `optional:"true"`
+		HTTPProvider  *HTTPProviderHandler     `optional:"true"`
+		SelfSignedTLS *SelfSignedTestTLSConfig `optional:"true"`
 	},
 	) (opts Libp2pOpts, err error) {
 		privateNetworkEnabled := params.Fprint != nil
@@ -34,11 +36,27 @@ func Transports(tptConfig config.Transports) any {
 		}
 
 		if wsEnabled {
-			if params.ForgeMgr == nil {
-				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New))
-			} else {
-				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New, websocket.WithTLSConfig(params.ForgeMgr.TLSConfig())))
+			var wsOpts []any
+			// Test escape hatch wins when set: skip the AutoTLS pipeline
+			// and feed the WebSocket transport an in-memory self-signed
+			// cert. Production paths use ForgeMgr; both are wired
+			// optional so only one provider fires per build.
+			switch {
+			case params.SelfSignedTLS != nil:
+				wsOpts = append(wsOpts, websocket.WithTLSConfig(params.SelfSignedTLS.Config))
+			case params.ForgeMgr != nil:
+				wsOpts = append(wsOpts, websocket.WithTLSConfig(params.ForgeMgr.TLSConfig()))
 			}
+			// HTTPProvider: when the master switch is on (and AutoTLS is on),
+			// expose the trustless gateway handler on the same TCP port as
+			// /tls/ws by routing non-WebSocket requests to a fallback handler.
+			// The handler itself is wired post-construction by daemon.go
+			// because it needs the fully constructed *core.IpfsNode.
+			// See HTTPProviderHandler.
+			if params.HTTPProvider != nil {
+				wsOpts = append(wsOpts, websocket.WithFallbackHTTPHandler(params.HTTPProvider))
+			}
+			opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New, wsOpts...))
 		}
 
 		if tcpEnabled && wsEnabled && os.Getenv("LIBP2P_TCP_MUX") != "false" {

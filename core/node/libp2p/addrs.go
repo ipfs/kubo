@@ -2,7 +2,11 @@ package libp2p
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -275,29 +279,82 @@ func makeAddrsFactory(announce []string, appendAnnounce []string, noAnnounce []s
 	}, nil
 }
 
-func AddrsFactory(announce []string, appendAnnounce []string, noAnnounce []string) any {
+func AddrsFactory(announce []string, appendAnnounce []string, noAnnounce []string, announceHTTPProvider bool) any {
 	return func(params struct {
 		fx.In
 		ForgeMgr *p2pforge.P2PForgeCertMgr `optional:"true"`
 	},
 	) (opts Libp2pOpts, err error) {
-		var addrsFactory p2pbhost.AddrsFactory
 		announceAddrsFactory, err := makeAddrsFactory(announce, appendAnnounce, noAnnounce)
 		if err != nil {
 			return opts, err
 		}
-		if params.ForgeMgr == nil {
-			addrsFactory = announceAddrsFactory
-		} else {
-			addrsFactory = func(multiaddrs []ma.Multiaddr) []ma.Multiaddr {
-				forgeProcessing := params.ForgeMgr.AddressFactory()(multiaddrs)
-				announceProcessing := announceAddrsFactory(forgeProcessing)
-				return announceProcessing
+		// The factory pipeline runs in this order so each step sees the
+		// output of the previous one:
+		//   1. ForgeMgr substitutes the wildcard SNI in /tls/sni/*.<domain>/ws
+		//      with the real per-peer hostname (or its short form).
+		//   2. HTTPProvider derives an HTTP-flavored multiaddr from each /ws
+		//      so HTTP retrieval clients can discover this peer; runs after
+		//      ForgeMgr so the SNI value in /tls/sni/<host>/http is already
+		//      the resolved one, not the wildcard.
+		//   3. announceAddrsFactory applies Addresses.Announce/AppendAnnounce
+		//      and drops anything matching Addresses.NoAnnounce, so the
+		//      derived addresses are filtered just like every other one.
+		addrsFactory := func(multiaddrs []ma.Multiaddr) []ma.Multiaddr {
+			if params.ForgeMgr != nil {
+				multiaddrs = params.ForgeMgr.AddressFactory()(multiaddrs)
 			}
+			if announceHTTPProvider {
+				multiaddrs = appendHTTPProviderAddrs(multiaddrs)
+			}
+			return announceAddrsFactory(multiaddrs)
 		}
 		opts.Opts = append(opts.Opts, libp2p.AddrsFactory(addrsFactory))
 		return
 	}
+}
+
+// httpComponent is the /http multiaddr protocol component that pairs with
+// /ws on the same TCP port. We never listen on it; it is only ever appended
+// to announced multiaddrs to advertise the HTTPProvider endpoint.
+var httpComponent, _ = ma.NewComponent("http", "")
+
+// appendHTTPProviderAddrs returns a slice that contains every input
+// multiaddr plus, for each one ending in /ws, an additional copy with /ws
+// replaced by /http. Order is preserved; the /http variant immediately
+// follows its /ws sibling. Multiaddrs that do not end in /ws pass through
+// unchanged. Duplicates (which would arise if both /ws and /http were
+// already in the input) are dropped.
+func appendHTTPProviderAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
+	out := make([]ma.Multiaddr, 0, len(addrs)*2)
+	seen := make(map[string]struct{}, len(addrs)*2)
+	for _, a := range addrs {
+		if _, ok := seen[string(a.Bytes())]; !ok {
+			out = append(out, a)
+			seen[string(a.Bytes())] = struct{}{}
+		}
+		http, ok := wsToHTTP(a)
+		if !ok {
+			continue
+		}
+		if _, ok := seen[string(http.Bytes())]; !ok {
+			out = append(out, http)
+			seen[string(http.Bytes())] = struct{}{}
+		}
+	}
+	return out
+}
+
+// wsToHTTP returns m with its trailing /ws component replaced by /http,
+// and a boolean indicating whether the input ended in /ws. Everything
+// before the trailing /ws (including any /tls and /tls/sni/<host>
+// components) is preserved unchanged.
+func wsToHTTP(m ma.Multiaddr) (ma.Multiaddr, bool) {
+	prefix, last := ma.SplitLast(m)
+	if last == nil || last.Protocol().Code != ma.P_WS {
+		return nil, false
+	}
+	return prefix.AppendComponent(httpComponent), true
 }
 
 func ListenOn(addresses []string) any {
@@ -329,23 +386,121 @@ func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEv
 			registrationDelay = 0 * time.Second
 		}
 
+		// Pull the optional ?dial= and ?dns= test/debug overrides off the
+		// URL before handing it to p2p-forge. See docs/config.md.
+		regEndpoint, overrides, err := parseForgeOverrides(cfg.RegistrationEndpoint.WithDefault(config.DefaultRegistrationEndpoint))
+		if err != nil {
+			return nil, fmt.Errorf("AutoTLS.RegistrationEndpoint: %w", err)
+		}
+
 		certStorage := &certmagic.FileStorage{Path: storagePath}
-		certMgr, err := p2pforge.NewP2PForgeCertMgr(
+		opts := []p2pforge.P2PForgeCertMgrOptions{
 			p2pforge.WithLogger(rawLogger.Sugar()),
 			p2pforge.WithForgeDomain(cfg.DomainSuffix.WithDefault(config.DefaultDomainSuffix)),
-			p2pforge.WithForgeRegistrationEndpoint(cfg.RegistrationEndpoint.WithDefault(config.DefaultRegistrationEndpoint)),
+			p2pforge.WithForgeRegistrationEndpoint(regEndpoint),
 			p2pforge.WithRegistrationDelay(registrationDelay),
 			p2pforge.WithCAEndpoint(cfg.CAEndpoint.WithDefault(config.DefaultCAEndpoint)),
 			p2pforge.WithForgeAuth(cfg.RegistrationToken.WithDefault(os.Getenv(p2pforge.ForgeAuthEnv))),
 			p2pforge.WithUserAgent(version.GetUserAgentVersion()),
 			p2pforge.WithCertificateStorage(certStorage),
 			p2pforge.WithShortForgeAddrs(cfg.ShortAddrs.WithDefault(config.DefaultAutoTLSShortAddrs)),
-		)
+		}
+		// AutoTLS.TrustedCARootsPEM: optional CA bundle for private or
+		// self-hosted ACME deployments (including the in-process Pebble
+		// used by the AutoTLS E2E test).
+		if pem := cfg.TrustedCARootsPEM.WithDefault(""); pem != "" {
+			pool := x509.NewCertPool()
+			if !pool.AppendCertsFromPEM([]byte(pem)) {
+				return nil, fmt.Errorf("AutoTLS.TrustedCARootsPEM did not contain any parseable certificate")
+			}
+			opts = append(opts, p2pforge.WithTrustedRoots(pool))
+		}
+		// AutoTLS.AllowPrivateForgeAddrs: lift the "must be publicly
+		// reachable" gate on cert requests, for private/intranet
+		// deployments and the AutoTLS E2E test (loopback only).
+		if cfg.AllowPrivateForgeAddrs.WithDefault(false) {
+			opts = append(opts, p2pforge.WithAllowPrivateForgeAddrs())
+		}
+		if overrides.dial != "" {
+			opts = append(opts, p2pforge.WithHTTPClient(forgeDialOverrideClient(overrides.dial)))
+		}
+		if overrides.dns != "" {
+			opts = append(opts, p2pforge.WithResolver(forgeDNSOverrideResolver(overrides.dns)))
+		}
+		certMgr, err := p2pforge.NewP2PForgeCertMgr(opts...)
 		if err != nil {
 			return nil, err
 		}
 
 		return certMgr, nil
+	}
+}
+
+// forgeOverrides holds the test/debug overrides parsed off
+// AutoTLS.RegistrationEndpoint. All fields are empty when the URL carries no
+// overrides. See docs/config.md for the user-facing description.
+type forgeOverrides struct {
+	dial string // ?dial=host:port: forces the registration POST to dial here
+	dns  string // ?dns=host:port: forces DNS-01 pre-flight lookups to this server
+}
+
+// parseForgeOverrides strips the recognized ?dial= and ?dns= query parameters
+// from raw, returning the cleaned URL and the parsed overrides. Unrelated
+// query parameters are preserved.
+func parseForgeOverrides(raw string) (cleanURL string, ov forgeOverrides, err error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", forgeOverrides{}, err
+	}
+	q := u.Query()
+	for _, p := range []struct {
+		key string
+		dst *string
+	}{
+		{"dial", &ov.dial},
+		{"dns", &ov.dns},
+	} {
+		v := q.Get(p.key)
+		if v == "" {
+			continue
+		}
+		if _, _, err := net.SplitHostPort(v); err != nil {
+			return "", forgeOverrides{}, fmt.Errorf("%s=%q must be host:port: %w", p.key, v, err)
+		}
+		*p.dst = v
+		q.Del(p.key)
+	}
+	// Return raw unchanged when no override was set, so a no-op call
+	// doesn't reorder unrelated query parameters via Query().Encode().
+	if ov == (forgeOverrides{}) {
+		return raw, ov, nil
+	}
+	u.RawQuery = q.Encode()
+	return u.String(), ov, nil
+}
+
+// forgeDialOverrideClient returns an *http.Client whose Transport always dials
+// dialAddr, ignoring the request URL's host. Used by the ?dial= override.
+func forgeDialOverrideClient(dialAddr string) *http.Client {
+	dialer := &net.Dialer{}
+	return &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return dialer.DialContext(ctx, "tcp", dialAddr)
+			},
+		},
+	}
+}
+
+// forgeDNSOverrideResolver returns a *net.Resolver that sends every lookup to
+// dnsAddr instead of the system resolver. Used by the ?dns= override.
+func forgeDNSOverrideResolver(dnsAddr string) *net.Resolver {
+	dialer := &net.Dialer{}
+	return &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
+			return dialer.DialContext(ctx, network, dnsAddr)
+		},
 	}
 }
 

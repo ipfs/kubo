@@ -101,6 +101,16 @@ test_examples:
 	cd docs/examples/kubo-as-a-library && go test -v -timeout=$(TEST_EXAMPLES_TIMEOUT) ./... && cp go.mod go.mod.bak && cp go.sum go.sum.bak && (go mod edit -replace github.com/ipfs/kubo=./../../.. && go mod tidy && go test -v -timeout=$(TEST_EXAMPLES_TIMEOUT) ./...; ret=$$?; mv go.mod.bak go.mod; mv go.sum.bak go.sum; exit $$ret)
 .PHONY: test_examples
 
+# AutoTLS end-to-end canary (separate module under test/autotls).
+# Spins up an in-process Pebble ACME server and the p2p-forge service
+# (CoreDNS-based) to exercise kubo's full AutoTLS chain. Heavy deps
+# (Pebble + CoreDNS, ~350 indirect modules) live in the sub-module's
+# go.mod so kubo's main module stays clean.
+TEST_AUTOTLS_TIMEOUT ?= 4m
+test_autotls: cmd/ipfs/ipfs test/bin/gotestsum $$(DEPS_GO)
+	cd test/autotls && rm -f autotls-tests.json && PATH="$(CURDIR)/cmd/ipfs:$(CURDIR)/test/bin:$$PATH" gotestsum $(GOTESTSUM_NOCOLOR) --jsonfile autotls-tests.json -- -v -timeout=$(TEST_AUTOTLS_TIMEOUT) ./...
+.PHONY: test_autotls
+
 # Build kubo for all platforms from .github/build-platforms.yml
 test_go_build:
 	bin/test-go-build-platforms

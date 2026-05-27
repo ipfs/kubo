@@ -202,6 +202,28 @@ jobs:
                 fusermount3 -uz "$mp" 2>/dev/null || fusermount -uz "$mp" 2>/dev/null || true
               done
 
+  # AutoTLS end-to-end canary (in-process Pebble + p2p-forge).
+  # Isolated sub-module (test/autotls); heavy CoreDNS + Pebble deps stay
+  # out of the main go.mod.
+  autotls-tests:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    timeout-minutes: 8
+    env:
+      GOTRACEBACK: all
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+      - name: Build kubo binary
+        run: make build
+      - name: Run AutoTLS end-to-end canary
+        run: make test_autotls
+
   # Example tests (kubo-as-a-library)
   example-tests:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
