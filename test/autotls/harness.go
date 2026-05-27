@@ -109,45 +109,41 @@ func NewStack(t *testing.T) *Stack {
 	httpPort := tmpListener.Addr().(*net.TCPAddr).Port
 	_ = tmpListener.Close()
 
-	// Reserve one port for DNS so CoreDNS binds the same port on UDP and
-	// TCP. With .:0 the OS hands each protocol an independent random
-	// port, and Pebble's VA fails when it retries TXT lookups over TCP.
-	tmpUDP, err := net.ListenPacket("udp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("reserve forge dns port: %v", err)
-	}
-	dnsPort := tmpUDP.LocalAddr().(*net.UDPAddr).Port
-	_ = tmpUDP.Close()
-
 	// Configure the CoreDNS instance p2p-forge runs on. The ipparser
 	// plugin resolves <peerid>.<forgeDomain> from the embedded IP; the
 	// acme plugin owns the DNS-01 TXT records and the HTTP registration
-	// endpoint.
+	// endpoint. `.:0` lets CoreDNS pick free UDP and TCP ports; the
+	// running instance reports both via Servers()[0] below.
 	tmpDir := t.TempDir()
 	dnsserver.Directives = []string{"log", "whoami", "startup", "shutdown", "ipparser", "acme"}
-	corefile := fmt.Sprintf(`.:%[5]d {
+	corefile := fmt.Sprintf(`.:0 {
 		log
 		ipparser %[1]s
 		acme %[1]s {
 			registration-domain %[2]s listen-address=:%[3]d external-tls=true
 			database-type badger %[4]s
 		}
-	}`, forgeDomain, forgeRegHost, httpPort, tmpDir, dnsPort)
+	}`, forgeDomain, forgeRegHost, httpPort, tmpDir)
 	dnsInstance, err := caddy.Start(&corefileInput{body: []byte(corefile)})
 	if err != nil {
 		t.Fatalf("start p2p-forge (caddy): %v", err)
 	}
-	// dnsAddr is what Pebble's VA and the kubo daemon's pre-flight check
-	// both dial; same port on UDP and TCP (see reservation above).
-	dnsAddr := fmt.Sprintf("127.0.0.1:%d", dnsPort)
+	// CoreDNS's default DNS server type exposes the UDP packet conn via
+	// LocalAddr() and the TCP listener via Addr(). Pebble v2.10 forces
+	// TCP for ACME DNS lookups, so its VA must dial the TCP listener;
+	// the kubo daemon's pre-flight check uses Go's net.Resolver with
+	// PreferGo, which sends TXT queries over UDP.
+	dnsUDPAddr, dnsTCPAddr := dnsServerAddresses(t, dnsInstance.Servers()[0])
 
 	// Stand up Pebble. The VA needs the forge DNS server's address so it
 	// can resolve the DNS-01 TXT records p2p-forge publishes.
 	pebbleLogger := log.New(os.Stderr, "pebble: ", log.LstdFlags)
 	db := pebbleDB.NewMemoryStore()
-	// ocspResponderURL="" (none), keyAlg="ecdsa" (Pebble panics on
-	// empty), 1 alternate root, chain length 1 (Pebble requires at
-	// least one intermediate). One issuance profile so wfe.NewOrder's
+	// ocspResponderURL="" (none), keyAlg="rsa" (matches p2p-forge's
+	// own e2e setup; pebble's GetRootKey only handles RSA so an ECDSA
+	// CA would panic if pebble's internal flows ever call it), 1
+	// alternate root, chain length 1 (Pebble requires at least one
+	// intermediate). One issuance profile so wfe.NewOrder's
 	// random-profile pick doesn't Intn(0)-panic.
 	profiles := map[string]pebbleCA.Profile{
 		"shortlived": {
@@ -155,8 +151,8 @@ func NewStack(t *testing.T) *Stack {
 			ValidityPeriod: 7 * 24 * 60 * 60, // seconds
 		},
 	}
-	ca := pebbleCA.New(pebbleLogger, db, "", "ecdsa", 1, 1, profiles)
-	va := pebbleVA.New(pebbleLogger, 0, 0, false, dnsAddr, db)
+	ca := pebbleCA.New(pebbleLogger, db, "", "rsa", 1, 1, profiles)
+	va := pebbleVA.New(pebbleLogger, 0, 0, false, dnsTCPAddr, db)
 	// nil caaIdentities skips CAA checks (we have no DNS CAA records for
 	// libp2p.test anyway). strict=false, requireEAB=false, retryAfter
 	// values match Pebble's defaults.
@@ -182,7 +178,7 @@ func NewStack(t *testing.T) *Stack {
 	go func() { _ = acmeServer.Serve(tlsListener) }()
 
 	stack := &Stack{
-		ForgeRegistrationEndpoint: fmt.Sprintf("http://%s/?dial=127.0.0.1:%d&dns=%s", forgeRegHost, httpPort, dnsAddr),
+		ForgeRegistrationEndpoint: fmt.Sprintf("http://%s/?dial=127.0.0.1:%d&dns=%s", forgeRegHost, httpPort, dnsUDPAddr),
 		ACMEEndpoint:              fmt.Sprintf("https://%s%s", acmeListener.Addr(), pebbleWFE.DirectoryPath),
 		PebbleCAPEM:               string(pebbleCertPEM),
 		PebbleIssuanceRootPEM:     string(ca.GetRootCert(0).PEM()),
@@ -198,6 +194,24 @@ func NewStack(t *testing.T) *Stack {
 	}
 	t.Cleanup(stack.Close)
 	return stack
+}
+
+// dnsServerAddresses returns the UDP and TCP listener addresses from a
+// CoreDNS ServerListener. The default DNS server type binds the UDP packet
+// conn to LocalAddr() and the TCP listener to Addr(); a swap to
+// DoH/DoT/DoQ/gRPC would fail one of the assertions loudly. Mirrors the
+// helper in p2p-forge's own e2e test.
+func dnsServerAddresses(t *testing.T, srv caddy.ServerListener) (udpAddr, tcpAddr string) {
+	t.Helper()
+	pkt := srv.LocalAddr()
+	if pkt == nil || pkt.Network() != "udp" {
+		t.Fatalf("expected UDP packet conn on CoreDNS server, got %v", pkt)
+	}
+	l := srv.Addr()
+	if l == nil || l.Network() != "tcp" {
+		t.Fatalf("expected TCP listener on CoreDNS server, got %v", l)
+	}
+	return pkt.String(), l.String()
 }
 
 // setEnv sets key=val for the duration of the test, returning the previous
