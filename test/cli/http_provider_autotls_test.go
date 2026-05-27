@@ -43,6 +43,8 @@ func TestHTTPProviderAutoTLS(t *testing.T) {
 		cfg.AutoTLS.Enabled = config.False
 		cfg.AutoTLS.SelfSignedForTests = config.True
 		cfg.HTTPProvider.Enabled = config.True
+		// AnnouncesTLSHTTPMultiaddr below needs the /tls/http announcement.
+		cfg.HTTPProvider.AnnounceMultiaddrs = config.True
 	})
 
 	nodes.StartDaemons().Connect()

@@ -47,8 +47,11 @@ func TestACMEEndToEnd(t *testing.T) {
 	node := h.NewNode().Init()
 	node.UpdateConfig(func(cfg *config.Config) {
 		// HTTPProvider exposes the trustless gateway over /tls/ws and
-		// /tls/http using the AutoTLS cert.
+		// /tls/http using the AutoTLS cert. The canary waits for the
+		// /tls/http multiaddr in identify output, so enable the
+		// announcement.
 		cfg.HTTPProvider.Enabled = config.True
+		cfg.HTTPProvider.AnnounceMultiaddrs = config.True
 
 		// Point AutoTLS at the in-process Pebble + p2p-forge.
 		cfg.AutoTLS.Enabled = config.True

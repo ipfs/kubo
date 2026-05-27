@@ -68,8 +68,10 @@ func TestHTTPProvider(t *testing.T) {
 			"non-upgrade HTTP requests must 404 until HTTPProvider is enabled")
 	})
 
-	// Enable HTTPProvider and restart so FX picks up the handler.
+	// AnnouncesHTTPMultiaddr below needs both Enabled and
+	// AnnounceMultiaddrs. Restart so FX picks up the handler.
 	gwNode.IPFS("config", "--json", "HTTPProvider.Enabled", "true")
+	gwNode.IPFS("config", "--json", "HTTPProvider.AnnounceMultiaddrs", "true")
 	gwNode.StopDaemon().StartDaemon()
 	t.Cleanup(func() { gwNode.StopDaemon() })
 	nodes.Connect()
@@ -134,11 +136,9 @@ func TestHTTPProvider(t *testing.T) {
 	})
 
 	t.Run("AnnouncesHTTPMultiaddr", func(t *testing.T) {
-		// /http must appear next to every announced /ws.
-		// AnnounceMultiaddrs defaults to true when HTTPProvider.Enabled
-		// is true. Read announced (not just listening) addresses via
-		// `ipfs id`; the /http multiaddr is purely an announcement and
-		// has no socket of its own.
+		// /http must appear next to every announced /ws. The /http
+		// multiaddr is purely an announcement and has no socket of
+		// its own, so read it via `ipfs id` rather than SwarmAddrs.
 		announced := announcedAddrs(t, gwNode)
 		var wsAddrs, httpAddrs []multiaddr.Multiaddr
 		for _, a := range announced {

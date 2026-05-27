@@ -7,67 +7,62 @@ package config
 // retrieval clients such as boxo/bitswap/network/httpnet.
 //
 // This is the server side of the HTTP retrieval story; the client side
-// lives separately and is configured under HTTPRetrieval.
+// lives separately under HTTPRetrieval.
+//
+// Defaults live on the DefaultHTTPProvider* constants below.
 type HTTPProvider struct {
-	// Enabled is the master switch. Default: false. When true (and other
-	// prerequisites are met), the trustless gateway handler is registered
-	// and the transport sub-toggles default to true unless explicitly set
-	// to false.
+	// Enabled is the master switch. When true, the trustless gateway
+	// handler is registered for the libp2p-stream transport (see
+	// Libp2p). Cleartext and AnnounceMultiaddrs gate further surfaces
+	// and must each be set explicitly.
 	Enabled Flag `json:",omitempty"`
 
-	// Libp2p exposes the trustless gateway over a libp2p stream, as
-	// specified by the libp2p Gateway spec
-	// (https://specs.ipfs.tech/http-gateways/libp2p-gateway/). The
-	// handler is mounted under the /ipfs/gateway protocol ID and
+	// Libp2p exposes the trustless gateway over a libp2p stream, per the
+	// libp2p Gateway spec (https://specs.ipfs.tech/http-gateways/libp2p-gateway/).
+	// The handler mounts under the /ipfs/gateway protocol ID and is
 	// advertised via .well-known/libp2p/protocols on the libp2p+HTTP
-	// host. Default: true when Enabled is true.
+	// host.
 	Libp2p Flag `json:",omitempty"`
 
-	// Cleartext auto-appends a plaintext /ws listener to each /tcp/N
-	// already in Addresses.Swarm, unless a cleartext /ws listener is
-	// already present. The new /ws shares the existing TCP port via the
-	// shared-TCP demuxer, so no extra socket is opened.
+	// Cleartext auto-appends a plaintext /ws listener to each /tcp/N in
+	// Addresses.Swarm, unless one is already present. The new /ws shares
+	// the existing TCP port via the shared-TCP demuxer, so no extra
+	// socket is opened.
 	//
-	// Intended for deployments where the operator handles TLS termination
-	// for /ws and /http themselves, typically a reverse proxy (Caddy,
-	// Traefik, nginx, etc.) sitting in front of kubo and forwarding either
-	// HTTP/1.1 or HTTP/2 cleartext (h2c) to this node. With AutoTLS, kubo
-	// already serves /tls/ws and /tls/http directly with a Let's Encrypt
-	// cert, so adding a cleartext path is unnecessary and would expose the
-	// trustless gateway and WebSocket upgrade unencrypted on the public
-	// network. Off by default for that reason; flip it on knowingly.
+	// Intended for deployments where a reverse proxy (Caddy, Traefik,
+	// nginx, etc.) terminates TLS in front of kubo and forwards HTTP/1.1
+	// or h2c to this node. With AutoTLS, kubo already serves /tls/ws and
+	// /tls/http with a Let's Encrypt cert, so a cleartext path would
+	// expose the trustless gateway and WebSocket upgrade unencrypted on
+	// the public network. Turn it on knowingly.
 	//
-	// The corresponding network advertisement (/http multiaddr beside
-	// /ws) is controlled by AnnounceMultiaddrs.
-	//
-	// Default: false.
+	// The matching /http multiaddr announcement is controlled by
+	// AnnounceMultiaddrs.
 	Cleartext Flag `json:",omitempty"`
 
-	// AnnounceMultiaddrs derives an HTTP-flavored multiaddr from each of
-	// this peer's WebSocket listeners and includes it in the announced
-	// address set: /ws -> /http, /tls/ws -> /tls/http,
-	// /tls/sni/<host>/ws -> /tls/sni/<host>/http. The HTTP endpoint shares
-	// the same TCP port and TLS certificate as the WebSocket listener, so
-	// this is purely an announcement (no extra socket is opened). Lets
-	// HTTP retrieval clients (e.g. boxo/bitswap/network/httpnet) discover
+	// AnnounceMultiaddrs derives an HTTP-flavored multiaddr from each
+	// WebSocket listener and adds it to the announced address set:
+	// /ws to /http, /tls/ws to /tls/http, /tls/sni/<host>/ws to
+	// /tls/sni/<host>/http. The HTTP endpoint shares the WebSocket
+	// listener's TCP port and TLS cert; no extra socket is opened. HTTP
+	// retrieval clients (e.g. boxo/bitswap/network/httpnet) then discover
 	// this peer as an HTTP source through identify, the DHT, and IPNI
-	// without any out-of-band knowledge.
+	// without out-of-band knowledge.
 	//
-	// Subject to Addresses.NoAnnounce filters, just like every other
-	// announced multiaddr.
-	//
-	// Default: true when Enabled is true.
+	// Subject to Addresses.NoAnnounce filters, like any other announced
+	// multiaddr.
 	AnnounceMultiaddrs Flag `json:",omitempty"`
 }
 
-// HTTPProvider defaults. The master switch is off; when on, the libp2p
-// transport and the network advertisement default to on (zero-config
-// "be discoverable as an HTTP source for what's already exposed"), while
-// the cleartext path stays off and must be flipped on explicitly. See
-// the per-field doc comments for why.
+// HTTPProvider defaults. The master switch is off, so the feature is
+// inert until an operator opts in. Once Enabled, the libp2p-stream
+// transport comes up automatically because the .well-known descriptor
+// already advertises that path; the cleartext listener and the /http
+// announcement stay off so operators broadcast HTTP availability on
+// purpose, not by accident.
 const (
 	DefaultHTTPProviderEnabled            = false
 	DefaultHTTPProviderLibp2p             = true
 	DefaultHTTPProviderCleartext          = false
-	DefaultHTTPProviderAnnounceMultiaddrs = true
+	DefaultHTTPProviderAnnounceMultiaddrs = false
 )

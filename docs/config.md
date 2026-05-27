@@ -3947,7 +3947,7 @@ Type: `object`
 
 ### `HTTPProvider.Enabled`
 
-Master switch for `HTTPProvider`. When `true`, Kubo registers the trustless gateway handler and (unless overridden) defaults the transport sub-toggles below to `true`.
+Master switch for `HTTPProvider`. When `true`, Kubo registers the trustless gateway handler and defaults [`HTTPProvider.Libp2p`](#httpproviderlibp2p) to `true`. The [`HTTPProvider.Cleartext`](#httpprovidercleartext) and [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) sub-toggles stay off until set explicitly.
 
 Default: `false`
 
@@ -3981,7 +3981,9 @@ This is what lets [`HTTPRetrieval`](#httpretrieval) clients discover this peer a
 
 Subject to [`Addresses.NoAnnounce`](#addressesnoannounce) filters, like any other announced multiaddr.
 
-Default: `true` when `HTTPProvider.Enabled=true`
+Off by default even when [`HTTPProvider.Enabled`](#httpproviderenabled) is `true`: turning the gateway handler on does not automatically broadcast this node as an HTTP source. Flip this on once you are ready to advertise.
+
+Default: `false`
 
 Type: `flag`
 
