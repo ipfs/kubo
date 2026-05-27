@@ -104,6 +104,7 @@ config file at runtime.
         - [`Internal.Bitswap.BroadcastControl.MaxRandomPeers`](#internalbitswapbroadcastcontrolmaxrandompeers)
         - [`Internal.Bitswap.BroadcastControl.SendToPendingPeers`](#internalbitswapbroadcastcontrolsendtopendingpeers)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
+    - [`Internal.ShutdownTimeout`](#internalshutdowntimeout)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
@@ -144,6 +145,7 @@ config file at runtime.
       - [`Provide.DHT.MaxProvideConnsPerWorker`](#providedhtmaxprovideconnsperworker)
       - [`Provide.DHT.KeystoreBatchSize`](#providedhtkeystorebatchsize)
       - [`Provide.DHT.OfflineDelay`](#providedhtofflinedelay)
+      - [`Provide.DHT.SendProviderRecordTimeout`](#providedhtsendproviderrecordtimeout)
     - [`Provide.BloomFPRate`](#providebloomfprate)
   - [`Provider`](#provider)
     - [`Provider.Enabled`](#providerenabled)
@@ -356,7 +358,8 @@ Supported Transports:
 
 > [!IMPORTANT]
 > Make sure your firewall rules allow incoming connections on both TCP and UDP ports defined here.
-> See [Security section](#security) for network exposure considerations.
+> See [`docs/production/firewall.md`](./production/firewall.md) for a `ufw` walkthrough,
+> and the [Security section](#security) below for wider network exposure considerations.
 
 Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
@@ -966,25 +969,116 @@ Type: `bool`
 
 ### `Datastore.BloomFilterSize`
 
-A number representing the size in bytes of the blockstore's [bloom
-filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents
-the feature is disabled.
+The size in **bytes** of the blockstore's [bloom filter](https://en.wikipedia.org/wiki/Bloom_filter).
+A value of `0` disables the feature.
 
-This site generates useful graphs for various bloom filter values:
-<https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7> You may use it to find a
-preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to
-convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the
-config file. For example, for 1,000,000 blocks, expecting a 1% false-positive
-rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize`
-we'd want to use 1199120 bytes. As of writing, [7 hash
-functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22)
-are used, so the constant `k` is 7 in the formula.
+The bloom filter answers "does the blockstore *not* have this CID?" from RAM
+without touching the datastore. A negative answer is exact (no false
+negatives, so blocks are never falsely reported missing); a positive answer
+is probabilistic and falls through to the underlying blockstore for
+verification. The chance of a false "maybe present" is the filter's
+**false-positive rate (FPR)**. A false positive costs one wasted datastore
+lookup; it never causes data loss or incorrect retrieval. The lower the FPR,
+the more `Has()` calls the filter answers from RAM alone.
 
-Enabling the BloomFilter can provide performance improvements specially when
-responding to many requests for inexistent blocks. It however requires a full
-sweep of all the datastore keys on daemon start. On very large datastores this
-can be a very taxing operation, particularly if the datastore does not support
-querying existing keys without reading their values at the same time (blocks).
+This cache pays off most on nodes that field many requests for content they
+don't host: public gateways, mirrors, and peers asked to serve
+opportunistically-cached blocks.
+
+The complementary cache for the *positive* path (block exists, look up its
+size) is [`Datastore.BlockKeyCacheSize`](#datastoreblockkeycachesize).
+
+#### How kubo's bloom filter is sized
+
+Kubo wires the underlying [`ipfs/bbloom`](https://github.com/ipfs/bbloom)
+filter with `k=7` hash positions. Two kubo-specific behaviors matter for
+sizing:
+
+1. **Power-of-two bit-count rounding.** bbloom rounds the requested bit
+   count up to the next power of two, so a `BloomFilterSize` value that is
+   not itself a power of two in bits silently allocates more memory than
+   configured. For example, `BloomFilterSize: 1199120` (~1.14 MiB)
+   actually allocates a `16,777,216`-bit (= 2 MiB) filter internally. For
+   predictable behavior, pick `BloomFilterSize` values that are
+   power-of-two byte counts: 1 MiB, 2 MiB, 4 MiB, ..., 256 MiB, 512 MiB,
+   1 GiB.
+2. **Fixed `k=7`.** With seven hash positions, FPR for a filter of `m`
+   bits and `n` inserted entries is `(1 - exp(-7n/m))^7`. To hit a
+   target FPR, budget roughly ~1.8 bytes per entry at ~1% FPR, ~2.8
+   bytes per entry at ~0.1% FPR, and ~4.2 bytes per entry at ~0.01%
+   FPR. These figures already include the average ~1.5x penalty from
+   the power-of-two rounding above; the worst case is ~2x.
+
+#### Reference sizing
+
+Power-of-two `BloomFilterSize` values for common blockset sizes, with the
+FPR you can expect at the design point and at 2× growth:
+
+| Expected blocks (`n`) | `BloomFilterSize` | FPR at `n` | FPR at 2× `n` |
+|---:|---:|---:|---:|
+| 10,000,000  | `16777216`  (16 MiB)  | ~0.18% | ~5%  |
+| 25,000,000  | `33554432`  (32 MiB)  | ~0.58% | ~11% |
+| 50,000,000  | `67108864`  (64 MiB)  | ~0.58% | ~11% |
+| 100,000,000 | `134217728` (128 MiB) | ~0.58% | ~11% |
+| 200,000,000 | `268435456` (256 MiB) | ~0.58% | ~11% |
+
+For a tighter FPR at the design point, step up to the next power of two.
+
+The [hur.st/bloomfilter](https://hur.st/bloomfilter/?n=10e6&p=0.01&m=&k=7)
+calculator works as a reference for exploring `(n, p, m)` combinations
+(remember kubo uses `k=7`); just keep in mind that the `m` it suggests
+is the optimal-fit value, while bbloom rounds up to the next power of
+two on top of that.
+
+#### Saturation as the repo grows
+
+A bloom filter is fixed-size after creation. As more CIDs are inserted
+past its design `n`, the false-positive rate climbs steeply. Rough
+behavior with a filter sized for ~0.6% FPR at its design point:
+
+- At `n`: ~0.6% FPR. Every "definitely not" reliably saves a datastore
+  lookup.
+- At ~`2 × n`: ~11% FPR. Most negatives still save lookups, but tail
+  latency rises because each "maybe" still hits the datastore.
+- At ~`4 × n`: ~58% FPR. Most "maybe" answers fall through. The filter
+  is mostly paying CPU and RAM cost without short-circuiting much.
+- At ~`8 × n` or more: above ~95% FPR. Effectively saturated. The
+  filter answers "maybe" for nearly every CID and provides no benefit.
+
+Size for **expected steady-state, not today's count**, and re-tune after
+crossing the design point. Bloom filters cannot grow in place; raising
+`BloomFilterSize` and restarting the daemon rebuilds the filter from
+scratch.
+
+#### Risks of an undersized filter
+
+A poorly-sized filter is **never a correctness issue**. Bloom filters
+have no false negatives, so blocks are never falsely reported missing.
+The risks are operational:
+
+- **Wasted RAM and CPU.** Every `Has()` still runs all seven hash
+  positions. Once the filter saturates, those cycles return nothing.
+- **Silent regression as the pinset grows.** A filter sized for last
+  year's data can drift past saturation without warning; the
+  negative-`Has` short-circuit benefit just quietly disappears.
+- **Recurring startup tax.** The filter rebuilds on every daemon
+  restart (see below). On slow disks this means minutes of
+  `AllKeysChan` walking, paid in full even when the resulting filter
+  is too small to help.
+
+Quick health check: divide `BloomFilterSize` by your current block count.
+Below ~`1` byte/block the filter is past its design point; below
+~`0.5` bytes/block it is effectively saturated.
+
+#### Startup cost
+
+The filter is not persisted across restarts. Every daemon start rebuilds it
+by walking all datastore keys (`AllKeysChan`). On very large blockstores or
+slow disks this can take many minutes, during which `Has()` falls through
+to the datastore and the filter provides no benefit. Datastores that cannot
+enumerate keys without reading values (block content) pay even more here;
+flatfs and pebble both support keys-only iteration, so the rebuild cost
+scales with the keyset, not data volume.
 
 Default: `0` (disabled)
 
@@ -1011,16 +1105,38 @@ Type: `bool`
 
 ### `Datastore.BlockKeyCacheSize`
 
-A number representing the maximum size in bytes of the blockstore's Two-Queue
-cache, which caches block-cids and their block-sizes. Use `0` to disable.
+The maximum **number of entries** held in the blockstore's Two-Queue cache. The
+cache stores per-CID metadata (existence and block size) but never block
+content. Use `0` to disable.
 
-This cache, once primed, can greatly speed up operations like `ipfs repo stat`
-as there is no need to read full blocks to know their sizes. Size should be
-adjusted depending on the number of CIDs on disk (`NumObjects in`ipfs repo stat`).
+A cache hit answers `Has` and `GetSize` from RAM and skips the underlying
+datastore lookup. This includes the per-block `os.Stat` flatfs does to learn a
+block's size, which is the dominant cost on bitswap servers responding to peer
+wantlists.
 
-Default: `65536` (64KiB)
+The cache uses a [Two-Queue (2Q) replacement policy](https://pkg.go.dev/github.com/hashicorp/golang-lru/v2#TwoQueueCache):
+an entry must be touched twice before it is promoted to the frequently-used
+tier. A long one-shot scan (reprovider, GC, `ipfs repo verify`) therefore
+does not evict the hot entries that bitswap repeatedly serves.
 
-Type: `optionalInteger` (non-negative, bytes)
+#### Sizing
+
+Memory usage is roughly the entry count times the per-entry overhead, which
+combines 2Q bookkeeping, the multihash key bytes, and the cached value. As a
+rough estimate, budget ~200 bytes per entry, so `1048576` (1M entries) is on
+the order of ~200 MB resident. The cache only needs to cover the **hot
+working set** of CIDs (the ones repeatedly hit by inbound bitswap, gateway,
+or DAG-resolution traffic), not the entire blockstore.
+
+The default of `65536` is sized for small dev/desktop nodes. Operators
+running public gateways, pinning clusters, or any node serving non-trivial
+bitswap traffic should size this against the active working set. See
+[`Datastore.BloomFilterSize`](#datastorebloomfiltersize) for the
+complementary negative-`Has()` short-circuit that pairs well with this cache.
+
+Default: `65536` (entries)
+
+Type: `optionalInteger` (non-negative, number of entries)
 
 ### `Datastore.Spec`
 
@@ -1796,6 +1912,28 @@ Type: `optionalInteger` (0 disables the limit, strongly discouraged)
 **Note:** This is an EXPERIMENTAL feature and may change or be removed in future releases.
 See [#10842](https://github.com/ipfs/kubo/issues/10842) for more information.
 
+### `Internal.ShutdownTimeout`
+
+Caps how long graceful shutdown is allowed to take. If `node.Close()` does
+not return within this duration, the daemon logs which subsystem failed
+and exits with status `1`. Set to `0` to wait forever (legacy behavior).
+
+The default `12h` guarantees the daemon cannot be stuck indefinitely on a
+hung close hook, which matters for container orchestrators that otherwise
+see a half-shutdown process as `healthy`. The value is smaller than the
+22h DHT reprovide cycle, so a hung daemon recovers before missing more
+than one cycle.
+
+Tune down for fast-restart environments. When tuning, raise the
+orchestrator grace period (`--stop-timeout` for Docker,
+`terminationGracePeriodSeconds` for Kubernetes) to at least this value so
+the daemon exits gracefully before the orchestrator escalates to
+`SIGKILL`.
+
+Default: `12h`
+
+Type: `optionalDuration` (`0` disables the cap)
+
 ## `Ipns`
 
 ### `Ipns.RepublishPeriod`
@@ -2243,14 +2381,21 @@ interval (common with large datasets), the next cycle is skipped and provider
 records may expire.
 
 - If unset, it uses the implicit safe default.
-- If set to the value `"0"` it will disable content reproviding to DHT.
+- If set to `"0"`, the periodic reprovide schedule is disabled. New CIDs are
+  still announced immediately via fast-provide-root and `ipfs provide once`.
 
 > [!CAUTION]
-> Disabling this will prevent other nodes from discovering your content via the DHT.
-> Your node will stop announcing data to the DHT, making it
-> inaccessible unless peers connect to you directly. Since provider
-> records expire after `amino.DefaultProvideValidity`, your content will become undiscoverable
-> after this period.
+> `Interval=0` disables only the periodic refresh, not announcements of new
+> content. Once provider records expire after `amino.DefaultProvideValidity`,
+> the affected CIDs become undiscoverable to peers that did not retrieve them
+> within that window. To fully disable providing, set
+> [`Provide.Enabled=false`](#provideenabled) instead.
+
+> [!IMPORTANT]
+> When `Interval=0`, [`Provide.Enabled`](#provideenabled) must be set
+> explicitly. The daemon refuses to start otherwise. This prevents silent
+> behaviour change on upgrade for operators who previously relied on
+> `Interval=0` as a master kill-switch.
 
 Default: `22h`
 
@@ -2446,7 +2591,7 @@ Number of workers dedicated to burst provides. Only applies when `Provide.DHT.Sw
 
 Burst provides are triggered by:
 
-- Manual provide commands (`ipfs routing provide`)
+- Manual provide commands (`ipfs provide once`)
 - New content matching your `Provide.Strategy` (blocks from `ipfs add`, bitswap, or trustless gateway requests)
 - Catch-up reprovides after being disconnected/offline for a while
 
@@ -2526,6 +2671,26 @@ keys to its state, so keys will eventually be provided in the
 Default: `2h`
 
 Type: `optionalDuration`
+
+#### `Provide.DHT.SendProviderRecordTimeout`
+
+Per-peer timeout applied to a single `ADD_PROVIDER` RPC sent during a provide
+or reprovide operation. A peer that accepts the libp2p stream but never reads
+the request can otherwise pin a provide worker goroutine until the connection
+is dropped by the transport layer; this option bounds that wait.
+
+Healthy peers complete the round-trip in well under a second. The default
+leaves significant headroom for slow links while keeping a hung peer from
+stalling a worker.
+
+> [!NOTE]
+> Lowering this value can speed up reprovide cycles when a non-trivial
+> fraction of peers are slow or unresponsive, at the cost of giving up on
+> genuinely slow but healthy peers.
+
+Default: `10s`
+
+Type: `optionalDuration` (positive)
 
 ### `Provide.BloomFPRate`
 
@@ -2793,7 +2958,12 @@ Controls how your node discovers content and peers on the network.
   when reachable from the public internet.
 
 - **`autoclient`**: Same as `auto`, but never runs a DHT server.
-  Use this if your node is behind a firewall or NAT.
+  Use this if your node is behind a firewall or NAT, or if you run a
+  [content denylist](https://github.com/ipfs/kubo/blob/master/docs/content-blocking.md)
+  and do not want to store or serve routing records (provider records,
+  IPNS records) for denied keys on behalf of other peers. See
+  [Scope of denylists](https://github.com/ipfs/kubo/blob/master/docs/content-blocking.md#scope-of-denylists)
+  for why this matters.
 
 - **`dht`**: Uses only the Amino DHT (no HTTP routers). Automatically switches
   between client and server mode based on reachability.
@@ -3111,6 +3281,9 @@ so that a range is neither advertised nor dialed.
 > RFC 6598 CGNAT, ULA, link-local, and others). See the
 > [`server` profile](#server-profile) section for the full list and for
 > optional entries operators may add manually.
+
+> [!CAUTION]
+> If an [`Addresses.Swarm`](#addressesswarm) listener (for example a manually configured `/ip4/127.0.0.1/tcp/.../ws` fronted by a local nginx or Caddy reverse proxy) is covered by an entry in this list, Kubo rejects every incoming connection to it, so the proxy cannot reach Kubo. Kubo logs an ERROR at startup naming the offending rule. Remove the rule from `Swarm.AddrFilters` to allow the listener; keep it in [`Addresses.NoAnnounce`](#addressesnoannounce) if you still want to suppress its announcement.
 
 Default: `[]`
 
@@ -4187,6 +4360,7 @@ Or skip the profile and populate those fields manually.
 | Link-local IPv6 peering                            | `/ip6/fe80::/ipcidr/10`      |
 | Multiple daemons peering over `127.0.0.1`          | `/ip4/127.0.0.0/ipcidr/8`    |
 | Multiple daemons peering over IPv6 loopback `::1`  | `/ip6/::1/ipcidr/128` and `/ip6/::/ipcidr/3` |
+| Local reverse proxy fronting a `/ws` (or other libp2p) listener on `127.0.0.1` | `/ip4/127.0.0.0/ipcidr/8` from `Swarm.AddrFilters` only (keep it in `Addresses.NoAnnounce`); also drop `/ip6/::1/ipcidr/128` and `/ip6/::/ipcidr/3` from `Swarm.AddrFilters` if the proxy uses IPv6 loopback |
 | [Yggdrasil] mesh peering (`200::/8`, `300::/8`)    | `/ip6/::/ipcidr/3`           |
 | NAT64 (`64:ff9b::/96`) reachability                | `/ip6/::/ipcidr/3`           |
 
@@ -4438,7 +4612,7 @@ Several configuration options expose TCP or UDP ports that can make your Kubo no
 
 - Keep admin services ([`Addresses.API`](#addressesapi)) bound to localhost unless authentication ([`API.Authorizations`](#apiauthorizations)) is configured
 - Use [`Gateway.NoFetch`](#gatewaynofetch) to prevent arbitrary CID retrieval if Kubo is acting as a public gateway available to anyone
-- Configure firewall rules to restrict access to exposed ports. Note that [`Addresses.Swarm`](#addressesswarm) is special - all incoming traffic to swarm ports should be allowed to ensure proper P2P connectivity
+- Configure firewall rules to restrict access to exposed ports. Note that [`Addresses.Swarm`](#addressesswarm) is special - all incoming traffic to swarm ports should be allowed to ensure proper P2P connectivity. See [`docs/production/firewall.md`](./production/firewall.md) for a `ufw` walkthrough.
 - Control which public-facing addresses are announced to other peers using [`Addresses.NoAnnounce`](#addressesnoannounce), [`Addresses.Announce`](#addressesannounce), and [`Addresses.AppendAnnounce`](#addressesappendannounce)
 - Consider using the [`server` profile](#server-profile) for production deployments
 

@@ -5,15 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
 	"unicode/utf8"
 
 	humanize "github.com/dustin/go-humanize"
+	"github.com/ipfs/boxo/dag/walker"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
 	boxoprovider "github.com/ipfs/boxo/provider"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	"github.com/libp2p/go-libp2p-kad-dht/provider"
@@ -23,6 +27,7 @@ import (
 	routing "github.com/libp2p/go-libp2p/core/routing"
 	"github.com/probe-lab/go-libdht/kad/key"
 	"golang.org/x/exp/constraints"
+	"golang.org/x/term"
 )
 
 const (
@@ -52,10 +57,9 @@ Control providing operations.
 
 OVERVIEW:
 
-The provider system advertises content by publishing provider records,
-allowing other nodes to discover which peers have specific content.
-Content is reprovided periodically (every Provide.DHT.Interval)
-according to Provide.Strategy.
+The provide system publishes provider records so other peers can discover
+which nodes hold each CID. Content is reprovided periodically (every
+Provide.DHT.Interval) according to Provide.Strategy.
 
 CONFIGURATION:
 
@@ -63,12 +67,13 @@ Learn more: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
 
 SEE ALSO:
 
-For ad-hoc one-time provide, see 'ipfs routing provide'
+For ad-hoc immediate announcements, see 'ipfs provide once'.
 `,
 	},
 
 	Subcommands: map[string]*cmds.Command{
 		"clear": provideClearCmd,
+		"once":  provideOnceCmd,
 		"stat":  provideStatCmd,
 	},
 }
@@ -78,20 +83,14 @@ var provideClearCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Clear all CIDs from the provide queue.",
 		ShortDescription: `
-Clear all CIDs pending to be provided for the first time.
+Clears the provide queue: CIDs waiting to be advertised to the DHT for the
+first time. Does not affect content that is already being reprovided on
+schedule.
 
-BEHAVIOR:
+Kubo also clears the queue automatically on restart when it detects a
+change of Provide.Strategy.
 
-This command removes CIDs from the provide queue that are waiting to be
-advertised to the DHT for the first time. It does not affect content that
-is already being reprovided on schedule.
-
-AUTOMATIC CLEARING:
-
-Kubo will automatically clear the queue when it detects a change of
-Provide.Strategy upon a restart.
-
-Learn: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
+See: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
 `,
 	},
 	Options: []cmds.Option{
@@ -130,6 +129,211 @@ Learn: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
 	},
 }
 
+// ProvideOnceEvent is emitted once per CID announced by 'ipfs provide once'.
+type ProvideOnceEvent struct {
+	Queued string
+}
+
+var provideOnceCmd = &cmds.Command{
+	Status: cmds.Experimental,
+	Helptext: cmds.HelpText{
+		Tagline: "Announce CIDs to the routing system on demand.",
+		ShortDescription: `
+Publishes provider records for the given CIDs once. The periodic
+reprovide schedule (driven by Provide.Strategy and Provide.DHT.Interval)
+is left unchanged: CIDs announced here are NOT added to the schedule.
+CIDs can be passed as arguments or streamed from stdin (one per line).
+
+The default sweep provider (Provide.DHT.SweepEnabled=true) submits the CIDs
+to its burst-provide queue and returns as each CID is queued; dedicated
+burst workers publish the records to the DHT. Use 'ipfs provide stat' to
+monitor progress.
+
+The legacy provider (Provide.DHT.SweepEnabled=false) queues the CIDs for
+its serial worker pool, which publishes one CID at a time and may take
+significantly longer to complete.
+
+Use --recursive to walk the DAG and announce every reachable block. With
+the default Provide.Strategy=all, every block is already announced, so -r
+is only useful with selective strategies like 'roots' or 'pinned+entities'.
+
+CIDs must already exist in the local blockstore.
+
+CIDs are deduplicated across arguments, stdin, and DAG walks. Dedup uses
+a bloom filter, so at very large scale a small fraction of CIDs may be
+skipped (default rate ~1 in 4.75M).
+
+OUTPUT:
+
+Output is streamed as each CID is queued. With --enc=json, one
+{"Queued": "<cid>"} object is emitted per line. With the text encoder
+(default) on a terminal, a single line shows the running count; on a pipe,
+a final count is printed at the end.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("cid", true, true, "The CID(s) to announce.").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(recursiveOptionName, "r", "Recursively announce the entire DAG."),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+		if !nd.IsOnline {
+			return ErrNotOnline
+		}
+		cfg, err := nd.Repo.Config()
+		if err != nil {
+			return err
+		}
+		if !cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
+			return errors.New("cannot provide: Provide.Enabled is false")
+		}
+		if len(nd.PeerHost.Network().Conns()) == 0 && !cfg.HasHTTPProviderConfigured() {
+			return errors.New("cannot provide: no connected peers")
+		}
+
+		recursive, _ := req.Options[recursiveOptionName].(bool)
+
+		// seen deduplicates across all roots and recursive walks, so a CID
+		// shared by multiple roots (or repeated in argv/stdin) is announced
+		// exactly once per invocation. The bloom autoscales as more CIDs
+		// arrive, keeping memory bounded for arbitrarily large inputs at
+		// the cost of a small false-positive rate (default ~1 in 4.75M)
+		// that may cause an occasional CID to be skipped.
+		seen, err := walker.NewBloomTracker(walker.MinBloomCapacity, walker.DefaultBloomFPRate)
+		if err != nil {
+			return err
+		}
+
+		// announce queues a single CID into the provide system and emits one
+		// event for it. Uses ProvideOnce so the CID is published without
+		// being added to the keystore: the periodic reprovide schedule
+		// (driven by Provide.Strategy) is unaffected. Errors propagate to
+		// the caller.
+		announce := func(c cid.Cid) error {
+			if err := nd.Provider.ProvideOnce(c.Hash()); err != nil {
+				return err
+			}
+			return res.Emit(&ProvideOnceEvent{Queued: c.String()})
+		}
+
+		// processRoot validates a root CID against the local blockstore and
+		// announces either just that CID or every block reachable from it.
+		processRoot := func(arg string) error {
+			c, err := cid.Decode(arg)
+			if err != nil {
+				return fmt.Errorf("invalid CID %q: %w", arg, err)
+			}
+			has, err := nd.Blockstore.Has(req.Context, c)
+			if err != nil {
+				return err
+			}
+			if !has {
+				return fmt.Errorf("block %s not found locally, cannot provide", c)
+			}
+
+			if !recursive {
+				if !seen.Visit(c) {
+					return nil
+				}
+				return announce(c)
+			}
+
+			// Stream per-block: visit emits as it walks. Cancel the walk on
+			// the first announce error so we don't keep fetching DAG nodes
+			// after we've already failed.
+			ctx, cancel := context.WithCancel(req.Context)
+			defer cancel()
+			var visitErr error
+			walkErr := dag.Walk(ctx, dag.GetLinksDirect(nd.DAG), c, func(child cid.Cid) bool {
+				// Skip subtrees we've already walked from a previous root or
+				// argument: returning false stops descent into this node.
+				if !seen.Visit(child) {
+					return false
+				}
+				if err := announce(child); err != nil {
+					visitErr = err
+					cancel()
+					return false
+				}
+				return true
+			})
+			if visitErr != nil {
+				return visitErr
+			}
+			return walkErr
+		}
+
+		args := argumentIterator{req.Arguments, req.BodyArgs()}
+		for {
+			arg, ok := args.next()
+			if !ok {
+				break
+			}
+			if err := processRoot(arg); err != nil {
+				return err
+			}
+		}
+		return args.err()
+	},
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			// In text mode we render the running counter and final summary
+			// directly to stderr/stdout, bypassing the encoder so the TTY
+			// redraw works. For other encoders (json, xml) we must let the
+			// encoder serialize each event, so forward the stream as-is.
+			if enc, _ := res.Request().Options[cmds.EncLong].(string); enc != "" && enc != cmds.Text {
+				return cmds.Copy(re, res)
+			}
+
+			// Text mode: render directly to stderr/stdout below. Do not
+			// call re.Emit from this branch, or output will race with the
+			// running counter.
+			isTTY := term.IsTerminal(int(os.Stderr.Fd()))
+			var count int
+			for {
+				v, err := res.Next()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					if isTTY && count > 0 {
+						fmt.Fprintln(os.Stderr)
+					}
+					return err
+				}
+				if _, ok := v.(*ProvideOnceEvent); !ok {
+					log.Errorf("provide once postrun: received unexpected type %T", v)
+					continue
+				}
+				count++
+				if isTTY {
+					fmt.Fprintf(os.Stderr, "\rqueued %d CID(s) for immediate provide", count)
+				}
+			}
+			if isTTY && count > 0 {
+				fmt.Fprintln(os.Stderr)
+			} else {
+				fmt.Fprintf(os.Stdout, "queued %d CID(s) for immediate provide\n", count)
+			}
+			return nil
+		},
+	},
+	Type: ProvideOnceEvent{},
+	Encoders: cmds.EncoderMap{
+		// Used when PostRun is not invoked (HTTP API consumers in text mode).
+		// One CID per line keeps the stream pipe-friendly.
+		cmds.Text: cmds.MakeTypedEncoder(func(_ *cmds.Request, w io.Writer, e *ProvideOnceEvent) error {
+			_, err := fmt.Fprintf(w, "%s\n", e.Queued)
+			return err
+		}),
+	},
+}
+
 type provideStats struct {
 	Sweep  *stats.Stats
 	Legacy *boxoprovider.ReproviderStats
@@ -159,30 +363,27 @@ func extractSweepingProvider(prov any, useLAN bool) *provider.SweepingProvider {
 var provideStatCmd = &cmds.Command{
 	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
-		Tagline: "Show statistics about the provider system",
+		Tagline: "Show statistics about the provide system",
 		ShortDescription: `
-Returns statistics about the node's provider system.
+Returns statistics about the node's provide system.
 
 OVERVIEW:
 
-The provide system advertises content to the DHT by publishing provider
-records that map CIDs to your peer ID. These records expire after a fixed
-TTL to account for node churn, so content must be reprovided periodically
-to stay discoverable.
+The provide system publishes provider records mapping CIDs to your peer
+ID. Records expire after a fixed TTL, so the system reprovides them on a
+schedule to keep content discoverable.
 
 Two provider types exist:
 
-- Sweep provider: Divides the DHT keyspace into regions and systematically
-  sweeps through them over the reprovide interval. Batches CIDs allocated
+- Sweep provider (default): divides the DHT keyspace into regions and
+  sweeps through them over the reprovide interval. Batches CIDs that map
   to the same DHT servers, reducing lookups from N (one per CID) to a
-  small static number based on DHT size (~3k for 10k DHT servers). Spreads
-  work evenly over time to prevent resource spikes and ensure announcements
-  happen just before records expire.
+  small constant based on DHT size (~3k for 10k DHT servers). Spreads work
+  evenly over time and announces records just before they expire.
 
-- Legacy provider: Processes each CID individually with separate DHT
-  lookups. Attempts to reprovide all content as quickly as possible at the
-  start of each cycle. Works well for small datasets but struggles with
-  large collections.
+- Legacy provider: announces each CID with a separate DHT lookup. Tries
+  to reprovide all content as fast as possible at each cycle start. Fine
+  for small datasets, slow past a few thousand CIDs.
 
 Learn more:
 - Config: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide
@@ -267,7 +468,10 @@ NOTES:
 			return fmt.Errorf("stats not available with current routing system %T", nd.Provider)
 		}
 
-		s := sweepingProvider.Stats()
+		s, err := sweepingProvider.Stats(req.Context)
+		if err != nil {
+			return err
+		}
 		return res.Emit(provideStats{Sweep: &s})
 	},
 	Encoders: cmds.EncoderMap{

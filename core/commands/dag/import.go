@@ -48,8 +48,24 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	doPinRoots, _ := req.Options[pinRootsOptionName].(bool)
+	pinRootsVal, pinRootsSet := req.Options[pinRootsOptionName].(bool)
+	localOnly, _ := req.Options[localOnlyOptionName].(bool)
 
+	// --pin-roots defaults to true; the default is applied here (not via
+	// .WithDefault) so we can tell apart "user explicitly passed true" from
+	// "no value provided".
+	doPinRoots := true
+	if pinRootsSet {
+		doPinRoots = pinRootsVal
+	}
+
+	if localOnly {
+		if pinRootsSet && pinRootsVal {
+			return fmt.Errorf("--%s implies --%s=false and cannot be combined with --%s=true; please drop one of them", localOnlyOptionName, pinRootsOptionName, pinRootsOptionName)
+		}
+		// --local-only implies --pin-roots=false: a partial CAR has no full DAG to pin.
+		doPinRoots = false
+	}
 	fastProvideRoot, fastProvideRootSet := req.Options[fastProvideRootOptionName].(bool)
 	fastProvideDAG, fastProvideDAGSet := req.Options[fastProvideDAGOptionName].(bool)
 	fastProvideWait, fastProvideWaitSet := req.Options[fastProvideWaitOptionName].(bool)
