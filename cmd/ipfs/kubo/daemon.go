@@ -520,9 +520,13 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
 	}
 
-	// Set optional agent version suffix
+	// Resolve agent version suffix:
+	// Version.AgentSuffix > --agent-version-suffix > implicit (build origin).
 	versionSuffixFromCli, _ := req.Options[agentVersionSuffix].(string)
 	versionSuffix := cfg.Version.AgentSuffix.WithDefault(versionSuffixFromCli)
+	if versionSuffix == "" {
+		versionSuffix = version.ImplicitAgentSuffix()
+	}
 	if versionSuffix != "" {
 		version.SetUserAgentSuffix(versionSuffix)
 	}

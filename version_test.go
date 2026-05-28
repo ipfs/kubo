@@ -6,6 +6,51 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestSuffixFromForkPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected string
+	}{
+		{name: "empty", path: "", expected: ""},
+		{name: "upstream", path: "github.com/ipfs/kubo", expected: ""},
+		{name: "github fork", path: "github.com/myorg/kubo", expected: "myorg"},
+		{name: "gitlab fork", path: "gitlab.com/myorg/kubo", expected: "myorg"},
+		{name: "codeberg fork", path: "codeberg.org/myorg/kubo", expected: "myorg"},
+		{name: "bitbucket fork", path: "bitbucket.org/myorg/kubo", expected: "myorg"},
+		{name: "github renamed repo", path: "github.com/myorg/kubo-experimental", expected: "myorg/kubo-experimental"},
+		{name: "unknown host canonical repo", path: "git.example.com/team/kubo", expected: "git.example.com/team"},
+		{name: "unknown host renamed repo", path: "git.example.com/team/kubo-fork", expected: "git.example.com/team/kubo-fork"},
+		{name: "unknown host nested path", path: "git.example.com/group/sub/kubo", expected: "git.example.com/group/sub"},
+		{name: "trailing slash", path: "github.com/myorg/kubo/", expected: "myorg"},
+		{name: "leading slash", path: "/github.com/myorg/kubo", expected: "myorg"},
+		{name: "single segment", path: "kubo", expected: "kubo"},
+		{name: "two segment fork on known host", path: "github.com/kubo", expected: "github.com/kubo"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, suffixFromForkPath(tt.path))
+		})
+	}
+}
+
+func TestImplicitAgentSuffix_PrefersBuildOrigin(t *testing.T) {
+	orig := buildOrigin
+	t.Cleanup(func() { buildOrigin = orig })
+
+	buildOrigin = "github.com/myorg/kubo"
+	assert.Equal(t, "myorg", ImplicitAgentSuffix())
+
+	// Falls through to BuildInfo when origin matches upstream or is empty;
+	// BuildInfo.Main.Path is "github.com/ipfs/kubo" during `go test` of this
+	// package, so the implicit suffix is empty.
+	buildOrigin = ""
+	assert.Equal(t, "", ImplicitAgentSuffix())
+
+	buildOrigin = upstreamModulePath
+	assert.Equal(t, "", ImplicitAgentSuffix())
+}
+
 // TestGetUserAgentVersion verifies the user agent string used in libp2p
 // identify and HTTP requests. Tagged release builds (where the commit matches
 // the tag) skip the commit hash from the agent version, since the version
