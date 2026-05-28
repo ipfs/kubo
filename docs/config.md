@@ -4253,12 +4253,12 @@ other peers version for detecting when there is time to update.
 
 Optional suffix to the AgentVersion presented by `ipfs id` and exposed via [libp2p identify protocol](https://github.com/libp2p/specs/blob/master/identify/README.md#agentversion).
 
-The value from config takes precedence over value passed via `ipfs daemon --agent-version-suffix`.
+The value from config takes precedence over value passed via `ipfs daemon --agent-version-suffix`. When both are empty, kubo derives an implicit suffix from the build origin (`git remote get-url origin`, or `debug.ReadBuildInfo` for `go install` builds), stripping public forge hostnames so a fork hosted at `github.com/myorg/kubo` becomes `myorg`. Set this option to override the implicit value.
 
 > [!NOTE]
 > Setting a custom version suffix helps with ecosystem analysis, such as Amino DHT reports published at <https://stats.ipfs.network>
 
-Default: `""` (no suffix, or value from `ipfs daemon --agent-version-suffix=`)
+Default: implicit suffix from build origin, or `""` for upstream builds and when `ipfs daemon --agent-version-suffix=` is empty.
 
 Type: `optionalString`
 
