@@ -44,13 +44,14 @@ const (
 	deadListenerSourceNoAnnounce  = "Addresses.NoAnnounce"
 )
 
-// deadListenerFinding is one resolved listener killed by a CIDR rule:
-// `Swarm.AddrFilters` (gater RSTs inbound) or `Addresses.NoAnnounce`
-// (listener never advertised).
+// deadListenerFinding is one resolved listener whose IP falls inside a
+// CIDR in `Swarm.AddrFilters` (gater RSTs inbound) or
+// `Addresses.NoAnnounce` (listener never advertised).
 type deadListenerFinding struct {
 	Listener string // resolved listen multiaddr (interface-bound)
-	Source   string // deadListenerSourceAddrFilters or deadListenerSourceNoAnnounce
 	Rule     string // matching CIDR rule from Source
+	Source   string // deadListenerSourceAddrFilters or deadListenerSourceNoAnnounce
+	Explicit bool   // true if the listener's IP was explicitly listed in `Addresses.Swarm`
 }
 
 // findDeadListeners returns one finding per (listener, rule, source)
@@ -58,25 +59,29 @@ type deadListenerFinding struct {
 // noAnnounce.
 //
 // listenAddrs must be already-resolved interface addresses (output of
-// `host.Network().InterfaceListenAddresses()`). Without resolution, the
-// unspecified address itself can match a broad filter (`::` is in
-// `::/3`) even when the listener accepts globally-routable peers.
+// `host.Network().InterfaceListenAddresses()`).
 //
-// NoAnnounce matches on loopback are skipped: stripping loopback from
-// identify and DHT records is normal operator intent, not a bug.
-// AddrFilters matches on loopback are always reported, since that is
-// the misconfiguration this check exists to catch.
+// swarmListen is the raw `Addresses.Swarm` config. It is used to mark
+// each finding as `Explicit` when the resolved listener's IP appears
+// literally in `swarmListen`, or non-explicit when the IP came from a
+// wildcard listen (`/ip4/0.0.0.0`, `/ip6/::`) expansion.
 //
-// Listeners without an IP component (`/dns`, `/dnsaddr`) and
-// unparseable rules are skipped silently.
-func findDeadListeners(listenAddrs []ma.Multiaddr, addrFilters []string, noAnnounce []string) []deadListenerFinding {
+// Callers route findings to log levels based on Source + Explicit:
+//
+//   - AddrFilters + Explicit: ERROR. The whole listener is unreachable.
+//   - AddrFilters + wildcard: DEBUG. Other interfaces still serve.
+//   - NoAnnounce: DEBUG. Operator intent, but useful when tracing why
+//     an interface address never reaches identify / DHT records.
+//
+// Unparseable rules (including exact-match multiaddrs in NoAnnounce)
+// and listeners without an IP component are skipped silently.
+func findDeadListeners(listenAddrs []ma.Multiaddr, swarmListen, addrFilters, noAnnounce []string) []deadListenerFinding {
+	explicit := explicitListenIPs(swarmListen)
 	check := func(source string, rules []string) []deadListenerFinding {
 		var out []deadListenerFinding
 		for _, r := range rules {
 			mask, err := mamask.NewMask(r)
 			if err != nil {
-				// Malformed CIDR (caught upstream for AddrFilters) or
-				// an exact-match multiaddr in NoAnnounce. Skip either way.
 				continue
 			}
 			f := ma.NewFilters()
@@ -85,54 +90,72 @@ func findDeadListeners(listenAddrs []ma.Multiaddr, addrFilters []string, noAnnou
 				if !f.AddrBlocked(l) {
 					continue
 				}
-				if source == deadListenerSourceNoAnnounce && isLoopbackMultiaddr(l) {
-					// Suppressing loopback announcement is operator-intent,
-					// not a misconfiguration.
+				ip, err := manet.ToIP(l)
+				if err != nil {
 					continue
 				}
+				_, isExplicit := explicit[ip.String()]
 				out = append(out, deadListenerFinding{
 					Listener: l.String(),
-					Source:   source,
 					Rule:     r,
+					Source:   source,
+					Explicit: isExplicit,
 				})
 			}
 		}
 		return out
 	}
-
 	findings := check(deadListenerSourceAddrFilters, addrFilters)
 	findings = append(findings, check(deadListenerSourceNoAnnounce, noAnnounce)...)
 	return findings
 }
 
-// isLoopbackMultiaddr reports whether m's IP component is loopback
-// (`127.0.0.0/8` or `::1`). Returns false if m has no IP component.
-func isLoopbackMultiaddr(m ma.Multiaddr) bool {
-	ip, err := manet.ToIP(m)
-	if err != nil {
-		return false
+// explicitListenIPs returns the set of IPs the operator explicitly bound
+// in `Addresses.Swarm`. Unspecified addresses (`0.0.0.0`, `::`) and
+// entries without an IP component are skipped.
+func explicitListenIPs(swarmListen []string) map[string]struct{} {
+	set := make(map[string]struct{}, len(swarmListen))
+	for _, s := range swarmListen {
+		m, err := ma.NewMultiaddr(s)
+		if err != nil {
+			continue
+		}
+		ip, err := manet.ToIP(m)
+		if err != nil {
+			continue
+		}
+		if ip.IsUnspecified() {
+			continue
+		}
+		set[ip.String()] = struct{}{}
 	}
-	return ip.IsLoopback()
+	return set
 }
 
-// logDeadListenerFinding writes one ERROR line per finding, naming
-// the listener, the matching CIDR rule, and where to remove it from.
-// Each line stands alone so operators can grep and act on it.
+// logDeadListenerFinding writes one log line per finding, naming the
+// listener, the matching CIDR rule, and where to remove it from. The
+// log level depends on the finding's Source and whether the operator
+// explicitly bound the listener IP. See findDeadListeners.
 func logDeadListenerFinding(f deadListenerFinding) {
-	switch f.Source {
-	case deadListenerSourceAddrFilters:
+	switch {
+	case f.Source == deadListenerSourceAddrFilters && f.Explicit:
 		log.Errorf(
 			"Addresses.Swarm listener %q matches Swarm.AddrFilters rule %q, "+
 				"so Kubo rejects every incoming connection to it. Remove %q "+
 				"from Swarm.AddrFilters to allow connections to this listener.",
 			f.Listener, f.Rule, f.Rule,
 		)
-	case deadListenerSourceNoAnnounce:
-		log.Errorf(
-			"Addresses.Swarm listener %q matches Addresses.NoAnnounce rule %q, "+
-				"so Kubo will not advertise it to other peers. Remove %q from "+
-				"Addresses.NoAnnounce to advertise this listener.",
-			f.Listener, f.Rule, f.Rule,
+	case f.Source == deadListenerSourceAddrFilters:
+		log.Debugf(
+			"Swarm.AddrFilters rule %q blocks resolved listener %q (from a "+
+				"wildcard listen). Other interfaces unaffected.",
+			f.Rule, f.Listener,
+		)
+	case f.Source == deadListenerSourceNoAnnounce:
+		log.Debugf(
+			"Addresses.NoAnnounce rule %q strips listener %q from "+
+				"announcements (identify, DHT self-record).",
+			f.Rule, f.Listener,
 		)
 	}
 }
@@ -148,7 +171,7 @@ func logDeadListenerFinding(f deadListenerFinding) {
 // If subscribing to the event bus fails, the runtime monitor is
 // disabled and only the startup check runs. The check is diagnostic
 // and must never abort node startup.
-func MonitorDeadListeners(addrFilters []string, noAnnounce []string) func(fx.Lifecycle, host.Host) error {
+func MonitorDeadListeners(swarmListen, addrFilters, noAnnounce []string) func(fx.Lifecycle, host.Host) error {
 	return func(lc fx.Lifecycle, h host.Host) error {
 		seen := make(map[deadListenerFinding]struct{})
 		runCheck := func() {
@@ -158,7 +181,7 @@ func MonitorDeadListeners(addrFilters []string, noAnnounce []string) func(fx.Lif
 				return
 			}
 			next := make(map[deadListenerFinding]struct{})
-			for _, f := range findDeadListeners(listenAddrs, addrFilters, noAnnounce) {
+			for _, f := range findDeadListeners(listenAddrs, swarmListen, addrFilters, noAnnounce) {
 				next[f] = struct{}{}
 				if _, ok := seen[f]; ok {
 					continue
