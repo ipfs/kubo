@@ -18,6 +18,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -607,6 +608,15 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 	}
 
 	newCfg.Identity.PrivKey = pkstr
+	pk, err := newCfg.Identity.DecodePrivateKey("")
+	if err != nil {
+		return errors.New("failed to decode PrivKey")
+	}
+	id, err := peer.IDFromPrivateKey(pk)
+	if err != nil {
+		return errors.New("failed to derive PeerID from PrivKey")
+	}
+	newCfg.Identity.PeerID = id.String()
 
 	// Handle Pinning.RemoteServices (API.Key of each service is a secret)
 
