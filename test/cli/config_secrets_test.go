@@ -6,6 +6,7 @@ import (
 
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/assert"
+	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
 
@@ -105,6 +106,26 @@ func TestConfigSecrets(t *testing.T) {
 				}
 			}
 			assert.Equal(t, origPrivKey, newPrivKey, "PrivKey should be preserved")
+		})
+
+		t.Run("Identity.PeerID is derived from preserved PrivKey during config replace", func(t *testing.T) {
+			t.Parallel()
+			node := harness.NewT(t).NewNode().Init()
+
+			originalPeerID := node.PeerID().String()
+			foreignPeerID := "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
+			assert.NotEqual(t, originalPeerID, foreignPeerID)
+
+			configShow := node.RunIPFS("config", "show").Stdout.String()
+			configJSON := MustVal(sjson.Set(configShow, "Identity.PeerID", foreignPeerID))
+			node.WriteBytes("foreign-peerid-config", []byte(configJSON))
+
+			node.IPFS("config", "replace", "foreign-peerid-config")
+
+			newConfig := node.ReadFile(node.ConfigFile())
+			newPeerID := gjson.Get(newConfig, "Identity.PeerID").String()
+			assert.Equal(t, originalPeerID, newPeerID)
+			assert.NotEqual(t, foreignPeerID, newPeerID)
 		})
 	})
 
