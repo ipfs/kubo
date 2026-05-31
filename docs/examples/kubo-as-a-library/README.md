@@ -10,6 +10,7 @@ By the end of this tutorial, you will learn how to:
 - Retrieve those files and directories using ``cat`` and ``get``
 - Connect to other nodes in the network
 - Retrieve a file that only exists on the network
+- Publish and receive a PubSub message between two in-process nodes
 - The difference between a node in DHT client mode and full DHT mode
 
 All of this using only golang!
@@ -41,72 +42,88 @@ To run the example, simply do:
 $ go run main.go
 ```
 
-You should see the following as output:
+You should see output similar to:
 
 ```
 -- Getting an IPFS node running --
 Spawning Kubo node on a temporary repo
 IPFS node is running
+Connecting to peer...
+Connected to peer
+Added file to peer with CID /ipfs/...
 
 -- Adding and getting back files & directories --
-Added file to IPFS with CID /ipfs/QmV9tSDx9UiPeWExXEeH6aoDvmihvx6jD5eLb4jbTaKGps
-Added directory to IPFS with CID /ipfs/QmdQdu1fkaAUokmkfpWrmPHK78F9Eo9K2nnuWuizUjmhyn
-Got file back from IPFS (IPFS path: /ipfs/QmV9tSDx9UiPeWExXEeH6aoDvmihvx6jD5eLb4jbTaKGps) and wrote it to ./example-folder/QmV9tSDx9UiPeWExXEeH6aoDvmihvx6jD5eLb4jbTaKGps
-Got directory back from IPFS (IPFS path: /ipfs/QmdQdu1fkaAUokmkfpWrmPHK78F9Eo9K2nnuWuizUjmhyn) and wrote it to ./example-folder/QmdQdu1fkaAUokmkfpWrmPHK78F9Eo9K2nnuWuizUjmhyn
+Added file to IPFS with CID /ipfs/...
+Added directory to IPFS with CID /ipfs/...
+output folder: /tmp/example...
+got file back from IPFS (IPFS path: /ipfs/...) and wrote it to /tmp/example...
+Got directory back from IPFS (IPFS path: /ipfs/...) and wrote it to /tmp/example...
 
--- Going to connect to a few nodes in the Network as bootstrappers --
-Fetching a file from the network with CID QmUaoioqU7bxezBQZkUcgcSyokatMY71sxsALxQmRRrHrj
-Wrote the file to ./example-folder/QmUaoioqU7bxezBQZkUcgcSyokatMY71sxsALxQmRRrHrj
+-- Fetching content from nodeA via bitswap --
+Fetching a file from the network with CID ...
+Wrote the file to /tmp/example...
+
+-- Publishing and subscribing with IPFS PubSub --
+Received pubsub message from 12D3KooW... on topic "kubo-as-a-library": hello from kubo pubsub
 
 All done! You just finalized your first tutorial on how to use Kubo as a library
 ```
 
 ## Understanding the example
 
-In this example, we add a file and a directory with files; we get them back from IPFS; and then we use the IPFS network to fetch a file that we didn't have in our machines before.
+In this example, we add a file and a directory with files; we get them back from IPFS; use another in-process node to fetch a file over bitswap; and publish a message between nodes with IPFS PubSub.
 
-Each section below has links to lines of code in the file [main.go](./main.go). The code itself will have comments explaining what is happening for you.
+Each section below links to the relevant code in [main.go](./main.go). The code itself will have comments explaining what is happening for you.
 
 ### The `func main() {}`
 
-The [main function](./main.go#L202-L331) is where the magic starts, and it is the best place to follow the path of what is happening in the tutorial.
+The [main function](./main.go) is where the magic starts, and it is the best place to follow the path of what is happening in the tutorial.
 
 ### Part 1: Getting an IPFS node running
 
-To get [get a node running](./main.go#L218-L223) as an [ephemeral node](./main.go#L114-L128) (that will cease to exist when the run ends), you will need to:
+To get a node running as an [ephemeral node](./main.go) (that will cease to exist when the run ends), you will need to:
 
-- [Prepare and set up the plugins](./main.go#L30-L47)
-- [Create an IPFS repo](./main.go#L49-L68)
-- [Construct the IPFS node instance itself](./main.go#L72-L96)
+- [Prepare and set up the plugins](./main.go)
+- [Create an IPFS repo](./main.go)
+- [Construct the IPFS node instance itself](./main.go)
 
 As soon as you construct the IPFS node instance, the node will be running.
 
 ### Part 2: Adding a file and a directory to IPFS
 
-- [Prepare the file to be added to IPFS](./main.go#L166-L184)
-- [Add the file to IPFS](./main.go#L240-L243)
-- [Prepare the directory to be added to IPFS](./main.go#L186-L198)
-- [Add the directory to IPFS](./main.go#L252-L255)
+- [Prepare the file to be added to IPFS](./main.go)
+- [Add the file to IPFS](./main.go)
+- [Prepare the directory to be added to IPFS](./main.go)
+- [Add the directory to IPFS](./main.go)
 
 ### Part 3: Getting the file and directory you added back
 
-- [Get the file back](./main.go#L265-L268)
-- [Write the file to your local filesystem](./main.go#L270-L273)
-- [Get the directory back](./main.go#L277-L280)
-- [Write the directory to your local filesystem](./main.go#L282-L285)
+- [Get the file back](./main.go)
+- [Write the file to your local filesystem](./main.go)
+- [Get the directory back](./main.go)
+- [Write the directory to your local filesystem](./main.go)
 
 ### Part 4: Getting a file from the IPFS network
 
-- [Connect to nodes in the network](./main.go#L293-L310)
-- [Get the file from the network](./main.go#L318-L321)
-- [Write the file to your local filesystem](./main.go#L323-L326)
+- [Connect to nodes in the network](./main.go)
+- [Get the file from the network](./main.go)
+- [Write the file to your local filesystem](./main.go)
+
+### Part 5: Publishing and subscribing with IPFS PubSub
+
+This section uses Kubo's built-in PubSub for a minimal local Core API demonstration. For production custom PubSub applications, prefer [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub) directly.
+
+- Enable PubSub in the node configuration and build options
+- Subscribe one node to a topic with the Core API
+- Publish a message from another connected node
+- Wait until the subscriber receives the expected message
 
 ### Bonus: Spawn a daemon on your existing IPFS repo (on the default path ~/.ipfs)
 
 As a bonus, you can also find lines that show you how to spawn a node over your default path (~/.ipfs) in case you had already started a node there before. To try it:
 
-- [Comment these lines](./main.go#L219-L223)
-- [Uncomment these lines](./main.go#L209-L216)
+- Comment the temporary repo lines in [main.go](./main.go)
+- Uncomment the default repo lines in [main.go](./main.go)
 
 ## Voilá! You are now a Kubo hacker
 

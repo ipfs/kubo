@@ -36,4 +36,7 @@ func TestExample(t *testing.T) {
 	if !strings.Contains(out, "All done!") {
 		t.Errorf("example did not complete successfully, output:\n%s", out)
 	}
+	if !strings.Contains(out, "Received pubsub message") {
+		t.Errorf("example did not receive a pubsub message, output:\n%s", out)
+	}
 }

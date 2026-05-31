@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -74,6 +75,7 @@ func createTempRepo() (string, error) {
 	cfg.Swarm.Transports.Network.WebRTCDirect = config.False
 	cfg.Swarm.Transports.Network.Websocket = config.False
 	cfg.AutoTLS.Enabled = config.False
+	cfg.Pubsub.Enabled = config.True
 
 	// No DHT: we connect peers by address, so content routing is not needed.
 	cfg.Routing.Type = config.NewOptionalString("none")
@@ -116,8 +118,9 @@ func createNode(ctx context.Context, repoPath string) (*core.IpfsNode, error) {
 		// No routing: peers are connected directly by address.
 		// In production use libp2p.DHTClientOption or libp2p.DHTOption
 		// so the node can find content and peers on the wider network.
-		Routing: libp2p.NilRouterOption,
-		Repo:    repo,
+		Routing:   libp2p.NilRouterOption,
+		Repo:      repo,
+		ExtraOpts: map[string]bool{"pubsub": true},
 	}
 
 	return core.NewNode(ctx, nodeOptions)
@@ -196,6 +199,37 @@ func getUnixfsNode(path string) (files.Node, error) {
 	}
 
 	return f, nil
+}
+
+func waitForPubSubMessage(ctx context.Context, sub icore.PubSubSubscription, wantFrom peer.ID, wantData []byte) error {
+	for {
+		msg, err := sub.Next(ctx)
+		if err != nil {
+			return err
+		}
+		if msg.From() == wantFrom && bytes.Equal(msg.Data(), wantData) {
+			return nil
+		}
+	}
+}
+
+func publishPubSubMessage(ctx context.Context, publisher icore.CoreAPI, topic string, data []byte, done <-chan error) error {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		if err := publisher.PubSub().Publish(ctx, topic, data); err != nil {
+			return err
+		}
+
+		select {
+		case err := <-done:
+			return err
+		case <-ticker.C:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 }
 
 /// -------
@@ -334,6 +368,29 @@ func main() {
 	}
 
 	fmt.Printf("Wrote the file to %s\n", outputPath)
+
+	/// --- Part V: Publishing and subscribing with IPFS PubSub
+
+	fmt.Println("\n-- Publishing and subscribing with IPFS PubSub --")
+
+	topic := "kubo-as-a-library"
+	pubsubData := []byte("hello from kubo pubsub")
+	sub, err := ipfsB.PubSub().Subscribe(ctx, topic)
+	if err != nil {
+		panic(fmt.Errorf("could not subscribe to pubsub topic: %s", err))
+	}
+	defer sub.Close()
+
+	received := make(chan error, 1)
+	go func() {
+		received <- waitForPubSubMessage(ctx, sub, nodeA.Identity, pubsubData)
+	}()
+
+	if err := publishPubSubMessage(ctx, ipfsA, topic, pubsubData, received); err != nil {
+		panic(fmt.Errorf("could not exchange pubsub message: %s", err))
+	}
+
+	fmt.Printf("Received pubsub message from %s on topic %q: %s\n", nodeA.Identity, topic, pubsubData)
 
 	fmt.Println("\nAll done! You just finalized your first tutorial on how to use Kubo as a library")
 }
