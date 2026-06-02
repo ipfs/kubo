@@ -51,7 +51,7 @@ type deadListenerFinding struct {
 	Listener string // resolved listen multiaddr (interface-bound)
 	Rule     string // matching CIDR rule from Source
 	Source   string // deadListenerSourceAddrFilters or deadListenerSourceNoAnnounce
-	Explicit bool   // true if the listener's IP was explicitly listed in `Addresses.Swarm`
+	Explicit bool   // true if the listener is itself a specific-IP entry in `Addresses.Swarm`, not a wildcard expansion
 }
 
 // findDeadListeners returns one finding per (listener, rule, source)
@@ -61,10 +61,10 @@ type deadListenerFinding struct {
 // listenAddrs must be already-resolved interface addresses (output of
 // `host.Network().InterfaceListenAddresses()`).
 //
-// swarmListen is the raw `Addresses.Swarm` config. It is used to mark
-// each finding as `Explicit` when the resolved listener's IP appears
-// literally in `swarmListen`, or non-explicit when the IP came from a
-// wildcard listen (`/ip4/0.0.0.0`, `/ip6/::`) expansion.
+// swarmListen is the raw `Addresses.Swarm` config. A finding is marked
+// `Explicit` when the resolved listener appears literally in `swarmListen`,
+// and non-explicit when it came from a wildcard listen (`/ip4/0.0.0.0`,
+// `/ip6/::`) expanding onto a per-interface address.
 //
 // Callers route findings to log levels based on Source + Explicit:
 //
@@ -76,7 +76,7 @@ type deadListenerFinding struct {
 // Unparseable rules (including exact-match multiaddrs in NoAnnounce)
 // and listeners without an IP component are skipped silently.
 func findDeadListeners(listenAddrs []ma.Multiaddr, swarmListen, addrFilters, noAnnounce []string) []deadListenerFinding {
-	explicit := explicitListenIPs(swarmListen)
+	explicit := explicitListens(swarmListen)
 	check := func(source string, rules []string) []deadListenerFinding {
 		var out []deadListenerFinding
 		for _, r := range rules {
@@ -90,11 +90,7 @@ func findDeadListeners(listenAddrs []ma.Multiaddr, swarmListen, addrFilters, noA
 				if !f.AddrBlocked(l) {
 					continue
 				}
-				ip, err := manet.ToIP(l)
-				if err != nil {
-					continue
-				}
-				_, isExplicit := explicit[ip.String()]
+				_, isExplicit := explicit[l.String()]
 				out = append(out, deadListenerFinding{
 					Listener: l.String(),
 					Rule:     r,
@@ -110,10 +106,16 @@ func findDeadListeners(listenAddrs []ma.Multiaddr, swarmListen, addrFilters, noA
 	return findings
 }
 
-// explicitListenIPs returns the set of IPs the operator explicitly bound
-// in `Addresses.Swarm`. Unspecified addresses (`0.0.0.0`, `::`) and
-// entries without an IP component are skipped.
-func explicitListenIPs(swarmListen []string) map[string]struct{} {
+// explicitListens returns the set of specific-interface listen addresses
+// from `Addresses.Swarm`, as normalized multiaddr strings. Wildcard listens
+// (`/ip4/0.0.0.0`, `/ip6/::`) and entries without an IP component are
+// skipped.
+//
+// `InterfaceListenAddresses` echoes a specific-IP listen verbatim but
+// resolves a wildcard listen to per-interface addresses that never appear
+// here, so membership in this set tells a deliberately-bound listener apart
+// from an incidental wildcard expansion onto a filtered interface.
+func explicitListens(swarmListen []string) map[string]struct{} {
 	set := make(map[string]struct{}, len(swarmListen))
 	for _, s := range swarmListen {
 		m, err := ma.NewMultiaddr(s)
@@ -121,13 +123,10 @@ func explicitListenIPs(swarmListen []string) map[string]struct{} {
 			continue
 		}
 		ip, err := manet.ToIP(m)
-		if err != nil {
+		if err != nil || ip.IsUnspecified() {
 			continue
 		}
-		if ip.IsUnspecified() {
-			continue
-		}
-		set[ip.String()] = struct{}{}
+		set[m.String()] = struct{}{}
 	}
 	return set
 }

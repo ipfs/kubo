@@ -138,6 +138,7 @@ func TestFindDeadListeners(t *testing.T) {
 			name: "server-profile bootstrapper mix: explicit reverse-proxy listen flagged ERROR, wildcard-resolved interfaces DEBUG",
 			listenAddrs: mustMultiaddrs(t,
 				"/ip4/147.135.44.132/tcp/4001",
+				"/ip4/127.0.0.1/tcp/4001", // loopback expansion of /ip4/0.0.0.0
 				"/ip4/127.0.0.1/tcp/8081/ws",
 				"/ip6/2604:2dc0:200:484::1/tcp/4001",
 				"/ip6/::1/tcp/4001",
@@ -155,10 +156,15 @@ func TestFindDeadListeners(t *testing.T) {
 				"/ip4/127.0.0.0/ipcidr/8",
 				"/ip6/::/ipcidr/3",
 			},
+			// The /ip4/127.0.0.1/tcp/4001 loopback shares its IP with the
+			// explicit /ws listener but came from the /ip4/0.0.0.0 wildcard,
+			// so it stays non-explicit (DEBUG); only the /ws listener is ERROR.
 			want: []deadListenerFinding{
 				{Listener: "/ip4/127.0.0.1/tcp/8081/ws", Rule: "/ip4/127.0.0.0/ipcidr/8", Source: deadListenerSourceAddrFilters, Explicit: true},
+				{Listener: "/ip4/127.0.0.1/tcp/4001", Rule: "/ip4/127.0.0.0/ipcidr/8", Source: deadListenerSourceAddrFilters, Explicit: false},
 				{Listener: "/ip6/::1/tcp/4001", Rule: "/ip6/::/ipcidr/3", Source: deadListenerSourceAddrFilters, Explicit: false},
 				{Listener: "/ip4/127.0.0.1/tcp/8081/ws", Rule: "/ip4/127.0.0.0/ipcidr/8", Source: deadListenerSourceNoAnnounce, Explicit: true},
+				{Listener: "/ip4/127.0.0.1/tcp/4001", Rule: "/ip4/127.0.0.0/ipcidr/8", Source: deadListenerSourceNoAnnounce, Explicit: false},
 				{Listener: "/ip6/::1/tcp/4001", Rule: "/ip6/::/ipcidr/3", Source: deadListenerSourceNoAnnounce, Explicit: false},
 			},
 		},
