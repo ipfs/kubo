@@ -51,7 +51,7 @@ type deadListenerFinding struct {
 	Listener string // resolved listen multiaddr (interface-bound)
 	Rule     string // matching CIDR rule from Source
 	Source   string // deadListenerSourceAddrFilters or deadListenerSourceNoAnnounce
-	Explicit bool   // true if the listener is itself a specific-IP entry in `Addresses.Swarm`, not a wildcard expansion
+	Explicit bool   // true when the listener IP+port was bound by a specific-IP entry in `Addresses.Swarm`, not a wildcard expansion
 }
 
 // findDeadListeners returns one finding per (listener, rule, source)
@@ -62,9 +62,11 @@ type deadListenerFinding struct {
 // `host.Network().InterfaceListenAddresses()`).
 //
 // swarmListen is the raw `Addresses.Swarm` config. A finding is marked
-// `Explicit` when the resolved listener appears literally in `swarmListen`,
-// and non-explicit when it came from a wildcard listen (`/ip4/0.0.0.0`,
-// `/ip6/::`) expanding onto a per-interface address.
+// `Explicit` when the resolved listener shares its IP and port with a
+// specific-IP entry in `swarmListen`, and non-explicit when it came from a
+// wildcard listen (`/ip4/0.0.0.0`, `/ip6/::`) expanding onto a per-interface
+// address. See explicitListens for why the match is on IP+port rather than
+// the full multiaddr string.
 //
 // Callers route findings to log levels based on Source + Explicit:
 //
@@ -90,7 +92,10 @@ func findDeadListeners(listenAddrs []ma.Multiaddr, swarmListen, addrFilters, noA
 				if !f.AddrBlocked(l) {
 					continue
 				}
-				_, isExplicit := explicit[l.String()]
+				isExplicit := false
+				if ep, ok := listenEndpoint(l); ok {
+					_, isExplicit = explicit[ep]
+				}
 				out = append(out, deadListenerFinding{
 					Listener: l.String(),
 					Rule:     r,
@@ -106,15 +111,51 @@ func findDeadListeners(listenAddrs []ma.Multiaddr, swarmListen, addrFilters, noA
 	return findings
 }
 
-// explicitListens returns the set of specific-interface listen addresses
-// from `Addresses.Swarm`, as normalized multiaddr strings. Wildcard listens
-// (`/ip4/0.0.0.0`, `/ip6/::`) and entries without an IP component are
-// skipped.
+// listenEndpoint returns a key identifying m's bound socket: its IP value,
+// transport (tcp or udp), and port. The bool is false when m has no specific
+// IP (a wildcard such as `/ip4/0.0.0.0`, or an IP-less `/dns...` listen) or
+// no TCP/UDP port, since such an address cannot name a single socket.
 //
-// `InterfaceListenAddresses` echoes a specific-IP listen verbatim but
-// resolves a wildcard listen to per-interface addresses that never appear
-// here, so membership in this set tells a deliberately-bound listener apart
-// from an incidental wildcard expansion onto a filtered interface.
+// The key intentionally drops everything after the port. The same socket is
+// reported under different multiaddrs depending on transport: the WebSocket
+// listener canonicalizes `/wss` to `/tls/ws`, and WebTransport appends a
+// `/certhash/...` component for its self-signed certificate. Comparing on
+// IP+transport+port keeps a specific-IP listen recognizable across those
+// rewrites, where a full-string comparison would not.
+//
+// The transport is part of the key because TCP and QUIC routinely share a
+// port number (Kubo defaults to 4001 for both) yet are distinct sockets. The
+// IP is matched by value: an `/ip6zone` qualifier is dropped, so a zoneless
+// config entry still matches the resolved interface address.
+func listenEndpoint(m ma.Multiaddr) (string, bool) {
+	ip, err := manet.ToIP(m)
+	if err != nil || ip.IsUnspecified() {
+		return "", false
+	}
+	if port, err := m.ValueForProtocol(ma.P_TCP); err == nil {
+		return ip.String() + "/tcp/" + port, true
+	}
+	if port, err := m.ValueForProtocol(ma.P_UDP); err == nil {
+		return ip.String() + "/udp/" + port, true
+	}
+	return "", false
+}
+
+// explicitListens returns the set of network endpoints (IP+port), keyed by
+// listenEndpoint, that `Addresses.Swarm` binds to a specific interface.
+// Wildcard listens (`/ip4/0.0.0.0`, `/ip6/::`) and entries without an IP
+// component (`/dns...`) are skipped: they do not pin a single interface.
+//
+// A resolved listener counts as explicit when its endpoint is in this set.
+// A wildcard listen expands to per-interface addresses whose IPs never
+// appear here, so endpoint membership separates a deliberately-bound
+// listener from an incidental wildcard expansion onto a filtered interface,
+// even when the two share an IP (their transport or port differs).
+//
+// A `/tcp/0` (OS-assigned port) listen is stored with port "0", which no
+// resolved listener reports, so it falls back to non-explicit (DEBUG). The
+// reverse-proxy misconfiguration this routing exists to flag always pins a
+// fixed port, so the best-effort gap costs nothing in practice.
 func explicitListens(swarmListen []string) map[string]struct{} {
 	set := make(map[string]struct{}, len(swarmListen))
 	for _, s := range swarmListen {
@@ -122,11 +163,9 @@ func explicitListens(swarmListen []string) map[string]struct{} {
 		if err != nil {
 			continue
 		}
-		ip, err := manet.ToIP(m)
-		if err != nil || ip.IsUnspecified() {
-			continue
+		if ep, ok := listenEndpoint(m); ok {
+			set[ep] = struct{}{}
 		}
-		set[m.String()] = struct{}{}
 	}
 	return set
 }
