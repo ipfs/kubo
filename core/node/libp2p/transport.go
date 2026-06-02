@@ -2,7 +2,9 @@ package libp2p
 
 import (
 	"fmt"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipshipyard/p2p-forge/client"
@@ -17,7 +19,7 @@ import (
 	"go.uber.org/fx"
 )
 
-func Transports(tptConfig config.Transports) any {
+func Transports(tptConfig config.Transports, gatewayRetrievalTimeout time.Duration) any {
 	return func(params struct {
 		fx.In
 		Fprint        PNetFingerprint          `optional:"true"`
@@ -54,7 +56,35 @@ func Transports(tptConfig config.Transports) any {
 			// because it needs the fully constructed *core.IpfsNode.
 			// See HTTPProviderHandler.
 			if params.HTTPProvider != nil {
-				wsOpts = append(wsOpts, websocket.WithFallbackHTTPHandler(params.HTTPProvider))
+				wsOpts = append(wsOpts, websocket.WithHTTPHandler(params.HTTPProvider))
+				// The trustless gateway streams large block/CAR responses,
+				// so set only timeouts that are safe for streaming.
+				// ReadHeaderTimeout guards only h1 fallback connections
+				// against slow-header clients; Go's HTTP/2 server ignores
+				// it. IdleTimeout caps idle pooled connections; 60s sits
+				// above httpnet's 30s IdleConnTimeout so the client closes
+				// idle connections first.
+				// WriteByteTimeout closes a stalled writer (a client that
+				// stopped reading) without truncating a healthy slow
+				// download, since it resets on every byte written.
+				// SendPingTimeout reclaims dead h2 connections so they do
+				// not pin the resource manager's connection budget.
+				// WriteTimeout/ReadTimeout stay unset, as they cap the whole
+				// request and would truncate a large download.
+				//
+				// Both guards sit above Gateway.RetrievalTimeout so the
+				// gateway's own timeout (a clean 504 with diagnostics and a
+				// recorded metric) fires before we drop the connection.
+				connGuard := gatewayRetrievalTimeout + 30*time.Second
+				wsOpts = append(wsOpts, websocket.WithHTTPServerConfig(func(s *http.Server) {
+					s.ReadHeaderTimeout = 10 * time.Second
+					s.IdleTimeout = 60 * time.Second
+					s.HTTP2 = &http.HTTP2Config{
+						MaxConcurrentStreams: 256,
+						WriteByteTimeout:     connGuard,
+						SendPingTimeout:      connGuard,
+					}
+				}))
 			}
 			opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New, wsOpts...))
 		}

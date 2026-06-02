@@ -1355,6 +1355,8 @@ Type: `flag`
 
 Maximum duration Kubo will wait for content retrieval (new bytes to arrive).
 
+This covers any wait for new bytes, including reads from the local datastore, not only network retrieval from other peers. If your datastore is not truly local, for example backed by NFS or an object store like S3, slow reads from it can also trip this timeout. Raise the value when the backend can be slower than the default allows.
+
 **Timeout behavior:**
 
 - **Time to first byte**: Returns 504 Gateway Timeout if the gateway cannot start writing within this duration (e.g., stuck searching for providers)
