@@ -79,6 +79,8 @@ make install         # install to $GOPATH/bin
 make -O test_go_lint # run linter (use this instead of golangci-lint directly)
 ```
 
+**Always build with `make build`, never `go build`.** The Makefile injects required `-ldflags` for `CurrentCommit`, `taggedRelease`, and `buildOrigin`.
+
 If you modify `go.mod` (add/remove/update dependencies), you must run `make mod_tidy` first, before building or testing. Use `make mod_tidy` instead of `go mod tidy` directly, as the project has multiple `go.mod` files.
 
 If you modify any `.go` files outside of `test/`, you must run `make build` before running integration tests.
