@@ -10,3 +10,12 @@ ifeq ($(findstring dirty,$(git-hash)),)
 else
   git-tag:=
 endif
+
+# Normalize `origin` to `host/org/repo` for runtime fork detection via
+# Version.AgentSuffix. Handles ssh and https forms, strips `.git`, drops
+# userinfo. Empty when no git, no `origin`, or git is unavailable.
+git-origin:=$(shell git remote get-url origin 2>/dev/null \
+  | sed -E -e 's|^git@([^:]+):|\1/|' \
+           -e 's|^[a-z]+://||' \
+           -e 's|^[^/]+@||' \
+           -e 's|\.git$$||')
