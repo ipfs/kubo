@@ -51,7 +51,7 @@ func (l *HTTPProviderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 // deployments that forward HTTP/1.1 to the backend keep working.
 //
 // Why this lives in kubo and not in the go-libp2p WS transport: the
-// transport's WithFallbackHTTPHandler is intentionally interop-maximal
+// transport's WithHTTPHandler is intentionally interop-maximal
 // (accepts every HTTP version on every listener) and leaves application
 // policy to the caller. The HTTP-over-TLS path here is the public-facing
 // AutoTLS endpoint we want to keep looking like a modern HTTPS server
