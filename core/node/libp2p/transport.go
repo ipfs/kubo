@@ -19,6 +19,37 @@ import (
 	"go.uber.org/fx"
 )
 
+// HTTPProvider HTTP server tuning. The trustless gateway streams large
+// block/CAR responses, so it sets only streaming-safe timeouts; Transports
+// applies each value.
+const (
+	// httpProviderMaxConcurrentStreams caps parallel HTTP/2 streams per client
+	// connection. Bitswap over HTTP (httpnet) opens one connection per peer and
+	// multiplexes block requests as separate streams, so this doubles as the
+	// per-peer in-flight block ceiling. Go's HTTP/2 server defaults to 250; 256
+	// keeps a power-of-two of headroom so a busy client can saturate parallel
+	// fetches while bounding per-connection memory. This is a per-connection
+	// transport limit; Gateway.MaxConcurrentRequests caps total in-flight
+	// requests across all connections at the application layer (429 once
+	// exceeded).
+	httpProviderMaxConcurrentStreams = 256
+
+	// httpProviderReadHeaderTimeout guards HTTP/1.1 fallback connections
+	// against slow-header clients. Go's HTTP/2 server ignores it.
+	httpProviderReadHeaderTimeout = 10 * time.Second
+
+	// httpProviderIdleTimeout caps idle pooled connections. It exceeds
+	// httpnet's 30s IdleConnTimeout so the client closes idle connections
+	// first.
+	httpProviderIdleTimeout = 60 * time.Second
+
+	// httpProviderConnGuardMargin pads Gateway.RetrievalTimeout to derive the
+	// HTTP/2 WriteByteTimeout and SendPingTimeout, keeping both guards above
+	// the gateway's own timeout so the gateway returns a clean 504 (with
+	// diagnostics and a recorded metric) before the connection drops.
+	httpProviderConnGuardMargin = 30 * time.Second
+)
+
 func Transports(tptConfig config.Transports, gatewayRetrievalTimeout time.Duration) any {
 	return func(params struct {
 		fx.In
@@ -57,30 +88,19 @@ func Transports(tptConfig config.Transports, gatewayRetrievalTimeout time.Durati
 			// See HTTPProviderHandler.
 			if params.HTTPProvider != nil {
 				wsOpts = append(wsOpts, websocket.WithHTTPHandler(params.HTTPProvider))
-				// The trustless gateway streams large block/CAR responses,
-				// so set only timeouts that are safe for streaming.
-				// ReadHeaderTimeout guards only h1 fallback connections
-				// against slow-header clients; Go's HTTP/2 server ignores
-				// it. IdleTimeout caps idle pooled connections; 60s sits
-				// above httpnet's 30s IdleConnTimeout so the client closes
-				// idle connections first.
-				// WriteByteTimeout closes a stalled writer (a client that
-				// stopped reading) without truncating a healthy slow
-				// download, since it resets on every byte written.
-				// SendPingTimeout reclaims dead h2 connections so they do
-				// not pin the resource manager's connection budget.
-				// WriteTimeout/ReadTimeout stay unset, as they cap the whole
-				// request and would truncate a large download.
-				//
-				// Both guards sit above Gateway.RetrievalTimeout so the
-				// gateway's own timeout (a clean 504 with diagnostics and a
-				// recorded metric) fires before we drop the connection.
-				connGuard := gatewayRetrievalTimeout + 30*time.Second
+				// WriteByteTimeout resets on every byte written, so it closes a
+				// stalled writer (a client that stopped reading) without
+				// truncating a healthy slow download. SendPingTimeout reclaims
+				// dead h2 connections, freeing the resource manager's
+				// connection budget. WriteTimeout and ReadTimeout stay unset:
+				// they cap the whole request and would truncate a large
+				// download. See the const block above for the rest.
+				connGuard := gatewayRetrievalTimeout + httpProviderConnGuardMargin
 				wsOpts = append(wsOpts, websocket.WithHTTPServerConfig(func(s *http.Server) {
-					s.ReadHeaderTimeout = 10 * time.Second
-					s.IdleTimeout = 60 * time.Second
+					s.ReadHeaderTimeout = httpProviderReadHeaderTimeout
+					s.IdleTimeout = httpProviderIdleTimeout
 					s.HTTP2 = &http.HTTP2Config{
-						MaxConcurrentStreams: 256,
+						MaxConcurrentStreams: httpProviderMaxConcurrentStreams,
 						WriteByteTimeout:     connGuard,
 						SendPingTimeout:      connGuard,
 					}
