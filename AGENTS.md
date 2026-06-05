@@ -232,3 +232,20 @@ ipfs shutdown              # graceful shutdown via API
 ```
 
 Kill dangling daemons before re-running tests: `pkill -f "ipfs daemon"`
+
+### Testing AutoTLS Locally
+
+AutoTLS only requests a `*.libp2p.direct` certificate once libp2p confirms the node is publicly reachable on a TCP port. For a local test the node must be able to open that port, so enable UPnP/NAT-PMP (the `server` init profile disables it via `Swarm.DisableNatPortMap: true`):
+
+```bash
+ipfs config --json Swarm.DisableNatPortMap false   # let UPnP/NAT-PMP map the swarm port
+ipfs config AutoTLS.RegistrationDelay 5s           # shorten the default wait before registration
+```
+
+Then start the daemon and watch the relevant logs:
+
+```bash
+GOLOG_LOG_LEVEL="error,autotls=info,nat=info" ipfs daemon
+```
+
+Poll `ipfs id` until a `tls/ws` address under your own peer ID appears. A `libp2p.direct` address ending in `/p2p-circuit/p2p/<your-id>` is a relay path, not your own AutoTLS cert. Requires a router that actually honors UPnP/NAT-PMP; without it AutoNAT reports `Private` and no certificate is issued.
