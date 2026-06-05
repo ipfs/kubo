@@ -100,8 +100,8 @@ For faster IPNS updates, consider:
 	Options: []cmds.Option{
 		cmds.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'.").WithDefault("self"),
 		cmds.BoolOption(resolveOptionName, "Check if the given path can be resolved before publishing.").WithDefault(true),
-		cmds.StringOption(lifeTimeOptionName, "t", `Time duration the signed record will be valid for. Accepts durations such as "300s", "1.5h" or "7d2h45m"`).WithDefault(ipns.DefaultRecordLifetime.String()),
-		cmds.StringOption(ttlOptionName, "Time duration hint, akin to --lifetime, indicating how long to cache this record before checking for updates.").WithDefault(ipns.DefaultRecordTTL.String()),
+		cmds.StringOption(lifeTimeOptionName, "t", `Time duration the signed record will be valid for. Accepts durations such as "300s", "1.5h" or "7d2h45m". Default: `+ipns.DefaultRecordLifetime.String()),
+		cmds.StringOption(ttlOptionName, "Time duration to cache this record before checking for updates. Must not exceed --lifetime. Default: "+ipns.DefaultRecordTTL.String()+" (capped to --lifetime)."),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final IPNS Name encoded as CIDv1 (for use in /ipns content paths)."),
 		cmds.BoolOption(v1compatOptionName, "Produce a backward-compatible IPNS Record by including fields for both V1 and V2 signatures.").WithDefault(true),
 		cmds.BoolOption(allowOfflineOptionName, "Allow publishing when offline - publishes to local datastore without requiring network connectivity."),
@@ -125,10 +125,18 @@ For faster IPNS updates, consider:
 			return errors.New("cannot use both --allow-offline and --allow-delegated flags")
 		}
 
-		validTimeOpt, _ := req.Options[lifeTimeOptionName].(string)
-		validTime, err := time.ParseDuration(validTimeOpt)
-		if err != nil {
-			return fmt.Errorf("error parsing lifetime option: %s", err)
+		// --lifetime and --ttl carry no client-side default, so the server can
+		// tell whether the user set them explicitly; defaults are applied here.
+		validTime := ipns.DefaultRecordLifetime
+		if validTimeOpt, found := req.Options[lifeTimeOptionName].(string); found {
+			d, err := time.ParseDuration(validTimeOpt)
+			if err != nil {
+				return fmt.Errorf("error parsing lifetime option: %s", err)
+			}
+			if d <= 0 {
+				return fmt.Errorf("lifetime must be greater than zero, got %s", validTimeOpt)
+			}
+			validTime = d
 		}
 
 		opts := []options.NamePublishOption{
@@ -139,13 +147,24 @@ For faster IPNS updates, consider:
 			options.Name.CompatibleWithV1(compatibleWithV1),
 		}
 
+		// A record is not cached past its validity, so the TTL must not exceed the
+		// lifetime. An explicit --ttl over the lifetime is an error; the default
+		// --ttl is capped to the lifetime instead.
 		if ttl, found := req.Options[ttlOptionName].(string); found {
 			d, err := time.ParseDuration(ttl)
 			if err != nil {
 				return err
 			}
+			if d < 0 {
+				return fmt.Errorf("ttl must not be negative, got %s", ttl)
+			}
+			if d > validTime {
+				return fmt.Errorf("ttl (%s) must not be greater than lifetime (%s)", d, validTime)
+			}
 
 			opts = append(opts, options.Name.TTL(d))
+		} else {
+			opts = append(opts, options.Name.TTL(min(ipns.DefaultRecordTTL, validTime)))
 		}
 
 		if sequence, found := req.Options[sequenceOptionName].(uint64); found {
