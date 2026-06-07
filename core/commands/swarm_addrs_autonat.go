@@ -6,6 +6,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/libp2p/go-libp2p/core/network"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -23,6 +24,7 @@ type confirmedAddrsHost interface {
 // autoNATResult represents the AutoNAT reachability information.
 type autoNATResult struct {
 	Reachability string   `json:"reachability"`
+	NAT          string   `json:"nat,omitempty"` // "cgnat", "double-nat", or empty when not determinable
 	Reachable    []string `json:"reachable,omitempty"`
 	Unreachable  []string `json:"unreachable,omitempty"`
 	Unknown      []string `json:"unknown,omitempty"`
@@ -114,6 +116,9 @@ Example:
 			result.Reachability = h.Reachability().String()
 		}
 
+		// Best-effort NAT classification (carrier-grade / double NAT).
+		result.NAT = libp2p.DetectNAT(nd.PeerHost)
+
 		return cmds.EmitOnce(res, result)
 	},
 	Type: autoNATResult{},
@@ -121,6 +126,9 @@ Example:
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, result autoNATResult) error {
 			fmt.Fprintln(w, "AutoNAT V2 Status:")
 			fmt.Fprintf(w, "  Reachability: %s\n", result.Reachability)
+			if result.NAT != "" {
+				fmt.Fprintf(w, "  NAT: %s\n", result.NAT)
+			}
 
 			fmt.Fprintln(w)
 			fmt.Fprintln(w, "Per-Address Reachability:")
