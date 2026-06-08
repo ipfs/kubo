@@ -14,6 +14,16 @@ const (
 	// so a hung daemon recovers before missing more than one cycle.
 	// Set Internal.ShutdownTimeout to 0 to opt out and wait forever.
 	DefaultShutdownTimeout = 12 * time.Hour
+
+	// DefaultCGNATCheck enables the one-time startup notice logged when
+	// the node appears to be behind carrier-grade NAT (RFC 6598) or double
+	// NAT. Set Internal.CGNATCheck to false to silence it.
+	DefaultCGNATCheck = true
+
+	// DefaultDeadListenerCheck enables the diagnostic that flags
+	// Addresses.Swarm listeners blocked by Swarm.AddrFilters or stripped by
+	// Addresses.NoAnnounce. Set Internal.DeadListenerCheck to false to disable.
+	DefaultDeadListenerCheck = true
 )
 
 type Internal struct {
@@ -34,6 +44,15 @@ type Internal struct {
 	// deadline expires the daemon logs which subsystem failed to close and
 	// exits with status 1. Set to 0 to disable the cap and wait forever.
 	ShutdownTimeout *OptionalDuration `json:",omitempty"`
+	// CGNATCheck toggles the one-time notice logged when the node appears
+	// to be behind carrier-grade NAT (RFC 6598 100.64.0.0/10) or double NAT.
+	// Defaults to DefaultCGNATCheck. Set to false to silence the notice.
+	CGNATCheck Flag `json:",omitempty"`
+	// DeadListenerCheck toggles the diagnostic that flags Addresses.Swarm
+	// listeners blocked by Swarm.AddrFilters or stripped from announcements by
+	// Addresses.NoAnnounce. Defaults to DefaultDeadListenerCheck. Set to false
+	// to disable the check entirely.
+	DeadListenerCheck Flag `json:",omitempty"`
 }
 
 type InternalBitswap struct {
