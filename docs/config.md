@@ -1938,8 +1938,9 @@ Type: `optionalDuration` (`0` disables the cap)
 
 ### `Ipns.RepublishPeriod`
 
-A time duration specifying how frequently to republish ipns records to ensure
-they stay fresh on the network.
+A time duration specifying how frequently to republish [IPNS records](https://specs.ipfs.tech/ipns/ipns-record/) so they stay fresh on the network.
+
+Must not exceed [`Ipns.RecordLifetime`](#ipnsrecordlifetime); the daemon refuses to start otherwise, since records would expire before they are republished.
 
 Default: 4 hours.
 
@@ -1947,8 +1948,9 @@ Type: `interval` or an empty string for the default.
 
 ### `Ipns.RecordLifetime`
 
-A time duration specifying the value to set on ipns records for their validity
-lifetime.
+A time duration specifying the validity lifetime (EOL) to set on [IPNS records](https://specs.ipfs.tech/ipns/ipns-record/).
+
+Must be at least [`Ipns.RepublishPeriod`](#ipnsrepublishperiod); the daemon refuses to start otherwise, since records would expire before they are republished.
 
 Default: 48 hours.
 
