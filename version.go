@@ -3,6 +3,8 @@ package ipfs
 import (
 	"fmt"
 	"runtime"
+	"runtime/debug"
+	"strings"
 
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 )
@@ -16,8 +18,17 @@ var CurrentCommit string
 // already identifies the exact source.
 var taggedRelease string
 
+// buildOrigin is the Makefile-injected `host/org/repo` form of
+// `git remote get-url origin`. ImplicitAgentSuffix turns a non-upstream
+// value into the Version.AgentSuffix default so fork builds self-identify.
+var buildOrigin string
+
+// upstreamModulePath is the canonical upstream module path. Builds whose
+// origin matches it contribute no implicit suffix.
+const upstreamModulePath = "github.com/ipfs/kubo"
+
 // CurrentVersionNumber is the current application's version literal.
-const CurrentVersionNumber = "0.41.0"
+const CurrentVersionNumber = "0.42.0"
 
 const ApiVersion = "/kubo/" + CurrentVersionNumber + "/" //nolint
 
@@ -47,6 +58,52 @@ var userAgentSuffix string
 
 func SetUserAgentSuffix(suffix string) {
 	userAgentSuffix = cmdutils.CleanAndTrim(suffix)
+}
+
+// ImplicitAgentSuffix returns a Version.AgentSuffix default derived from
+// the build origin. It prefers the Makefile-injected URL (covers forks
+// that keep the upstream `module` line) and falls back to
+// debug.ReadBuildInfo's main module path (covers `go install` and forks
+// that renamed their module). Returns "" for upstream builds.
+func ImplicitAgentSuffix() string {
+	if s := suffixFromForkPath(buildOrigin); s != "" {
+		return s
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		return suffixFromForkPath(bi.Main.Path)
+	}
+	return ""
+}
+
+// knownForges lists public git hosts whose hostname is dropped from the
+// implicit suffix; other hosts are kept so the origin stays identifiable.
+var knownForges = map[string]struct{}{
+	"github.com":    {},
+	"gitlab.com":    {},
+	"codeberg.org":  {},
+	"bitbucket.org": {},
+}
+
+// suffixFromForkPath turns a normalized `host/org/repo` into the implicit
+// Version.AgentSuffix. Returns "" for upstream and empty inputs.
+func suffixFromForkPath(p string) string {
+	p = strings.Trim(p, "/")
+	if p == "" || p == upstreamModulePath {
+		return ""
+	}
+	parts := strings.Split(p, "/")
+	// Only normalize canonical `host/org/repo`; shorter inputs pass through
+	// so operators can still identify them.
+	if len(parts) < 3 {
+		return p
+	}
+	if _, ok := knownForges[parts[0]]; ok {
+		parts = parts[1:]
+	}
+	if parts[len(parts)-1] == "kubo" {
+		parts = parts[:len(parts)-1]
+	}
+	return strings.Join(parts, "/")
 }
 
 type VersionInfo struct {

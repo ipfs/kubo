@@ -507,7 +507,7 @@ ones. This heuristic approach can significantly speed up the process, resulting 
 When it is enabled:
 
 - Amino DHT provide operations should complete much faster than with it disabled
-- This can be tested with commands such as `ipfs routing provide`
+- This can be tested with commands such as `ipfs provide once`
 
 **Tradeoffs**
 

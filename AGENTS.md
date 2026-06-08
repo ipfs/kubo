@@ -79,6 +79,8 @@ make install         # install to $GOPATH/bin
 make -O test_go_lint # run linter (use this instead of golangci-lint directly)
 ```
 
+**Always build with `make build`, never `go build`.** The Makefile injects required `-ldflags` for `CurrentCommit`, `taggedRelease`, and `buildOrigin`.
+
 If you modify `go.mod` (add/remove/update dependencies), you must run `make mod_tidy` first, before building or testing. Use `make mod_tidy` instead of `go mod tidy` directly, as the project has multiple `go.mod` files.
 
 If you modify any `.go` files outside of `test/`, you must run `make build` before running integration tests.
@@ -230,3 +232,20 @@ ipfs shutdown              # graceful shutdown via API
 ```
 
 Kill dangling daemons before re-running tests: `pkill -f "ipfs daemon"`
+
+### Testing AutoTLS Locally
+
+AutoTLS only requests a `*.libp2p.direct` certificate once libp2p confirms the node is publicly reachable on a TCP port. For a local test the node must be able to open that port, so enable UPnP/NAT-PMP (the `server` init profile disables it via `Swarm.DisableNatPortMap: true`):
+
+```bash
+ipfs config --json Swarm.DisableNatPortMap false   # let UPnP/NAT-PMP map the swarm port
+ipfs config AutoTLS.RegistrationDelay 5s           # shorten the default wait before registration
+```
+
+Then start the daemon and watch the relevant logs:
+
+```bash
+GOLOG_LOG_LEVEL="error,autotls=info,nat=info" ipfs daemon
+```
+
+Poll `ipfs id` until a `tls/ws` address under your own peer ID appears. A `libp2p.direct` address ending in `/p2p-circuit/p2p/<your-id>` is a relay path, not your own AutoTLS cert. Requires a router that actually honors UPnP/NAT-PMP; without it AutoNAT reports `Private` and no certificate is issued.

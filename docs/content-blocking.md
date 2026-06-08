@@ -39,6 +39,33 @@ End user is not informed about the exact reason, see [How to
 debug](#how-to-debug) if you need to find out which line of which denylist
 caused the request to be blocked.
 
+## Scope of denylists
+
+Denylists apply to **content retrieval and serving** by your local node:
+
+- Bitswap: your node neither requests blocked blocks from peers nor serves them to peers.
+- Gateway and CLI: requests for a denied CID return an error (HTTP 410 Gone from the gateway).
+- IPNS resolution: your node refuses to resolve a denied IPNS name locally.
+
+Denylists do **not** apply to the routing system. If your node runs as a DHT server (the default with `Routing.Type=auto` once your node is publicly reachable), it can still:
+
+- Accept and store provider records (`ADD_PROVIDER`) for denied CIDs from other peers, and return them on `GET_PROVIDERS`.
+- Accept and store IPNS records for denied names from other peers, and serve them on `GetValue`.
+- Forward IPNS records over pubsub when [`Ipns.UsePubsub`](https://github.com/ipfs/kubo/blob/master/docs/config.md#ipnsusepubsub) is enabled.
+- Surface those records over the [`/routing/v1/`](https://specs.ipfs.tech/routing/http-routing-v1/) HTTP API when [`Gateway.ExposeRoutingAPI`](https://github.com/ipfs/kubo/blob/master/docs/config.md#gatewayexposeroutingapi) is enabled.
+
+In short, your node will not fetch or serve the content itself, but as a DHT server it still helps other peers discover providers and resolve names for that content.
+
+### How to stop facilitating routing for blocked content
+
+Set [`Routing.Type`](https://github.com/ipfs/kubo/blob/master/docs/config.md#routingtype) to `autoclient`:
+
+```sh
+$ ipfs config Routing.Type autoclient
+```
+
+In `autoclient` mode your node only acts as a DHT client. It never runs a DHT server, so it does not store or serve provider records or IPNS records on behalf of other peers.
+
 ## Denylist file format
 
 [NOpfs](https://github.com/ipfs-shipyard/nopfs) supports the format from [IPIP-383](https://specs.ipfs.tech/ipips/ipip-0383/).

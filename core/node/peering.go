@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ipfs/boxo/peering"
+	"github.com/ipfs/kubo/core/shutdown"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"go.uber.org/fx"
@@ -17,9 +18,11 @@ func Peering(lc fx.Lifecycle, host host.Host) *peering.PeeringService {
 		OnStart: func(context.Context) error {
 			return ps.Start()
 		},
-		OnStop: func(context.Context) error {
-			ps.Stop()
-			return nil
+		OnStop: func(ctx context.Context) error {
+			return shutdown.CloseWithCtx(ctx, "peering", func() error {
+				ps.Stop()
+				return nil
+			})
 		},
 	})
 	return ps

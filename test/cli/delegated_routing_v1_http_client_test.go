@@ -274,4 +274,27 @@ func TestHTTPDelegatedRoutingProviderAddrs(t *testing.T) {
 		require.NotEmpty(t, addrs, "provider record should contain addresses")
 		assert.Contains(t, addrs, "/ip4/5.6.7.8/tcp/4001", "AppendAnnounce address should be present")
 	})
+
+	t.Run("provider records resolve 0.0.0.0 Swarm bind to interface addresses", func(t *testing.T) {
+		t.Parallel()
+		srv, getAddrs := captureProviderAddrs(t)
+
+		// Default Addresses.Swarm binds to /ip4/0.0.0.0/... If httpRouterAddrFunc
+		// forwards those verbatim, HTTP routers receive useless unroutable entries.
+		// See https://github.com/ipfs/kubo/issues/11213.
+		node := harness.NewT(t).NewNode().Init()
+		node.SetIPFSConfig("Routing", customRoutingConf(srv.URL))
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		cidStr := node.IPFSAddStr(time.Now().String())
+		node.IPFS("routing", "provide", cidStr)
+
+		addrs := getAddrs()
+		require.NotEmpty(t, addrs, "provider record should contain addresses")
+		for _, a := range addrs {
+			assert.NotContains(t, a, "/ip4/0.0.0.0/", "unresolved 0.0.0.0 in provider record: %s", a)
+			assert.NotContains(t, a, "/ip6/::/", "unresolved :: in provider record: %s", a)
+		}
+	})
 }

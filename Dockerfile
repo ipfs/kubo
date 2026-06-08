@@ -7,7 +7,7 @@
 # The default below is what `docker build .` (without --build-arg) uses, and
 # `.github/workflows/docker-check.yml` lints that this default stays in sync
 # with go.mod. When bumping Go, update both go.mod and this default together.
-ARG GO_VERSION=1.26.2
+ARG GO_VERSION=1.26.4
 FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:${GO_VERSION} AS builder
 
 ARG TARGETOS TARGETARCH
@@ -97,10 +97,10 @@ ENV GOLOG_LOG_LEVEL=""
 # tini ensures proper signal handling and zombie process cleanup
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/start_ipfs"]
 
-# Health check verifies IPFS daemon is responsive.
-# Uses empty directory CID (QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn) as test
+# Health check via "ipfs diag healthy": verifies RPC + DAG pipeline, and
+# fails after SIGINT/SIGTERM to catch half-shutdown states.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD ipfs --api=/ip4/127.0.0.1/tcp/5001 dag stat /ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn || exit 1
+  CMD ipfs --api=/ip4/127.0.0.1/tcp/5001 diag healthy > /dev/null 2>&1 || exit 1
 
 # Default: run IPFS daemon with auto-migration enabled
 CMD ["daemon", "--migrate=true", "--agent-version-suffix=docker"]

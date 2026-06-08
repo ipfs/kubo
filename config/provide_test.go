@@ -155,21 +155,25 @@ func TestValidateProvideConfig_Interval(t *testing.T) {
 	tests := []struct {
 		name     string
 		interval time.Duration
+		enabled  Flag
 		wantErr  bool
 		errMsg   string
 	}{
-		{"valid default (22h)", 22 * time.Hour, false, ""},
-		{"valid max (48h)", 48 * time.Hour, false, ""},
-		{"valid small (1h)", 1 * time.Hour, false, ""},
-		{"valid zero (disabled)", 0, false, ""},
-		{"invalid over limit (49h)", 49 * time.Hour, true, "must be less than or equal to DHT provider record validity"},
-		{"invalid over limit (72h)", 72 * time.Hour, true, "must be less than or equal to DHT provider record validity"},
-		{"invalid negative", -1 * time.Hour, true, "must be non-negative"},
+		{"valid default (22h)", 22 * time.Hour, Default, false, ""},
+		{"valid max (48h)", 48 * time.Hour, Default, false, ""},
+		{"valid small (1h)", 1 * time.Hour, Default, false, ""},
+		{"valid zero with explicit Enabled=true", 0, True, false, ""},
+		{"valid zero with explicit Enabled=false", 0, False, false, ""},
+		{"invalid zero without explicit Provide.Enabled", 0, Default, true, "set Provide.Enabled explicitly"},
+		{"invalid over limit (49h)", 49 * time.Hour, Default, true, "must be less than or equal to DHT provider record validity"},
+		{"invalid over limit (72h)", 72 * time.Hour, Default, true, "must be less than or equal to DHT provider record validity"},
+		{"invalid negative", -1 * time.Hour, Default, true, "must be non-negative"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &Provide{
+				Enabled: tt.enabled,
 				DHT: ProvideDHT{
 					Interval: NewOptionalDuration(tt.interval),
 				},
