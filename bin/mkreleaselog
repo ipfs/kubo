@@ -607,7 +607,10 @@ statsummary() {
             Deletions: (map(.Deletions) | add),
             Files: (map(.Files) | add)
         }
-    ' | jq '. + {Lines: (.Deletions + .Insertions)}'
+    ' |
+        # Drop bot accounts (e.g. dependabot[bot]); GitHub bots use the [bot] suffix
+        jq 'select((.GitHub | endswith("[bot]")) or (.Author | endswith("[bot]")) | not)' |
+        jq '. + {Lines: (.Deletions + .Insertions)}'
 }
 
 strip_version() {
