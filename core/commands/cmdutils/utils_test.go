@@ -70,6 +70,33 @@ func TestPathOrCidPath(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "/ipfs/"+cidWithPath, p.String())
 	})
+
+	t.Run("CID with cross-platform punctuation path segments is converted correctly", func(t *testing.T) {
+		for _, segment := range []string{
+			"[", "]",
+			"{", "}",
+			"(", ")",
+			"space name",
+			"hash#name",
+			"percent%name",
+			"comma,name",
+			"plus+name",
+			"equals=name",
+			"at@name",
+			"dollar$name",
+			"ampersand&name",
+			"semicolon;name",
+			"apostrophe'name",
+			"tilde~name",
+		} {
+			t.Run(segment, func(t *testing.T) {
+				cidWithPath := "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG/" + segment
+				p, err := PathOrCidPath(cidWithPath)
+				require.NoError(t, err)
+				assert.Equal(t, "/ipfs/"+cidWithPath, p.String())
+			})
+		}
+	})
 }
 
 func TestValidatePinName(t *testing.T) {
