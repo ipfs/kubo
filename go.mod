@@ -10,7 +10,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/ceramicnetwork/go-dag-jose v0.1.1
 	github.com/cheggaaa/pb/v3 v3.1.7
-	github.com/cockroachdb/pebble/v2 v2.1.5
+	github.com/cockroachdb/pebble/v2 v2.1.6
 	github.com/coreos/go-systemd/v22 v22.7.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
@@ -31,7 +31,7 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.6.0
 	github.com/ipfs/go-ds-leveldb v0.5.2
 	github.com/ipfs/go-ds-measure v0.2.2
-	github.com/ipfs/go-ds-pebble v0.5.11
+	github.com/ipfs/go-ds-pebble v0.5.12
 	github.com/ipfs/go-fs-lock v0.1.1
 	github.com/ipfs/go-ipfs-cmds v0.16.1
 	github.com/ipfs/go-ipld-cbor v0.2.1
