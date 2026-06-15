@@ -233,6 +233,21 @@ ipfs shutdown              # graceful shutdown via API
 
 Kill dangling daemons before re-running tests: `pkill -f "ipfs daemon"`
 
+### Use Non-Default Ports for Manual Experiments
+
+A real IPFS node may already be running on the host using the default ports: swarm `4001`, RPC API `5001`, and gateway `8080`. Any manual experiment, PoC, or benchmark daemon you start MUST use non-default ports (and its own `IPFS_PATH`) so it does not collide with or disrupt that node. Binding a default port fails with `address already in use`, and reusing another node's API can interfere with it.
+
+```bash
+export IPFS_PATH="$(mktemp -d)"
+ipfs init >/dev/null
+ipfs config --json Addresses.Swarm '["/ip4/0.0.0.0/tcp/4101","/ip4/0.0.0.0/udp/4101/quic-v1"]'
+ipfs config Addresses.API /ip4/127.0.0.1/tcp/5101
+ipfs config Addresses.Gateway /ip4/127.0.0.1/tcp/8181
+ipfs daemon
+```
+
+Target your own node explicitly with `ipfs --api=/ip4/127.0.0.1/tcp/5101 ...`. Shut down only the daemons you started (track their PIDs); do not `pkill` indiscriminately when another node may be running on the host.
+
 ### Testing AutoTLS Locally
 
 AutoTLS only requests a `*.libp2p.direct` certificate once libp2p confirms the node is publicly reachable on a TCP port. For a local test the node must be able to open that port, so enable UPnP/NAT-PMP (the `server` init profile disables it via `Swarm.DisableNatPortMap: true`):
