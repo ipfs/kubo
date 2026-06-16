@@ -105,6 +105,8 @@ config file at runtime.
         - [`Internal.Bitswap.BroadcastControl.SendToPendingPeers`](#internalbitswapbroadcastcontrolsendtopendingpeers)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
     - [`Internal.ShutdownTimeout`](#internalshutdowntimeout)
+    - [`Internal.CGNATCheck`](#internalcgnatcheck)
+    - [`Internal.DeadListenerCheck`](#internaldeadlistenercheck)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
@@ -1934,12 +1936,52 @@ Default: `12h`
 
 Type: `optionalDuration` (`0` disables the cap)
 
+### `Internal.CGNATCheck`
+
+Controls the one-time notice Kubo logs to stderr when it detects it is behind
+carrier-grade NAT (CGNAT, RFC 6598 `100.64.0.0/10`) or double NAT. CGNAT is
+common on IPv4-scarce ISPs: many subscribers share one public address through a
+carrier NAT, so other peers cannot reach the node directly, and a busy node can
+fill the shared NAT session table and disrupt internet access for every device
+on the local network.
+
+Detection is best-effort and conservative. It fires only when a private or
+shared-range address appears as a NAT-mapped WAN address (discovered via NAT
+port mapping: UPnP/NAT-PMP/PCP) that is not one of this node's own interface
+addresses. Kubo ignores addresses on a local interface, so VPN and overlay tools
+that use `100.64.0.0/10` (such as Tailscale) do not trigger the notice. When the
+upstream address is hidden (for example, a router that does not answer NAT port
+mapping), Kubo shows no notice. `ipfs swarm addrs autonat` reports the current
+classification in its `nat` field.
+
+Set to `false` to silence the notice.
+
+Default: `true`
+
+Type: `flag`
+
+### `Internal.DeadListenerCheck`
+
+Controls the diagnostic that flags [`Addresses.Swarm`](#addressesswarm)
+listeners that a [`Swarm.AddrFilters`](#swarmaddrfilters) rule makes unreachable,
+or that [`Addresses.NoAnnounce`](#addressesnoannounce) strips from announcements.
+The check runs at startup and whenever listen addresses change. It logs an
+`ERROR` for an explicitly bound listener blocked by `Swarm.AddrFilters`, and
+`DEBUG` for the rest.
+
+Set to `false` to disable the check.
+
+Default: `true`
+
+Type: `flag`
+
 ## `Ipns`
 
 ### `Ipns.RepublishPeriod`
 
-A time duration specifying how frequently to republish ipns records to ensure
-they stay fresh on the network.
+A time duration specifying how frequently to republish [IPNS records](https://specs.ipfs.tech/ipns/ipns-record/) so they stay fresh on the network.
+
+Must not exceed [`Ipns.RecordLifetime`](#ipnsrecordlifetime); the daemon refuses to start otherwise, since records would expire before they are republished.
 
 Default: 4 hours.
 
@@ -1947,8 +1989,9 @@ Type: `interval` or an empty string for the default.
 
 ### `Ipns.RecordLifetime`
 
-A time duration specifying the value to set on ipns records for their validity
-lifetime.
+A time duration specifying the validity lifetime (EOL) to set on [IPNS records](https://specs.ipfs.tech/ipns/ipns-record/).
+
+Must be at least [`Ipns.RepublishPeriod`](#ipnsrepublishperiod); the daemon refuses to start otherwise, since records would expire before they are republished.
 
 Default: 48 hours.
 
@@ -4253,12 +4296,12 @@ other peers version for detecting when there is time to update.
 
 Optional suffix to the AgentVersion presented by `ipfs id` and exposed via [libp2p identify protocol](https://github.com/libp2p/specs/blob/master/identify/README.md#agentversion).
 
-The value from config takes precedence over value passed via `ipfs daemon --agent-version-suffix`.
+The value from config takes precedence over value passed via `ipfs daemon --agent-version-suffix`. When both are empty, kubo derives an implicit suffix from the build origin (`git remote get-url origin`, or `debug.ReadBuildInfo` for `go install` builds), stripping public forge hostnames so a fork hosted at `github.com/myorg/kubo` becomes `myorg`. Set this option to override the implicit value.
 
 > [!NOTE]
 > Setting a custom version suffix helps with ecosystem analysis, such as Amino DHT reports published at <https://stats.ipfs.network>
 
-Default: `""` (no suffix, or value from `ipfs daemon --agent-version-suffix=`)
+Default: implicit suffix from build origin, or `""` for upstream builds and when `ipfs daemon --agent-version-suffix=` is empty.
 
 Type: `optionalString`
 

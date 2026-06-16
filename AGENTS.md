@@ -79,6 +79,8 @@ make install         # install to $GOPATH/bin
 make -O test_go_lint # run linter (use this instead of golangci-lint directly)
 ```
 
+**Always build with `make build`, never `go build`.** The Makefile injects required `-ldflags` for `CurrentCommit`, `taggedRelease`, and `buildOrigin`.
+
 If you modify `go.mod` (add/remove/update dependencies), you must run `make mod_tidy` first, before building or testing. Use `make mod_tidy` instead of `go mod tidy` directly, as the project has multiple `go.mod` files.
 
 If you modify any `.go` files outside of `test/`, you must run `make build` before running integration tests.
@@ -230,3 +232,35 @@ ipfs shutdown              # graceful shutdown via API
 ```
 
 Kill dangling daemons before re-running tests: `pkill -f "ipfs daemon"`
+
+### Use Non-Default Ports for Manual Experiments
+
+A real IPFS node may already be running on the host using the default ports: swarm `4001`, RPC API `5001`, and gateway `8080`. Any manual experiment, PoC, or benchmark daemon you start MUST use non-default ports (and its own `IPFS_PATH`) so it does not collide with or disrupt that node. Binding a default port fails with `address already in use`, and reusing another node's API can interfere with it.
+
+```bash
+export IPFS_PATH="$(mktemp -d)"
+ipfs init >/dev/null
+ipfs config --json Addresses.Swarm '["/ip4/0.0.0.0/tcp/4101","/ip4/0.0.0.0/udp/4101/quic-v1"]'
+ipfs config Addresses.API /ip4/127.0.0.1/tcp/5101
+ipfs config Addresses.Gateway /ip4/127.0.0.1/tcp/8181
+ipfs daemon
+```
+
+Target your own node explicitly with `ipfs --api=/ip4/127.0.0.1/tcp/5101 ...`. Shut down only the daemons you started (track their PIDs); do not `pkill` indiscriminately when another node may be running on the host.
+
+### Testing AutoTLS Locally
+
+AutoTLS only requests a `*.libp2p.direct` certificate once libp2p confirms the node is publicly reachable on a TCP port. For a local test the node must be able to open that port, so enable UPnP/NAT-PMP (the `server` init profile disables it via `Swarm.DisableNatPortMap: true`):
+
+```bash
+ipfs config --json Swarm.DisableNatPortMap false   # let UPnP/NAT-PMP map the swarm port
+ipfs config AutoTLS.RegistrationDelay 5s           # shorten the default wait before registration
+```
+
+Then start the daemon and watch the relevant logs:
+
+```bash
+GOLOG_LOG_LEVEL="error,autotls=info,nat=info" ipfs daemon
+```
+
+Poll `ipfs id` until a `tls/ws` address under your own peer ID appears. A `libp2p.direct` address ending in `/p2p-circuit/p2p/<your-id>` is a relay path, not your own AutoTLS cert. Requires a router that actually honors UPnP/NAT-PMP; without it AutoNAT reports `Private` and no certificate is issued.
