@@ -248,7 +248,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		// too.
 		maybeProvide(libp2p.NewHTTPProviderHandler, enableHTTPProvider),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
-		fx.Invoke(libp2p.MonitorDeadListeners(cfg.Addresses.Swarm, cfg.Swarm.AddrFilters, cfg.Addresses.NoAnnounce)),
+		maybeInvoke(libp2p.MonitorDeadListeners(cfg.Addresses.Swarm, cfg.Swarm.AddrFilters, cfg.Addresses.NoAnnounce), cfg.Internal.DeadListenerCheck.WithDefault(config.DefaultDeadListenerCheck)),
+		maybeInvoke(libp2p.MonitorCGNAT(), cfg.Internal.CGNATCheck.WithDefault(config.DefaultCGNATCheck)),
 		fx.Provide(libp2p.AddrsFactory(
 			cfg.Addresses.Announce,
 			cfg.Addresses.AppendAnnounce,
