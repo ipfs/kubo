@@ -355,8 +355,8 @@ github.com/ipld/go-ipld-prime v0.24.0 h1:6th8Z6Peh5bCWuRAVZcDO1sHzZdVF6F2cCCDG36
 github.com/ipld/go-ipld-prime v0.24.0/go.mod h1:DYZxr/5caLNFbcuU6zLOgwSW7CgUEoC4wJiZMEU8Zhs=
 github.com/ipld/go-ipld-prime/storage/bsadapter v0.0.0-20250821084354-a425e60cd714 h1:cqNk8PEwHnK0vqWln+U/YZhQc9h2NB3KjUjDPZo5Q2s=
 github.com/ipld/go-ipld-prime/storage/bsadapter v0.0.0-20250821084354-a425e60cd714/go.mod h1:ZEUdra3CoqRVRYgAX/jAJO9aZGz6SKtKEG628fHHktY=
-github.com/ipshipyard/p2p-forge v0.9.0 h1:Mp/bZ8BX7sxNTyzN5BXbYpOPbggrUbn+Dr5XnJ2kj0s=
-github.com/ipshipyard/p2p-forge v0.9.0/go.mod h1:1keK1MRRCu5oNe9uFKfNIIZXOFEF9hgD1iK1DUsjsXQ=
+github.com/ipshipyard/p2p-forge v0.9.1 h1:xHiauwYsHv8R6jIaXDV6e89xAeSS6tN++uMQuAC41Jw=
+github.com/ipshipyard/p2p-forge v0.9.1/go.mod h1:1keK1MRRCu5oNe9uFKfNIIZXOFEF9hgD1iK1DUsjsXQ=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
 github.com/jackpal/go-nat-pmp v1.0.2/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/jbenet/go-temp-err-catcher v0.1.0 h1:zpb3ZH6wIE8Shj2sKS+khgRvf7T7RABoLk/+KKHggpk=
