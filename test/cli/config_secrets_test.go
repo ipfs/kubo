@@ -127,6 +127,35 @@ func TestConfigSecrets(t *testing.T) {
 			assert.Equal(t, originalPeerID, newPeerID)
 			assert.NotEqual(t, foreignPeerID, newPeerID)
 		})
+
+		t.Run("Identity.PeerID set is validated against PrivKey and normalized", func(t *testing.T) {
+			t.Parallel()
+			node := harness.NewT(t).NewNode().Init()
+
+			ownPeerID := node.PeerID().String()
+			foreignPeerID := "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
+
+			// a mismatched PeerID is rejected, pointing at the supported way
+			// to change identity
+			res := node.RunIPFS("config", "Identity.PeerID", foreignPeerID)
+			assert.NotEqual(t, 0, res.ExitCode())
+			assert.Contains(t, res.Stderr.String(), "ipfs key rotate")
+
+			// the stored config is left untouched
+			cfg := node.ReadFile(node.ConfigFile())
+			assert.Equal(t, ownPeerID, gjson.Get(cfg, "Identity.PeerID").String())
+
+			// setting the node's own PeerID is allowed (no-op)
+			node.IPFS("config", "Identity.PeerID", ownPeerID)
+
+			// the same identity in CIDv1 base36 form is accepted and
+			// normalized to the canonical base58 string
+			b36 := node.RunIPFS("id", "--peerid-base", "base36", "-f", "<id>").Stdout.Trimmed()
+			assert.NotEqual(t, ownPeerID, b36)
+			node.IPFS("config", "Identity.PeerID", b36)
+			cfg = node.ReadFile(node.ConfigFile())
+			assert.Equal(t, ownPeerID, gjson.Get(cfg, "Identity.PeerID").String())
+		})
 	})
 
 	t.Run("TLS security validation", func(t *testing.T) {
