@@ -1707,15 +1707,31 @@ Below is a list of the most common gateway setups.
 
 ### `Identity.PeerID`
 
-The unique PKI identity label for this configs peer. Set on init and never read,
-it's merely here for convenience. Ipfs will always generate the peerID from its
-keypair at runtime.
+The peer ID that identifies this node, derived from [`Identity.PrivKey`](#identityprivkey)
+and stored in the canonical base58 form (`12D3Koo...` or `Qm...`). Kubo checks that it
+agrees with the key at startup and refuses to start if they do not.
+
+This field cannot be changed on its own. `ipfs config` accepts only the node's own PeerID,
+in any standard representation (base58 or CIDv1, see the [libp2p spec](https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#string-representation)),
+and rewrites it to the base58 form; `ipfs config replace` re-derives it from the key. To
+change the node's identity, use `ipfs key rotate` (see [`Identity.PrivKey`](#identityprivkey)).
 
 Type: `string` (peer ID)
 
 ### `Identity.PrivKey`
 
-The base64 encoded protobuf describing (and containing) the node's private key.
+The base64 encoded protobuf describing (and containing) the node's private key. This is
+the source of truth for the node's identity; [`Identity.PeerID`](#identitypeerid) is
+derived from it.
+
+Kubo guards this key. It is scrubbed from `ipfs config show`, cannot be read or set
+through `ipfs config`, and `ipfs config replace` preserves the existing key instead of
+taking it from the replacement file. The identity is the reserved `self` key: it lives
+here in the config (not in the keystore), and `ipfs key` will not export or import it.
+
+To change a node's identity, stop the daemon and run
+[`ipfs key rotate`](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-key-rotate). It writes
+a new key and PeerID to the config and backs up the previous identity as a keystore key.
 
 Type: `string` (base64 encoded)
 
