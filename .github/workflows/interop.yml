@@ -80,7 +80,7 @@ jobs:
         id: helia-version
         run: echo "version=$(npm view @helia/interop version)" >> $GITHUB_OUTPUT
       - name: Cache helia-interop node_modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: helia-cache
         with:
           path: node_modules
@@ -146,7 +146,7 @@ jobs:
         run: gh api "$ENDPOINT" --jq "$SELECTOR" | xargs -I{} echo "$KEY={}" | tee -a $GITHUB_OUTPUT
       # Cache node_modules based on package-lock.json
       - name: Cache node_modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: node-modules-cache
         with:
           path: ipfs-webui/node_modules
@@ -159,7 +159,7 @@ jobs:
         working-directory: ipfs-webui
       # Cache Playwright browsers
       - name: Cache Playwright browsers
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -178,7 +178,7 @@ jobs:
         working-directory: ipfs-webui
       # Cache test build output
       - name: Cache test build
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: test-build-cache
         with:
           path: ipfs-webui/build
