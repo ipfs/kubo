@@ -46,7 +46,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
@@ -127,7 +127,7 @@ jobs:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: ipfs/ipfs-webui
           path: ipfs-webui
