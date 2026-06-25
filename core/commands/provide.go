@@ -107,23 +107,20 @@ See: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy
 			return nil
 		}
 
-		cleared := n.Provider.Clear()
+		err = n.Provider.Clear()
+		if err != nil {
+			return err
+		}
 		if quiet {
 			return nil
 		}
-		_ = re.Emit(cleared)
-
-		return nil
+		msg := "removed all items from provide queue\n"
+		return cmds.EmitOnce(re, &MessageOutput{Message: msg})
 	},
-	Type: int(0),
+	Type: MessageOutput{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, cleared int) error {
-			quiet, _ := req.Options[provideQuietOptionName].(bool)
-			if quiet {
-				return nil
-			}
-
-			_, err := fmt.Fprintf(w, "removed %d items from provide queue\n", cleared)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *MessageOutput) error {
+			_, err := fmt.Fprint(w, out.Message)
 			return err
 		}),
 	},

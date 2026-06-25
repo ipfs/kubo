@@ -21,7 +21,7 @@ require (
 	github.com/hashicorp/go-version v1.9.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.41.0
+	github.com/ipfs/boxo v0.41.1-0.20260617161532-61157c9d74bc
 	github.com/ipfs/go-block-format v0.2.3
 	github.com/ipfs/go-cid v0.6.1
 	github.com/ipfs/go-cidutil v0.1.1
@@ -52,7 +52,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0
 	github.com/libp2p/go-libp2p v0.48.0
 	github.com/libp2p/go-libp2p-http v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.40.0
+	github.com/libp2p/go-libp2p-kad-dht v0.40.1-0.20260617160602-96c8548a5e2a
 	github.com/libp2p/go-libp2p-kbucket v0.8.0
 	github.com/libp2p/go-libp2p-pubsub v0.16.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
@@ -133,8 +133,10 @@ require (
 	github.com/filecoin-project/go-clock v0.1.0 // indirect
 	github.com/flynn/noise v1.1.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
+	github.com/gammazero/cascadeq v0.2.0 // indirect
 	github.com/gammazero/chanqueue v1.1.2 // indirect
 	github.com/gammazero/deque v1.2.1 // indirect
+	github.com/gammazero/fsutil v0.2.0 // indirect
 	github.com/getsentry/sentry-go v0.27.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
@@ -155,7 +157,6 @@ require (
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/ipfs/bbloom v0.1.0 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
-	github.com/ipfs/go-dsqueue v0.2.0 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.1 // indirect
 	github.com/ipfs/go-ipfs-pq v0.0.4 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
@@ -223,7 +224,7 @@ require (
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/prometheus/statsd_exporter v0.27.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/quic-go/quic-go v0.59.1 // indirect
 	github.com/quic-go/webtransport-go v0.10.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
