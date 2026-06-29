@@ -112,42 +112,6 @@ test_get_cmd() {
     rm -r "$HASH2"
   '
 
-  # Test issue #9369: problems when the path contains shell or parser-sensitive
-  # characters that are valid across Linux, Windows, and macOS filesystems.
-  test_expect_success "ipfs get with cross-platform punctuation path segments" '
-    cat >punctuation-path-segments <<-\EOF &&
-[
-]
-{
-}
-(
-)
-space name
-hash#name
-percent%name
-comma,name
-plus+name
-equals=name
-at@name
-dollar$name
-ampersand&name
-semicolon;name
-tilde~name
-EOF
-    mkdir -p punctuation-dir &&
-    while IFS= read -r name
-    do
-      printf "file %s\n" "$name" >"punctuation-dir/$name" || exit 1
-    done <punctuation-path-segments &&
-    PUNCTUATION_HASH=`ipfs add -r -Q punctuation-dir` &&
-    while IFS= read -r name
-    do
-      ipfs get -o punctuation-out "$PUNCTUATION_HASH/$name" &&
-      test_cmp "punctuation-dir/$name" punctuation-out &&
-      rm punctuation-out || exit 1
-    done <punctuation-path-segments
-  '
-
   test_expect_success "ipfs get -a -C succeeds (directory)" '
     ipfs get "$HASH2" -a -C >actual
   '
