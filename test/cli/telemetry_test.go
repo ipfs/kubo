@@ -48,8 +48,8 @@ func TestTelemetry(t *testing.T) {
 		// Get daemon output
 		output := stdout.String() + stderr.String()
 
-		// Check that telemetry is disabled
-		assert.Contains(t, output, "telemetry disabled via opt-out", "Expected telemetry disabled message")
+		// Check that telemetry collection is skipped
+		assert.Contains(t, output, "telemetry collection skipped: opted out", "Expected telemetry skipped message")
 
 		// Stop daemon
 		node.StopDaemon()
@@ -90,8 +90,7 @@ func TestTelemetry(t *testing.T) {
 		// Get daemon output
 		output := stdout.String() + stderr.String()
 
-		// Check that telemetry is disabled
-		assert.Contains(t, output, "telemetry disabled via opt-out", "Expected telemetry disabled message")
+		// Check that telemetry collection is skipped
 		assert.Contains(t, output, "telemetry collection skipped: opted out", "Expected telemetry skipped message")
 
 		// Stop daemon
