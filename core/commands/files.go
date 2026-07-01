@@ -20,6 +20,7 @@ import (
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipfs/kubo/core/node"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
@@ -247,7 +248,7 @@ var filesStatCmd = &cmds.Command{
 			return err
 		}
 
-		path, err := checkPath(req.Arguments[0])
+		path, err := checkContentOrMfsPath(req.Arguments[0])
 		if err != nil {
 			return err
 		}
@@ -514,7 +515,7 @@ being GC'ed.
 			return err
 		}
 
-		src, err := checkPath(req.Arguments[0])
+		src, err := checkContentOrMfsPath(req.Arguments[0])
 		if err != nil {
 			return err
 		}
@@ -600,22 +601,28 @@ being GC'ed.
 }
 
 func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI, p string) (ipld.Node, error) {
-	switch {
-	case strings.HasPrefix(p, "/ipfs/"):
-		pth, err := path.NewPath(p)
-		if err != nil {
-			return nil, err
-		}
-
+	// A content path or native IPFS URI (/ipfs/cid, ipfs://cid, /ipns/name, ...)
+	// is resolved through the DAG. Anything else is treated as an MFS path.
+	if pth, err := path.NewPathFromURI(p); err == nil {
 		return api.ResolveNode(ctx, pth)
-	default:
-		fsn, err := mfs.Lookup(node.FilesRoot, p)
-		if err != nil {
-			return nil, err
-		}
-
-		return fsn.GetNode()
 	}
+
+	fsn, err := mfs.Lookup(node.FilesRoot, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return fsn.GetNode()
+}
+
+// checkContentOrMfsPath validates an argument that may be an MFS path, a content
+// path (/ipfs/cid), or a native IPFS URI (ipfs://cid). A URI is rewritten to its
+// canonical content-path form; anything else is validated as an MFS path.
+func checkContentOrMfsPath(arg string) (string, error) {
+	if p, err := path.NewPathFromURI(arg); err == nil {
+		return p.String(), nil
+	}
+	return checkPath(arg)
 }
 
 func unlinkNodeIfExists(node *core.IpfsNode, path string) error {
@@ -1715,7 +1722,7 @@ Examples:
 		var newRootCid cid.Cid
 		if len(req.Arguments) > 0 {
 			var err error
-			newRootCid, err = cid.Decode(req.Arguments[0])
+			newRootCid, err = cmdutils.CidFromArg(req.Arguments[0])
 			if err != nil {
 				return fmt.Errorf("invalid CID %q: %w", req.Arguments[0], err)
 			}
