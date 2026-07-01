@@ -95,6 +95,13 @@ func makeNode(t *testing.T) (node *core.IpfsNode, repopath string) {
 		t.Fatal(err)
 	}
 
+	// Bind ephemeral localhost ports so the test does not collide with a
+	// daemon already listening on the default swarm port.
+	cfg.Addresses.Swarm = []string{
+		"/ip4/127.0.0.1/tcp/0",
+		"/ip4/127.0.0.1/udp/0/quic-v1",
+	}
+
 	cfg.Datastore.Spec = map[string]any{
 		"type":               "pebbleds",
 		"prefix":             "pebble.datastore",
@@ -145,17 +152,19 @@ func TestSendTelemetry(t *testing.T) {
 		runOnce: true,
 	}
 
-	// Initialize the plugin
+	// Initialize the plugin. Telemetry is opt-in, so enable it and point it at
+	// the mock endpoint via config.
 	pe := &plugin.Environment{
-		Repo:   repoPath,
-		Config: nil,
+		Repo: repoPath,
+		Config: map[string]any{
+			"Mode":     "on",
+			"Endpoint": ts.URL,
+		},
 	}
 	err := p.Init(pe)
 	if err != nil {
 		t.Fatalf("Init() failed: %v", err)
 	}
-
-	p.endpoint = ts.URL
 
 	// Start the plugin
 	err = p.Start(node)
