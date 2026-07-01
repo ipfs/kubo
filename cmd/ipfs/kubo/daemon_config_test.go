@@ -43,6 +43,7 @@ func TestValidateDaemonConfig(t *testing.T) {
 			name: "deprecated Reprovider config is rejected",
 			cfg: func() *config.Config {
 				return &config.Config{
+					//nolint:staticcheck // intentionally checking deprecated fields
 					Reprovider: config.Reprovider{
 						Strategy: config.NewOptionalString("all"),
 					},
