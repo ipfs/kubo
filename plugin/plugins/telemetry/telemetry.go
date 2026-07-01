@@ -40,7 +40,6 @@ var (
 const (
 	modeEnvVar   = "IPFS_TELEMETRY"
 	uuidFilename = "telemetry_uuid"
-	endpoint     = "https://telemetry.ipshipyard.dev"
 	sendDelay    = 15 * time.Minute // delay before first telemetry collection after daemon start
 	sendInterval = 24 * time.Hour   // interval between telemetry collections after the first one
 	httpTimeout  = 30 * time.Second // timeout for telemetry HTTP requests
@@ -182,8 +181,32 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 		log.Debug("mode set from config")
 	}
 
-	// read "Delay" from the config. Parse as duration. Set p.sendDelay to it
-	// or set default.
+	switch v {
+	case "on":
+		p.mode = modeOn
+		log.Debug("telemetry enabled via opt-in")
+	case "off":
+		p.mode = modeOff
+		// Remove the stored identifier when the user explicitly opts out.
+		if _, err := os.Stat(p.uuidFilename); err == nil {
+			if err := os.Remove(p.uuidFilename); err != nil {
+				log.Debugf("failed to remove telemetry UUID file: %s", err)
+			} else {
+				log.Debug("removed existing telemetry UUID file due to opt-out")
+			}
+		}
+		return nil
+	default:
+		// Telemetry is opt-in. The implicit default (and any value other than
+		// "on" or "off") leaves it off and does no further work, not even disk
+		// IO: the stored identifier is only touched on an explicit "off".
+		p.mode = modeOff
+		log.Debug("telemetry not enabled (opt-in)")
+		return nil
+	}
+
+	// Reached only when telemetry is enabled. Kubo has no built-in endpoint:
+	// telemetry only sends to a collector the operator configures.
 	if delayStr := readFromConfig(env.Config, "Delay"); delayStr != "" {
 		delay, err := time.ParseDuration(delayStr)
 		if err != nil {
@@ -198,30 +221,11 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 		p.sendDelay = sendDelay
 	}
 
-	p.endpoint = endpoint
 	if ep := readFromConfig(env.Config, "Endpoint"); ep != "" {
-		log.Debug("endpoint set from config", ep)
+		log.Debugf("endpoint set from config: %s", ep)
 		p.endpoint = ep
 	}
 
-	switch v {
-	case "off":
-		p.mode = modeOff
-		log.Debug("telemetry disabled via opt-out")
-		// Remove UUID file if it exists when user opts out
-		if _, err := os.Stat(p.uuidFilename); err == nil {
-			if err := os.Remove(p.uuidFilename); err != nil {
-				log.Debugf("failed to remove telemetry UUID file: %s", err)
-			} else {
-				log.Debug("removed existing telemetry UUID file due to opt-out")
-			}
-		}
-		return nil
-	case "auto":
-		p.mode = modeAuto
-	default:
-		p.mode = modeOn
-	}
 	log.Debug("telemetry mode: ", p.mode)
 	return nil
 }
@@ -272,25 +276,24 @@ func (p *telemetryPlugin) hasDefaultBootstrapPeers() bool {
 func (p *telemetryPlugin) showInfo() {
 	fmt.Printf(`
 
-ℹ️  Anonymous telemetry will be enabled in %s
+ℹ️  Telemetry is enabled (opt-in)
 
-Kubo will collect anonymous usage data to help improve the software:
+Kubo will send anonymous usage data to the endpoint you configured:
 • What:  Feature usage and configuration (no personal data)
          Use GOLOG_LOG_LEVEL="telemetry=debug" to inspect collected data
-• When:  First collection in %s, then every 24h
-• How:   HTTP POST to %s
+• When:  First send in %s, then every 24h
+• Where: HTTP POST to %s
          Anonymous ID: %s
 
-No data sent yet. To opt-out before collection starts:
+To disable telemetry:
 • Set environment: %s=off
 • Or run: ipfs config Plugins.Plugins.telemetry.Config.Mode off
 • Then restart daemon
 
-This message is shown only once.
 Learn more: https://github.com/ipfs/kubo/blob/master/docs/telemetry.md
 
 
-`, p.sendDelay, p.sendDelay, endpoint, p.event.UUID, modeEnvVar)
+`, p.sendDelay, p.endpoint, p.event.UUID, modeEnvVar)
 }
 
 // Start finishes telemetry initialization once the IpfsNode is ready,
@@ -319,6 +322,13 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 
 	if !n.IsDaemon || !n.IsOnline {
 		log.Debugf("skipping telemetry. Daemon: %t. Online: %t", n.IsDaemon, n.IsOnline)
+		return nil
+	}
+
+	// Telemetry is opt-in and has no built-in endpoint: without one configured
+	// there is nowhere to send data, so skip rather than generate a UUID.
+	if p.endpoint == "" {
+		log.Warn("telemetry is enabled but no endpoint is configured; set Plugins.Plugins.telemetry.Config.Endpoint to your collector URL (see docs/telemetry.md)")
 		return nil
 	}
 
