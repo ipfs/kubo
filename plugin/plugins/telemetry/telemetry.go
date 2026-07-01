@@ -184,9 +184,9 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 	switch v {
 	case "on":
 		p.mode = modeOn
+		log.Debug("telemetry enabled via opt-in")
 	case "off":
 		p.mode = modeOff
-		log.Debug("telemetry disabled via opt-out")
 		// Remove the stored identifier when the user explicitly opts out.
 		if _, err := os.Stat(p.uuidFilename); err == nil {
 			if err := os.Remove(p.uuidFilename); err != nil {
