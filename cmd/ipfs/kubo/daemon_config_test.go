@@ -31,6 +31,7 @@ func TestValidateDaemonConfig(t *testing.T) {
 			name: "deprecated Provider config is rejected",
 			cfg: func() *config.Config {
 				return &config.Config{
+					//nolint:staticcheck // intentionally checking deprecated fields
 					Provider: config.Provider{
 						Enabled: config.True,
 					},
