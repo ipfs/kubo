@@ -83,7 +83,7 @@ make -O test_go_lint # run linter (use this instead of golangci-lint directly)
 
 If you modify `go.mod` (add/remove/update dependencies), you must run `make mod_tidy` first, before building or testing. Use `make mod_tidy` instead of `go mod tidy` directly, as the project has multiple `go.mod` files.
 
-If you modify any `.go` files outside of `test/`, you must run `make build` before running integration tests.
+If you modify any `.go` files outside of `test/`, you must run `make build` before running integration tests. Integration tests spawn a real `ipfs daemon` from `cmd/ipfs/ipfs` and `go test ./test/cli/...` does not rebuild that binary, so daemon-side changes (config schema, FX providers, transport options, default values) appear to be silently ignored when the binary is stale. Common symptoms: a new config flag has no effect, an expected listener never binds, an FX-injected handler is nil. If a CLI test behaves differently from a manual `cmd/ipfs/ipfs daemon` run, suspect a stale binary first.
 
 ## Testing
 

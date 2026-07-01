@@ -120,6 +120,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	enableRelayClient := cfg.Swarm.RelayClient.Enabled.WithDefault(enableRelayTransport)
 	enableAutoTLS := cfg.AutoTLS.Enabled.WithDefault(config.DefaultAutoTLSEnabled)
 	enableAutoWSS := cfg.AutoTLS.AutoWSS.WithDefault(config.DefaultAutoWSS)
+	// HTTPProvider master switch.
+	enableHTTPProvider := cfg.HTTPProvider.Enabled.WithDefault(config.DefaultHTTPProviderEnabled)
 	atlsLog := log.Logger("autotls")
 
 	// Log error when relay subsystem could not be initialized due to missing dependency
@@ -189,6 +191,39 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		enableAutoTLS = false
 	}
 
+	// HTTPProvider.Cleartext: auto-append a plaintext /ws listener to each
+	// /tcp/N already in Addresses.Swarm so the HTTPProvider handler is
+	// reachable over cleartext (typical reverse-proxy deployment). The new
+	// /ws shares the existing TCP socket via tcpreuse; AutoWSS-installed
+	// /tls/sni/<host>/ws covers the TLS path and is left untouched.
+	//
+	// Skipped only when the user has a *cleartext* /ws listener already
+	// configured. /wss and /tls/ws are TLS-WebSocket forms, not cleartext,
+	// so they do not pre-empt the cleartext auto-append.
+	enableHTTPProviderCleartext := cfg.HTTPProvider.Cleartext.WithDefault(config.DefaultHTTPProviderCleartext)
+	if enableHTTPProvider && enableHTTPProviderCleartext && enableTCPTransport && enableWebsocketTransport {
+		plainWsRegex := regexp.MustCompile(`/tcp/\d+/ws$`) // cleartext only; excludes /wss and /tls/ws
+		tcpRegex := regexp.MustCompile(`/tcp/\d+$`)
+		plainWsPresent := false
+		var tcpListeners []string
+		for _, listener := range cfg.Addresses.Swarm {
+			if plainWsRegex.MatchString(listener) {
+				plainWsPresent = true
+				break
+			}
+			if tcpRegex.MatchString(listener) {
+				tcpListeners = append(tcpListeners, listener)
+			}
+		}
+		if !plainWsPresent {
+			for _, tcpListener := range tcpListeners {
+				wsListener := tcpListener + "/ws"
+				cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, wsListener)
+				atlsLog.Infof("HTTPProvider.Cleartext: appended cleartext /ws listener: %s", wsListener)
+			}
+		}
+	}
+
 	// Gather all the options
 	opts := fx.Options(
 		BaseLibP2P,
@@ -200,14 +235,31 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(libp2p.ResourceManager(bcfg.Repo.Path(), cfg.Swarm, userResourceOverrides)),
 		maybeProvide(libp2p.P2PForgeCertMgr(bcfg.Repo.Path(), cfg.AutoTLS, atlsLog), enableAutoTLS),
 		maybeInvoke(libp2p.StartP2PAutoTLS, enableAutoTLS),
+		// AutoTLS.SelfSignedForTests: bypass the entire AutoTLS / p2p-forge
+		// pipeline and hand the WebSocket transport an in-memory self-signed
+		// cert. Test escape hatch only.
+		maybeProvide(libp2p.NewSelfSignedTestTLSConfig, cfg.AutoTLS.SelfSignedForTests.WithDefault(config.DefaultAutoTLSSelfSignedForTests)),
+		// When HTTPProvider is enabled, register a placeholder fallback
+		// handler so the WebSocket transport can route non-upgrade requests
+		// on every /ws or /tls/ws listener to the trustless gateway. The
+		// real handler is installed by daemon.go once IpfsNode is up. The
+		// gate is intentionally independent of AutoTLS because cleartext
+		// /ws (manual or HTTPProvider.Cleartext-derived) needs the handler
+		// too.
+		maybeProvide(libp2p.NewHTTPProviderHandler, enableHTTPProvider),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		maybeInvoke(libp2p.MonitorDeadListeners(cfg.Addresses.Swarm, cfg.Swarm.AddrFilters, cfg.Addresses.NoAnnounce), cfg.Internal.DeadListenerCheck.WithDefault(config.DefaultDeadListenerCheck)),
 		maybeInvoke(libp2p.MonitorCGNAT(), cfg.Internal.CGNATCheck.WithDefault(config.DefaultCGNATCheck)),
-		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
+		fx.Provide(libp2p.AddrsFactory(
+			cfg.Addresses.Announce,
+			cfg.Addresses.AppendAnnounce,
+			cfg.Addresses.NoAnnounce,
+			enableHTTPProvider && cfg.HTTPProvider.AnnounceMultiaddrs.WithDefault(config.DefaultHTTPProviderAnnounceMultiaddrs),
+		)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
 		fx.Provide(libp2p.RelayTransport(enableRelayTransport)),
 		fx.Provide(libp2p.RelayService(enableRelayService, cfg.Swarm.RelayService)),
-		fx.Provide(libp2p.Transports(cfg.Swarm.Transports)),
+		fx.Provide(libp2p.Transports(cfg.Swarm.Transports, cfg.Gateway.RetrievalTimeout.WithDefault(config.DefaultRetrievalTimeout))),
 		fx.Provide(libp2p.ListenOn(cfg.Addresses.Swarm)),
 		fx.Invoke(libp2p.SetupDiscovery(cfg.Discovery.MDNS.Enabled)),
 		fx.Provide(libp2p.ForceReachability(cfg.Internal.Libp2pForceReachability)),

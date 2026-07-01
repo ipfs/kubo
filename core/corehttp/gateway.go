@@ -99,8 +99,8 @@ func Libp2pGatewayOption() ServeOption {
 		bserv := blockservice.New(n.Blocks.Blockstore(), offline.Exchange(n.Blocks.Blockstore()))
 
 		backend, err := gateway.NewBlocksBackend(bserv,
-			// GatewayOverLibp2p only returns things that are in local blockstore
-			// (same as Gateway.NoFetch=true), we have to pass offline path resolver
+			// HTTPProvider only returns blocks already in the local blockstore
+			// (same as Gateway.NoFetch=true), so we hand it the offline path resolver.
 			gateway.WithResolver(n.OfflineUnixFSPathResolver),
 		)
 		if err != nil {

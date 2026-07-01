@@ -122,6 +122,12 @@ type IpfsNode struct {
 
 	P2P *p2p.P2P `optional:"true"`
 
+	// HTTPProvider receives the trustless gateway handler that the WebSocket
+	// transport routes non-WebSocket requests to. Set when HTTPProvider and
+	// AutoTLS are both enabled. See
+	// `cmd/ipfs/kubo/daemon.go:serveHTTPProviderOverLibp2p`.
+	HTTPProvider *libp2p.HTTPProviderHandler `optional:"true"`
+
 	ctx context.Context
 
 	stop func() error

@@ -230,6 +230,11 @@ config file at runtime.
   - [`DNS`](#dns)
     - [`DNS.Resolvers`](#dnsresolvers)
     - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
+  - [`HTTPProvider`](#httpprovider)
+    - [`HTTPProvider.Enabled`](#httpproviderenabled)
+    - [`HTTPProvider.Libp2p`](#httpproviderlibp2p)
+    - [`HTTPProvider.Cleartext`](#httpprovidercleartext)
+    - [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs)
   - [`HTTPRetrieval`](#httpretrieval)
     - [`HTTPRetrieval.Enabled`](#httpretrievalenabled)
     - [`HTTPRetrieval.Allowlist`](#httpretrievalallowlist)
@@ -836,6 +841,18 @@ Do not change this unless you self-host [p2p-forge] under own domain.
 > (proving ownership of PeerID), probes if your Kubo node can correctly answer to a [libp2p Identify](https://github.com/libp2p/specs/tree/master/identify) query.
 > This ensures only a correctly configured, publicly dialable Kubo can initiate [ACME DNS-01 challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) for `peerid.libp2p.direct`.
 
+> [!TIP]
+> Two optional query parameters help with local debugging and end-to-end tests. Kubo strips them before handing the URL to [p2p-forge] and preserves any unrelated query parameters. Both expect a literal `host:port`; bracket IPv6 hosts, e.g. `[::1]:9000`.
+>
+> - `?dial=host:port` sends the registration request to `host:port` while keeping the URL Kubo advertises (and signs over for PeerID-auth) unchanged. This lets a local [p2p-forge] instance on a loopback port answer requests whose `Host` header must still match the production registration hostname.
+> - `?dns=host:port` points the DNS-01 propagation pre-flight check at this DNS server instead of the system resolver. Needed when the forge's domain is not in public DNS (e.g. a private `.test` suffix used in tests).
+>
+> Both overrides apply only to the forge registration request and its DNS-01 pre-flight check. They do not affect `AutoTLS.CAEndpoint` or any other URL. Example combining both:
+>
+> ```
+> http://registration.libp2p.test/?dial=127.0.0.1:42013&dns=127.0.0.1:5353
+> ```
+
 Default: `https://registration.libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
 
 Type: `optionalString`
@@ -1339,6 +1356,8 @@ Type: `flag`
 ### `Gateway.RetrievalTimeout`
 
 Maximum duration Kubo will wait for content retrieval (new bytes to arrive).
+
+This covers any wait for new bytes, including reads from the local datastore, not only network retrieval from other peers. If your datastore is not truly local, for example backed by NFS or an object store like S3, slow reads from it can also trip this timeout. Raise the value when the backend can be slower than the default allows.
 
 **Timeout behavior:**
 
@@ -3962,11 +3981,77 @@ Default: Respect DNS Response TTL
 
 Type: `optionalDuration`
 
+## `HTTPProvider`
+
+`HTTPProvider` is the **server** side of HTTP retrieval in Kubo. It exposes the local trustless gateway (in [`NoFetch`](#gatewaynofetch) mode) over plain HTTP/2 so any standard HTTP client (a browser, `curl`, or any HTTP library) can fetch verifiable blocks from this node without a libp2p stack. The matching **client** side lives under [`HTTPRetrieval`](#httpretrieval).
+
+### Mental model: `HTTPProvider` vs `Gateway`
+
+`HTTPProvider` and [`Gateway`](#gateway) serve different audiences with different rules. Keep them straight:
+
+- `HTTPProvider` serves **raw data to the network**. It runs on Kubo's swarm port (`4001` by default), reads only from the local blockstore, and returns only raw blocks (`?format=raw`). It does **not** trigger network retrieval for missing data, and it does **not** deserialize content. Other peers fetch from it.
+- [`Gateway`](#gateway) serves **deserialized data to the local user**. It runs on a loopback port (`127.0.0.1:8080` by default), walks DAGs, deserializes UnixFS, follows redirects, and fetches missing data from the network. You (or a local app on your machine) browse with it.
+
+The split is intentional. A public-facing HTTP source on the swarm port should not deserialize content for unknown clients or recurse out to the network on their behalf. A recursive browser endpoint should stay on loopback, not be exposed to the open internet.
+
+### How the HTTP listener is wired up
+
+- The HTTP listener reuses the same `/tcp` socket as the `/ws` listener through Kubo's shared-TCP demuxer. No extra port is opened.
+- Today the HTTP listener requires a WebSocket listener on the same TCP port to exist. When `/ws` is present, Kubo adds the matching `/http` multiaddr to the announced address set automatically.
+- When [`AutoTLS.AutoWSS`](#autotlsautowss) is enabled, Kubo also adds a `/tls/http` listener on the same host and port as the `/tls/ws` listener, reusing the same AutoTLS certificate. No separate TLS setup is required.
+
+> [!IMPORTANT]
+> Experimental and off by default. Enable it on publicly diallable nodes where you want plain-HTTP clients to fetch blocks directly.
+
+Default: `{}`
+
+Type: `object`
+
+### `HTTPProvider.Enabled`
+
+Master switch for `HTTPProvider`. When `true`, Kubo registers the trustless gateway handler and defaults [`HTTPProvider.Libp2p`](#httpproviderlibp2p) to `true`. The [`HTTPProvider.Cleartext`](#httpprovidercleartext) and [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) sub-toggles stay off until set explicitly.
+
+Default: `false`
+
+Type: `flag`
+
+### `HTTPProvider.Libp2p`
+
+Exposes the trustless gateway over a libp2p stream, as specified by the [libp2p Gateway spec](https://specs.ipfs.tech/http-gateways/libp2p-gateway/). The handler is mounted under the `/ipfs/gateway` protocol ID and advertised via `.well-known/libp2p/protocols`.
+
+Default: `true` when `HTTPProvider.Enabled=true`
+
+Type: `flag`
+
+### `HTTPProvider.Cleartext`
+
+Auto-appends a plaintext `/ws` listener to each `/tcp/N` already in [`Addresses.Swarm`](#addressesswarm). The new `/ws` shares the existing TCP port via the shared-TCP demuxer, so no extra socket is opened.
+
+Intended for deployments where the operator handles TLS termination upstream: a reverse proxy such as Caddy, Traefik, or nginx sits in front of Kubo and forwards either HTTP/1.1 or HTTP/2 cleartext to this node. With [`AutoTLS`](#autotls), Kubo already serves `/tls/ws` and `/tls/http` directly with a real certificate, so a cleartext path is unnecessary and would expose the trustless gateway and WebSocket upgrade unencrypted on the public network. Flip it on knowingly.
+
+The corresponding `/http` announcement is controlled by [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs).
+
+Default: `false`
+
+Type: `flag`
+
+### `HTTPProvider.AnnounceMultiaddrs`
+
+Derives an HTTP-flavored multiaddr from each WebSocket listener on this peer and includes it in the announced address set: `/ws` becomes `/http`, `/tls/ws` becomes `/tls/http`, `/tls/sni/<host>/ws` becomes `/tls/sni/<host>/http`. The HTTP endpoint shares the same TCP port and TLS certificate as the WebSocket listener, so this is purely an announcement; no extra socket is opened.
+
+This is what lets [`HTTPRetrieval`](#httpretrieval) clients discover this peer as an HTTP source through identify, the DHT, and IPNI without out-of-band knowledge.
+
+Subject to [`Addresses.NoAnnounce`](#addressesnoannounce) filters, like any other announced multiaddr.
+
+Off by default even when [`HTTPProvider.Enabled`](#httpproviderenabled) is `true`: turning the gateway handler on does not automatically broadcast this node as an HTTP source. Flip this on once you are ready to advertise.
+
+Default: `false`
+
+Type: `flag`
+
 ## `HTTPRetrieval`
 
-`HTTPRetrieval` is configuration for pure HTTP retrieval based on Trustless HTTP Gateways'
-[Block Responses (`application/vnd.ipld.raw`)](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
-which can be used in addition to or instead of retrieving blocks with [Bitswap over Libp2p](#bitswap).
+`HTTPRetrieval` is the **client** side of HTTP retrieval in Kubo. It lets the node fetch blocks from peers that advertise an HTTP gateway endpoint, using pure HTTP requests based on the Trustless Gateway [Block Responses (`application/vnd.ipld.raw`)](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw) spec. HTTP fetches can run in addition to or instead of [Bitswap over Libp2p](#bitswap). The matching **server** side lives under [`HTTPProvider`](#httpprovider).
 
 Default: `{}`
 
