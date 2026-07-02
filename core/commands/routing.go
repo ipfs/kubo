@@ -79,7 +79,7 @@ var findProvidersRoutingCmd = &cmds.Command{
 			return errors.New("number of providers must be greater than 0")
 		}
 
-		c, err := cid.Parse(req.Arguments[0])
+		c, err := cmdutils.CidFromArg(req.Arguments[0])
 		if err != nil {
 			return err
 		}
@@ -210,7 +210,7 @@ Prefer 'ipfs provide once' for new scripts and any large input.
 
 		var cids []cid.Cid
 		for _, arg := range req.Arguments {
-			c, err := cid.Decode(arg)
+			c, err := cmdutils.CidFromArg(arg)
 			if err != nil {
 				return err
 			}

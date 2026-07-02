@@ -19,6 +19,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	"github.com/libp2p/go-libp2p-kad-dht/provider"
 	"github.com/libp2p/go-libp2p-kad-dht/provider/buffered"
@@ -224,7 +225,7 @@ a final count is printed at the end.
 		// processRoot validates a root CID against the local blockstore and
 		// announces either just that CID or every block reachable from it.
 		processRoot := func(arg string) error {
-			c, err := cid.Decode(arg)
+			c, err := cmdutils.CidFromArg(arg)
 			if err != nil {
 				return fmt.Errorf("invalid CID %q: %w", arg, err)
 			}

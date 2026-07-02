@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/ipfs/boxo/namesys"
@@ -120,10 +119,6 @@ Resolve the value of a dnslink:
 				return errors.New("DHT timeout value must be >= 0")
 			}
 			opts = append(opts, options.Name.ResolveOption(namesys.ResolveWithDhtTimeout(d)))
-		}
-
-		if !strings.HasPrefix(name, "/ipns/") {
-			name = "/ipns/" + name
 		}
 
 		if !stream {

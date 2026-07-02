@@ -10,9 +10,8 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	core "github.com/ipfs/kubo/core"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	e "github.com/ipfs/kubo/core/commands/e"
-
-	"github.com/ipfs/go-cid"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -264,7 +263,7 @@ func getFilestore(env cmds.Environment) (*core.IpfsNode, *filestore.Filestore, e
 
 func listByArgs(ctx context.Context, res cmds.ResponseEmitter, fs *filestore.Filestore, args []string, removeBadBlocks bool) error {
 	for _, arg := range args {
-		c, err := cid.Decode(arg)
+		c, err := cmdutils.CidFromArg(arg)
 		if err != nil {
 			ret := &filestore.ListRes{
 				Status:   filestore.StatusOtherError,
