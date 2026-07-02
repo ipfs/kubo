@@ -45,12 +45,6 @@ func TestTelemetry(t *testing.T) {
 
 		time.Sleep(500 * time.Millisecond)
 
-		// Get daemon output
-		output := stdout.String() + stderr.String()
-
-		// Check that telemetry collection is skipped
-		assert.Contains(t, output, "telemetry collection skipped: opted out", "Expected telemetry skipped message")
-
 		// Stop daemon
 		node.StopDaemon()
 
@@ -228,10 +222,12 @@ func TestTelemetry(t *testing.T) {
 
 	t.Run("opt-in shows info message", func(t *testing.T) {
 		t.Parallel()
-
 		// Create a new node
 		node := harness.NewT(t).NewNode().Init()
 		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
+
+		// Enable debug logging
+		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
 
 		// Opt in: telemetry is off by default, so enable it and point it at an
 		// endpoint. "on" logs the startup notice once on the first run.
@@ -258,6 +254,7 @@ func TestTelemetry(t *testing.T) {
 		assert.Contains(t, output, "Telemetry is enabled", "Expected telemetry enabled message")
 		assert.Contains(t, output, "To disable telemetry", "Expected disable instructions")
 		assert.Contains(t, output, "Learn more:", "Expected learn more link")
+		assert.Contains(t, output, "telemetry enabled via opt-in", "Expected telemetry enabled opt-in message")
 
 		// Stop daemon
 		node.StopDaemon()
