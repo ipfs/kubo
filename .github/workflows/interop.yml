@@ -128,8 +128,12 @@ jobs:
       #
       # We run aegir directly (instead of helia-interop binary) because only aegir
       # supports the --grep/--invert flags needed to exclude specific tests.
+      # --exit: the node interop specs spawn kubo daemons (via ipfsd-ctl +
+      # KUBO_BINARY) whose libp2p/RPC handles keep Node's event loop alive after
+      # the run, so mocha prints its summary and then hangs until the job timeout.
+      # Force exit once the run completes. (helia-interop's own bin does not set it.)
       - name: Run helia-interop tests (excluding IPIP-499 incompatible test)
-        run: npx aegir test -t node --bail -- --grep 'should have the same CID after creating a file' --invert
+        run: npx aegir test -t node --bail -- --grep 'should have the same CID after creating a file' --invert --exit
         env:
           KUBO_BINARY: ${{ github.workspace }}/cmd/ipfs/ipfs
         working-directory: node_modules/@helia/interop
