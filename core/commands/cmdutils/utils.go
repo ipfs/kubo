@@ -69,10 +69,11 @@ func ValidatePinName(name string) error {
 	return nil
 }
 
-// PathOrCidPath returns a path.Path built from the argument. It keeps the old
-// behaviour by building a path from a CID string.
+// PathOrCidPath returns a path.Path built from the argument. It accepts a
+// content path (/ipfs/cid), a native IPFS URI (ipfs://cid, ipns://name, and the
+// schemeless ipfs:cid / ipns:name forms), or a bare CID string.
 func PathOrCidPath(str string) (path.Path, error) {
-	p, err := path.NewPath(str)
+	p, err := path.NewPathFromURI(str)
 	if err == nil {
 		return p, nil
 	}
@@ -86,6 +87,34 @@ func PathOrCidPath(str string) (path.Path, error) {
 
 	// Send back original err.
 	return nil, originalErr
+}
+
+// CidFromArg parses a user-supplied argument into a [cid.Cid]. Besides a bare
+// CID, it accepts a content path (/ipfs/cid) and a native IPFS URI (ipfs://cid,
+// ipfs:cid), returning the root CID. An argument that points below the root
+// (e.g. ipfs://cid/sub) is rejected, since these commands operate on a single CID.
+func CidFromArg(arg string) (cid.Cid, error) {
+	// Fast path: a bare CID with no scheme or path components.
+	if c, err := cid.Decode(arg); err == nil {
+		return c, nil
+	}
+
+	p, err := PathOrCidPath(arg)
+	if err != nil {
+		return cid.Undef, err
+	}
+
+	imm, err := path.NewImmutablePath(p)
+	if err != nil {
+		// A mutable path (e.g. /ipns/name) has no static root CID.
+		return cid.Undef, err
+	}
+
+	if len(imm.Segments()) > 2 {
+		return cid.Undef, fmt.Errorf("%q points below a root CID, expected a single CID", arg)
+	}
+
+	return imm.RootCid(), nil
 }
 
 // CloneAddrInfo returns a copy of the AddrInfo with a cloned Addrs slice.
