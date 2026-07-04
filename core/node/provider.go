@@ -58,6 +58,9 @@ const (
 	// KeystoreDatastorePath is the base directory for the provider keystore datastores.
 	KeystoreDatastorePath = "provider-keystore"
 
+	// ProvideQueuePath is the directory where the provide queue keeps data.
+	ProvideQueuePath = "provideq"
+
 	// reprovideLastUniqueCountKey stores the unique CID count from
 	// the last +unique reprovide cycle, used to size the next cycle's
 	// bloom filter.
@@ -135,12 +138,11 @@ type DHTProvider interface {
 	// The schedule and provide queue depend on the network size, hence recent
 	// network connectivity is essential.
 	ProvideOnce(keys ...mh.Multihash) error
-	// Clear clears the all the keys from the provide queue and returns the number
-	// of keys that were cleared.
+	// Clear clears all the keys from the provide queue.
 	//
 	// The keys are not deleted from the keystore, so they will continue to be
 	// reprovided as scheduled.
-	Clear() int
+	Clear() error
 	// RefreshSchedule scans the Keystore for any keys that are not currently
 	// scheduled for reproviding. If such keys are found, it schedules their
 	// associated keyspace region to be reprovided.
@@ -171,7 +173,7 @@ type NoopProvider struct{}
 
 func (r *NoopProvider) StartProviding(bool, ...mh.Multihash) error { return nil }
 func (r *NoopProvider) ProvideOnce(...mh.Multihash) error          { return nil }
-func (r *NoopProvider) Clear() int                                 { return 0 }
+func (r *NoopProvider) Clear() error                               { return nil }
 func (r *NoopProvider) RefreshSchedule() error                     { return nil }
 func (r *NoopProvider) Close() error                               { return nil }
 
@@ -204,7 +206,7 @@ func (r *LegacyProvider) ProvideOnce(keys ...mh.Multihash) error {
 	return nil
 }
 
-func (r *LegacyProvider) Clear() int {
+func (r *LegacyProvider) Clear() error {
 	return r.System.Clear()
 }
 
@@ -222,6 +224,7 @@ func LegacyProviderOpt(reprovideInterval time.Duration, strategy string, acceler
 				provider.Online(cr),
 				provider.ReproviderInterval(reprovideInterval),
 				provider.ProvideWorkerCount(provideWorkerCount),
+				provider.QueueDir(filepath.Join(repo.Path(), ProvideQueuePath)),
 			}
 			if !acceleratedDHTClient && reprovideInterval > 0 {
 				// The estimation kinda suck if you are running with accelerated DHT client,
@@ -740,6 +743,10 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			// processes the queue regardless of this timing.
 			bufferedIdleWriteTime = time.Minute
 
+			// bufferedQueuePath is the repo subdirectory where the buffered provider stores its
+			// provide queue files.
+			bufferedQueuePath = "bprovqueue"
+
 			// loggerName is the name of the go-log logger used by the provider.
 			loggerName = dhtprovider.DefaultLoggerName
 		)
@@ -749,6 +756,8 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			buffered.WithDsName(bufferedDsName),
 			buffered.WithIdleWriteTime(bufferedIdleWriteTime),
 		}
+		queuePath := filepath.Join(repoPath, bufferedQueuePath)
+
 		var impl dhtImpl
 		switch inDht := in.DHT.(type) {
 		case *dht.IpfsDHT:
@@ -778,7 +787,11 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				if err != nil {
 					return nil, nil, err
 				}
-				return buffered.New(prov, ds, bufferedProviderOpts...), ks, nil
+				dht, err := buffered.New(prov, ds, queuePath, bufferedProviderOpts...)
+				if err != nil {
+					return nil, nil, err
+				}
+				return dht, ks, nil
 			}
 		case *fullrt.FullRT:
 			if inDht != nil {
@@ -826,7 +839,11 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		if err != nil {
 			return nil, nil, err
 		}
-		return buffered.New(prov, ds, bufferedProviderOpts...), ks, nil
+		dht, err := buffered.New(prov, ds, queuePath, bufferedProviderOpts...)
+		if err != nil {
+			return nil, nil, err
+		}
+		return dht, ks, nil
 	})
 
 	type keystoreInput struct {
@@ -1475,7 +1492,9 @@ func handleStrategyChange(strategy string, provider DHTProvider, ds datastore.Da
 	}
 
 	providerLog.Infow("Provide.Strategy changed, clearing provide queue", "previous", previous, "current", strategy)
-	provider.Clear()
+	if err = provider.Clear(); err != nil {
+		providerLog.Error("cannot clear provide queue", "err", err)
+	}
 
 	if err := persistStrategy(ctx, strategy, ds); err != nil {
 		providerLog.Error("cannot update reprovide strategy", "err", err)
