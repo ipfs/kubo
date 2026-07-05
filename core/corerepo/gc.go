@@ -81,11 +81,9 @@ func BestEffortRoots(filesRoot *mfs.Root) ([]cid.Cid, error) {
 }
 
 func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
-	roots, err := BestEffortRoots(n.FilesRoot)
-	if err != nil {
-		return err
-	}
-	rmed := gc.GC(ctx, n.Blockstore, n.Repo.Datastore(), n.Pinning, roots)
+	rmed := gc.GC(ctx, n.Blockstore, n.Repo.Datastore(), n.Pinning, func(context.Context) ([]cid.Cid, error) {
+		return BestEffortRoots(n.FilesRoot)
+	})
 
 	return CollectResult(ctx, rmed, nil)
 }
@@ -145,15 +143,9 @@ func (e *MultiError) Error() string {
 }
 
 func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) <-chan gc.Result {
-	roots, err := BestEffortRoots(n.FilesRoot)
-	if err != nil {
-		out := make(chan gc.Result)
-		out <- gc.Result{Error: err}
-		close(out)
-		return out
-	}
-
-	return gc.GC(ctx, n.Blockstore, n.Repo.Datastore(), n.Pinning, roots)
+	return gc.GC(ctx, n.Blockstore, n.Repo.Datastore(), n.Pinning, func(context.Context) ([]cid.Cid, error) {
+		return BestEffortRoots(n.FilesRoot)
+	})
 }
 
 func PeriodicGC(ctx context.Context, node *core.IpfsNode) error {

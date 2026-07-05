@@ -47,7 +47,13 @@ func toRawCids(set *cid.Set) (*cid.Set, error) {
 //
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
-func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn pin.Pinner, bestEffortRoots []cid.Cid) <-chan Result {
+//
+// bestEffortRoots is called to collect the best-effort roots (the MFS root)
+// after the GC lock is held, so the roots reflect a state that no concurrent
+// PinLock holder (e.g. an in-flight MFS write) can add to before the sweep.
+// It may be nil, meaning there are no best-effort roots and only pinned
+// blocks (and their descendants) are kept.
+func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn pin.Pinner, bestEffortRoots func(context.Context) ([]cid.Cid, error)) <-chan Result {
 	ctx, cancel := context.WithCancel(ctx)
 
 	unlocker := bs.GCLock(ctx)
@@ -62,7 +68,24 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 		defer close(output)
 		defer unlocker.Unlock(ctx)
 
-		gcs, err := ColoredSet(ctx, pn, ds, bestEffortRoots, output)
+		// Snapshot the best-effort roots now that the GC lock is held. Because
+		// GCLock drained all in-flight PinLock holders, no MFS mutation can
+		// commit blocks between this snapshot and the sweep below. A nil
+		// callback means there are no best-effort roots to keep.
+		var roots []cid.Cid
+		if bestEffortRoots != nil {
+			r, err := bestEffortRoots(ctx)
+			if err != nil {
+				select {
+				case output <- Result{Error: err}:
+				case <-ctx.Done():
+				}
+				return
+			}
+			roots = r
+		}
+
+		gcs, err := ColoredSet(ctx, pn, ds, roots, output)
 		if err != nil {
 			select {
 			case output <- Result{Error: err}:
