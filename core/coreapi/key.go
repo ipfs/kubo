@@ -97,6 +97,14 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 
 		sk = priv
 		pk = pub
+	case "secp256k1":
+		priv, pub, err := crypto.GenerateSecp256k1Key(rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+
+		sk = priv
+		pk = pub
 	default:
 		return nil, fmt.Errorf("unrecognized key type: %s", options.Algorithm)
 	}

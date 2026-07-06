@@ -266,6 +266,18 @@ func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, 
 
 		sk = priv
 		pk = pub
+	case "secp256k1":
+		if settings.Size != -1 {
+			return ident, fmt.Errorf("number of key bits does not apply when using secp256k1 keys")
+		}
+		fmt.Fprintf(out, "generating secp256k1 keypair...")
+		priv, pub, err := crypto.GenerateSecp256k1Key(rand.Reader)
+		if err != nil {
+			return ident, err
+		}
+
+		sk = priv
+		pk = pub
 	default:
 		return ident, fmt.Errorf("unrecognized key type: %s", settings.Algorithm)
 	}
