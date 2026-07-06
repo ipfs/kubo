@@ -13,6 +13,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
+	bstore "github.com/ipfs/boxo/blockstore"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
 	mfs "github.com/ipfs/boxo/mfs"
@@ -82,13 +83,14 @@ func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key, cfg *writa
 }
 
 // CreateRoot creates the IPNS FUSE root with one writable directory per key.
-func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.Key, ipfspath, ipnspath, repoPath string, mountsCfg config.Mounts, imp config.Import, mfsOpts ...mfs.Option) (*Root, error) {
+func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, gcLocker bstore.GCLocker, keys map[string]iface.Key, ipfspath, ipnspath, repoPath string, mountsCfg config.Mounts, imp config.Import, mfsOpts ...mfs.Option) (*Root, error) {
 	cfg := &writable.Config{
 		StoreMtime: mountsCfg.StoreMtime.WithDefault(config.DefaultStoreMtime),
 		StoreMode:  mountsCfg.StoreMode.WithDefault(config.DefaultStoreMode),
 		DAG:        ipfs.Dag(),
 		RepoPath:   repoPath,
 		Blksize:    fusemnt.BlksizeFromChunker(imp.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)),
+		GCLocker:   gcLocker,
 	}
 
 	ldirs := make(map[string]*writable.Dir)

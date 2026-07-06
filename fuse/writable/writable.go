@@ -18,6 +18,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
+	bstore "github.com/ipfs/boxo/blockstore"
 	"github.com/ipfs/boxo/files"
 	dag "github.com/ipfs/boxo/ipld/merkledag"
 	ft "github.com/ipfs/boxo/ipld/unixfs"
@@ -48,6 +49,23 @@ type Config struct {
 	// into this field in place, so fillAttr on every inode can read
 	// cfg.Blksize without a nil-check on each stat.
 	Blksize uint32
+	// GCLocker, when set, is used to take the pin lock around each mutation
+	// so a concurrent `ipfs repo gc` cannot collect blocks a write has added
+	// to the blockstore but not yet linked into the persisted MFS root. This
+	// gives FUSE writes the same protection the `ipfs files` commands have.
+	// nil disables the locking (e.g. tests). See ipfs/kubo#6113.
+	GCLocker bstore.GCLocker
+}
+
+// pinLock takes the pin lock if a GCLocker is configured and returns a
+// function that releases it; both are no-ops when GCLocker is nil. Hold it
+// across a whole mutation (including its flush) with `defer cfg.pinLock(ctx)()`.
+func (c *Config) pinLock(ctx context.Context) func() {
+	if c.GCLocker == nil {
+		return func() {}
+	}
+	unlocker := c.GCLocker.PinLock(ctx)
+	return func() { unlocker.Unlock(ctx) }
 }
 
 // NewDir creates a Dir node backed by the given MFS directory.
@@ -121,7 +139,8 @@ func (d *Dir) Statfs(_ context.Context, out *fuse.StatfsOut) syscall.Errno {
 // are silently dropped. FUSE mounts are always nosuid so these
 // bits would have no execution effect anyway.
 // See https://specs.ipfs.tech/unixfs/#dag-pb-optional-metadata
-func (d *Dir) Setattr(_ context.Context, _ fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+func (d *Dir) Setattr(ctx context.Context, _ fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+	defer d.Cfg.pinLock(ctx)()
 	if mode, ok := in.GetMode(); ok && d.Cfg.StoreMode {
 		if err := d.MFSDir.SetMode(files.UnixPermsToModePerms(mode)); err != nil {
 			return fs.ToErrno(err)
@@ -196,6 +215,7 @@ func (d *Dir) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 // flows) see the default 0755 instead of the requested mode.
 // Fixing this requires a boxo MFS API change.
 func (d *Dir) Mkdir(ctx context.Context, name string, _ uint32, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
+	defer d.Cfg.pinLock(ctx)()
 	mfsDir, err := d.MFSDir.Mkdir(name)
 	if err != nil {
 		return nil, fs.ToErrno(err)
@@ -207,7 +227,8 @@ func (d *Dir) Mkdir(ctx context.Context, name string, _ uint32, out *fuse.EntryO
 	return d.NewInode(ctx, child, fs.StableAttr{Mode: syscall.S_IFDIR}), 0
 }
 
-func (d *Dir) Unlink(_ context.Context, name string) syscall.Errno {
+func (d *Dir) Unlink(ctx context.Context, name string) syscall.Errno {
+	defer d.Cfg.pinLock(ctx)()
 	if err := d.MFSDir.Unlink(name); err != nil {
 		return fs.ToErrno(err)
 	}
@@ -215,6 +236,7 @@ func (d *Dir) Unlink(_ context.Context, name string) syscall.Errno {
 }
 
 func (d *Dir) Rmdir(ctx context.Context, name string) syscall.Errno {
+	defer d.Cfg.pinLock(ctx)()
 	child, err := d.MFSDir.Child(name)
 	if err != nil {
 		return fs.ToErrno(err)
@@ -244,7 +266,8 @@ func (d *Dir) Rmdir(ctx context.Context, name string) syscall.Errno {
 // destination is added, so any failure between the two steps loses
 // the source entry. Making it atomic requires changes to MFS rename
 // semantics (boxo/mfs does not currently expose an atomic rename).
-func (d *Dir) Rename(_ context.Context, oldName string, newParent fs.InodeEmbedder, newName string, _ uint32) syscall.Errno {
+func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbedder, newName string, _ uint32) syscall.Errno {
+	defer d.Cfg.pinLock(ctx)()
 	child, err := d.MFSDir.Child(oldName)
 	if err != nil {
 		return fs.ToErrno(err)
@@ -278,6 +301,7 @@ func (d *Dir) Rename(_ context.Context, oldName string, newParent fs.InodeEmbedd
 }
 
 func (d *Dir) Create(ctx context.Context, name string, flags uint32, _ uint32, out *fuse.EntryOut) (*fs.Inode, fs.FileHandle, uint32, syscall.Errno) {
+	defer d.Cfg.pinLock(ctx)()
 	node := dag.NodeWithData(ft.FilePBData(nil, 0))
 	if err := node.SetCidBuilder(d.MFSDir.GetCidBuilder()); err != nil {
 		return nil, nil, 0, fs.ToErrno(err)
@@ -325,7 +349,7 @@ func (d *Dir) Create(ctx context.Context, name string, flags uint32, _ uint32, o
 	fileInode.fillAttr(&out.Attr)
 
 	inode := d.NewInode(ctx, fileInode, fs.StableAttr{})
-	return inode, &FileHandle{inode: inode, fd: fd}, 0, 0
+	return inode, &FileHandle{inode: inode, fd: fd, cfg: d.Cfg}, 0, 0
 }
 
 func (d *Dir) Listxattr(_ context.Context, dest []byte) (uint32, syscall.Errno) {
@@ -363,6 +387,7 @@ func (d *Dir) Getxattr(_ context.Context, attr string, dest []byte) (uint32, sys
 
 // Symlink creates a new symlink in this directory.
 func (d *Dir) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
+	defer d.Cfg.pinLock(ctx)()
 	data, err := ft.SymlinkData(target)
 	if err != nil {
 		return nil, fs.ToErrno(err)
@@ -470,7 +495,7 @@ func (fi *FileInode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uin
 		}
 	}
 
-	return &FileHandle{inode: fi.EmbeddedInode(), fd: fd, appendMode: flags&syscall.O_APPEND != 0}, 0, 0
+	return &FileHandle{inode: fi.EmbeddedInode(), fd: fd, cfg: fi.Cfg, appendMode: flags&syscall.O_APPEND != 0}, 0, 0
 }
 
 // Setattr handles chmod, mtime changes (touch), and ftruncate.
@@ -487,7 +512,8 @@ func (fi *FileInode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uin
 // the existing write descriptor without opening a second one. For
 // truncate(path, size) without a handle, a temporary descriptor is
 // opened; this may block if another writer holds MFS's desclock.
-func (fi *FileInode) Setattr(_ context.Context, fh fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+func (fi *FileInode) Setattr(ctx context.Context, fh fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+	defer fi.Cfg.pinLock(ctx)()
 	if sz, ok := in.GetSize(); ok {
 		if f, ok := fh.(*FileHandle); ok {
 			// ftruncate(fd, size): use the existing write descriptor.
@@ -575,6 +601,7 @@ func (fi *FileInode) Getxattr(_ context.Context, attr string, dest []byte) (uint
 type FileHandle struct {
 	inode      *fs.Inode // back-pointer for kernel cache invalidation
 	fd         mfs.FileDescriptor
+	cfg        *Config // for the pin lock on commit (Flush/Fsync/Release)
 	mu         sync.Mutex
 	appendMode bool // O_APPEND: writes always go to end of file
 }
@@ -639,6 +666,7 @@ func (fh *FileHandle) Write(_ context.Context, data []byte, off int64) (uint32, 
 // Release asynchronously after close() returns. Without this, a
 // stat() immediately after close() could see stale cached attrs.
 func (fh *FileHandle) Flush(_ context.Context) syscall.Errno {
+	defer fh.cfg.pinLock(context.Background())()
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
 
@@ -654,6 +682,7 @@ func (fh *FileHandle) Flush(_ context.Context) syscall.Errno {
 // Invalidation happens here (not in Flush) because fd.Close commits
 // the final DAG node; Flush alone may not have the final size yet.
 func (fh *FileHandle) Release(_ context.Context) syscall.Errno {
+	defer fh.cfg.pinLock(context.Background())()
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
 
@@ -671,6 +700,7 @@ func (fh *FileHandle) Release(_ context.Context) syscall.Errno {
 // path must see the synced bytes immediately, not the size the kernel
 // cached from the initial Create response.
 func (fh *FileHandle) Fsync(_ context.Context, _ uint32) syscall.Errno {
+	defer fh.cfg.pinLock(context.Background())()
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
 

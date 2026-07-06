@@ -11,7 +11,6 @@ import (
 	"github.com/ipfs/kubo/repo"
 
 	"github.com/dustin/go-humanize"
-	"github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
 )
@@ -71,18 +70,37 @@ func NewGC(n *core.IpfsNode) (*GC, error) {
 	}, nil
 }
 
-func BestEffortRoots(filesRoot *mfs.Root) ([]cid.Cid, error) {
-	rootDag, err := filesRoot.GetDirectory().GetNode()
+// BestEffortRoots returns the CIDs of the live MFS roots GC must keep: the
+// node's FilesRoot plus any extra roots registered via
+// IpfsNode.RegisterMFSRoot (for example the per-key roots of a writable /ipns
+// FUSE mount). Extra roots are walked best-effort: one that cannot be read
+// (e.g. because its mount is unmounting) is logged and skipped rather than
+// failing the whole GC. FilesRoot is required.
+func BestEffortRoots(n *core.IpfsNode) ([]cid.Cid, error) {
+	rootDag, err := n.FilesRoot.GetDirectory().GetNode()
 	if err != nil {
 		return nil, err
 	}
+	roots := []cid.Cid{rootDag.Cid()}
 
-	return []cid.Cid{rootDag.Cid()}, nil
+	for _, r := range n.MFSRoots() {
+		if r == nil {
+			continue
+		}
+		nd, err := r.GetDirectory().GetNode()
+		if err != nil {
+			log.Warnf("gc: skipping unreadable MFS root (mount unmounting?): %s", err)
+			continue
+		}
+		roots = append(roots, nd.Cid())
+	}
+
+	return roots, nil
 }
 
 func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 	rmed := gc.GC(ctx, n.Blockstore, n.Repo.Datastore(), n.Pinning, func(context.Context) ([]cid.Cid, error) {
-		return BestEffortRoots(n.FilesRoot)
+		return BestEffortRoots(n)
 	})
 
 	return CollectResult(ctx, rmed, nil)
@@ -144,7 +162,7 @@ func (e *MultiError) Error() string {
 
 func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) <-chan gc.Result {
 	return gc.GC(ctx, n.Blockstore, n.Repo.Datastore(), n.Pinning, func(context.Context) ([]cid.Cid, error) {
-		return BestEffortRoots(n.FilesRoot)
+		return BestEffortRoots(n)
 	})
 }
 
