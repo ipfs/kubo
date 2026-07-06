@@ -91,6 +91,7 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, gcLocker bstore.GCLocke
 		RepoPath:   repoPath,
 		Blksize:    fusemnt.BlksizeFromChunker(imp.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)),
 		GCLocker:   gcLocker,
+		MountCtx:   ctx,
 	}
 
 	ldirs := make(map[string]*writable.Dir)

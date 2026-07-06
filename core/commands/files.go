@@ -851,7 +851,7 @@ Examples:
 			return fmt.Errorf("%s was not a file", path)
 		}
 
-		rfd, err := fi.Open(mfs.Flags{Read: true})
+		rfd, err := fi.Open(req.Context, mfs.Flags{Read: true})
 		if err != nil {
 			return err
 		}
@@ -1114,7 +1114,7 @@ See '--to-files' in 'ipfs add --help' for more information.
 			fi.RawLeaves = rawLeaves
 		}
 
-		wfd, err := fi.Open(mfs.Flags{Write: true, Sync: flush})
+		wfd, err := fi.Open(req.Context, mfs.Flags{Write: true, Sync: flush})
 		if err != nil {
 			return err
 		}

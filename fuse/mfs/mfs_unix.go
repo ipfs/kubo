@@ -23,5 +23,8 @@ func NewFileSystem(ipfs *core.IpfsNode, mounts config.Mounts, imp config.Import)
 		// commands use, so guard its writes with the pin lock too. GC already
 		// protects that root's blocks via corerepo.BestEffortRoots.
 		GCLocker: ipfs.Blockstore,
+		// Long-lived write descriptors bind to the node context so their
+		// writes are cancelled on shutdown instead of blocking forever.
+		MountCtx: ipfs.Context(),
 	})
 }

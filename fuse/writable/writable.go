@@ -55,6 +55,22 @@ type Config struct {
 	// gives FUSE writes the same protection the `ipfs files` commands have.
 	// nil disables the locking (e.g. tests). See ipfs/kubo#6113.
 	GCLocker bstore.GCLocker
+
+	// MountCtx is the lifetime context of the FUSE mount. A file descriptor
+	// returned by Open or Create outlives the FUSE operation that created it,
+	// so writes through it are bound to this context (cancelled on unmount)
+	// instead of the per-operation context, which the kernel cancels once the
+	// operation returns. nil falls back to context.Background (e.g. tests).
+	MountCtx context.Context
+}
+
+// openContext returns the context to bind a long-lived file descriptor's
+// writes to: the mount context if set, otherwise context.Background.
+func (c *Config) openContext() context.Context {
+	if c.MountCtx != nil {
+		return c.MountCtx
+	}
+	return context.Background()
 }
 
 // pinLock takes the pin lock if a GCLocker is configured and returns a
@@ -332,7 +348,7 @@ func (d *Dir) Create(ctx context.Context, name string, flags uint32, _ uint32, o
 	fileInode := &FileInode{MFSFile: mfsFile, Cfg: d.Cfg}
 
 	accessMode := flags & syscall.O_ACCMODE
-	fd, err := mfsFile.Open(mfs.Flags{
+	fd, err := mfsFile.Open(d.Cfg.openContext(), mfs.Flags{
 		Read:  accessMode == syscall.O_RDONLY || accessMode == syscall.O_RDWR,
 		Write: accessMode == syscall.O_WRONLY || accessMode == syscall.O_RDWR,
 		Sync:  true,
@@ -470,7 +486,7 @@ func (fi *FileInode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uin
 		Write: accessMode == syscall.O_WRONLY || accessMode == syscall.O_RDWR,
 		Sync:  true,
 	}
-	fd, err := fi.MFSFile.Open(mfsFlags)
+	fd, err := fi.MFSFile.Open(fi.Cfg.openContext(), mfsFlags)
 	if err != nil {
 		return nil, 0, fs.ToErrno(err)
 	}
@@ -528,7 +544,9 @@ func (fi *FileInode) Setattr(ctx context.Context, fh fs.FileHandle, in *fuse.Set
 			// Open a temporary write descriptor, truncate, flush, and
 			// close. This may block if another writer holds MFS's
 			// desclock; the FUSE kernel timeout (30s) bounds the wait.
-			fd, err := fi.MFSFile.Open(mfs.Flags{Write: true, Sync: true})
+			// This descriptor is transient (truncate, flush, close below),
+			// so the per-operation context bounds it.
+			fd, err := fi.MFSFile.Open(ctx, mfs.Flags{Write: true, Sync: true})
 			if err != nil {
 				return fs.ToErrno(err)
 			}
