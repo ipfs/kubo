@@ -543,6 +543,19 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			go func() {
 				var err error
 				defer close(events)
+
+				// When copying into MFS without pinning, hold the pin lock
+				// across the add so a concurrent `ipfs repo gc` cannot collect
+				// the freshly added blocks before they are linked into the
+				// persisted MFS root below. A pinned add takes the pin lock
+				// internally (a read lock that is not reentrant-safe against a
+				// waiting GC lock), and its content is protected by the pin, so
+				// for it we only lock around the link itself. See
+				// ipfs/kubo#9553 and ipfs/kubo#6113.
+				if toFilesSet && !dopin {
+					defer ipfsNode.Blockstore.PinLock(req.Context).Unlock(req.Context)
+				}
+
 				pathAdded, err := api.Unixfs().Add(req.Context, addit.Node(), opts...)
 				if err != nil {
 					errCh <- err
@@ -554,6 +567,12 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 
 				// creating MFS pointers when optional --to-files is set
 				if toFilesSet {
+					// The link creates new MFS directory nodes that are not
+					// pinned, so guard it against a concurrent GC. For an
+					// unpinned add the lock is already held above.
+					if dopin {
+						defer ipfsNode.Blockstore.PinLock(req.Context).Unlock(req.Context)
+					}
 					if addit.Name() == "" {
 						errCh <- fmt.Errorf("%s: cannot add unnamed files to MFS", toFilesOptionName)
 						return

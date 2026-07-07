@@ -6,6 +6,14 @@ const (
 	// DefaultMFSNoFlushLimit is the default limit for consecutive unflushed MFS operations
 	DefaultMFSNoFlushLimit = 256
 
+	// DefaultMFSFetchTimeout caps how long an MFS operation waits for a
+	// directory block it must fetch from the network before failing, so a
+	// block that is missing and unreachable cannot hang MFS (and graceful
+	// shutdown) forever. Passed to boxo MFS via mfs.WithFetchTimeout.
+	// Generous because MFS directory nodes are small; it only bites on an
+	// unreachable node, not on normal on-demand fetching of referenced content.
+	DefaultMFSFetchTimeout = time.Minute
+
 	// DefaultShutdownTimeout caps how long graceful shutdown is allowed to
 	// take before the daemon force-exits with status 1. Set generously so
 	// it does not change existing kubo behavior in practice but guarantees
