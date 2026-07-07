@@ -553,8 +553,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 				// for it we only lock around the link itself. See
 				// ipfs/kubo#9553 and ipfs/kubo#6113.
 				if toFilesSet && !dopin {
-					unlocker := ipfsNode.Blockstore.PinLock(req.Context)
-					defer unlocker.Unlock(req.Context)
+					defer ipfsNode.Blockstore.PinLock(req.Context).Unlock(req.Context)
 				}
 
 				pathAdded, err := api.Unixfs().Add(req.Context, addit.Node(), opts...)
@@ -572,8 +571,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 					// pinned, so guard it against a concurrent GC. For an
 					// unpinned add the lock is already held above.
 					if dopin {
-						unlocker := ipfsNode.Blockstore.PinLock(req.Context)
-						defer unlocker.Unlock(req.Context)
+						defer ipfsNode.Blockstore.PinLock(req.Context).Unlock(req.Context)
 					}
 					if addit.Name() == "" {
 						errCh <- fmt.Errorf("%s: cannot add unnamed files to MFS", toFilesOptionName)
