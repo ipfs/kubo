@@ -120,8 +120,8 @@ require (
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
 	github.com/libp2p/go-libp2p-kad-dht v0.41.0 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.8.0 // indirect
-	github.com/libp2p/go-libp2p-pubsub v0.16.0 // indirect
-	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
+	github.com/libp2p/go-libp2p-pubsub v0.16.1-0.20260630191257-c5dab1f8e8fe // indirect
+	github.com/libp2p/go-libp2p-pubsub-router v0.6.1-0.20260702185440-e5d154b073cd // indirect
 	github.com/libp2p/go-libp2p-record v0.3.1 // indirect
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.5 // indirect
 	github.com/libp2p/go-libp2p-xor v0.1.0 // indirect
