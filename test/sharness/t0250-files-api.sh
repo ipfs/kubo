@@ -840,9 +840,13 @@ tests_for_files_api() {
     ipfs files rm -r /chcid-test
   '
 
-  # MFS root CID format is controlled by Import config, not chcid
+  # MFS root CID format is controlled by Import config, not chcid. Set the full
+  # modern CIDv1 pair (version + raw leaves); the base repo pins the legacy
+  # unixfs-v0-2015 defaults, so CidVersion alone would keep RawLeaves=false and
+  # emit CIDv1 dag-pb leaves instead of the raw leaves this mode expects.
   test_expect_success "set Import.CidVersion=1 for cidv1 root" '
-    ipfs config --json Import.CidVersion 1
+    ipfs config --json Import.CidVersion 1 &&
+    ipfs config --json Import.UnixFSRawLeaves true
   '
   if [ "$EXTRA" = "with-daemon" ]; then
     restart_daemon
@@ -883,9 +887,12 @@ tests_for_files_api() {
     '
   fi
 
-  # Reset Import.CidVersion back to CIDv0
+  # Reset Import.CidVersion and raw leaves back to the legacy CIDv0 pair (the
+  # base unixfs-v0-2015 defaults). Both must move together: CidVersion=0 with
+  # UnixFSRawLeaves=true is an invalid pairing the daemon refuses to start.
   test_expect_success "reset Import.CidVersion to cidv0" '
-    ipfs config --json Import.CidVersion 0
+    ipfs config --json Import.CidVersion 0 &&
+    ipfs config --json Import.UnixFSRawLeaves false
   '
   if [ "$EXTRA" = "with-daemon" ]; then
     restart_daemon

@@ -193,7 +193,7 @@ only for backward compatibility when a legacy CIDv0 is required (--format=v0).
 
 		mhtype, _ := req.Options[mhtypeOptionName].(string)
 		if mhtype == "" {
-			mhtype = cfg.Import.HashFunction.WithDefault(config.DefaultHashFunction)
+			mhtype = cfg.Import.HashFunction.WithDefault(config.LegacyFallbackHashFunction)
 		}
 
 		mhtval, ok := mh.Names[mhtype]

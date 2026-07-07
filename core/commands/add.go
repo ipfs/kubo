@@ -15,7 +15,6 @@ import (
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/ipfs/boxo/files"
-	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	mfs "github.com/ipfs/boxo/mfs"
 	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/boxo/verifcid"
@@ -266,7 +265,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		// MFS Integration
 		cmds.StringOption(toFilesOptionName, "Add reference to Files API (MFS) at the provided path."),
 		// CID & Hashing
-		cmds.IntOption(cidVersionOptionName, "CID version (0 or 1). CIDv1 automatically enables raw-leaves and is required for non-sha2-256 hashes. Default: Import.CidVersion"),
+		cmds.IntOption(cidVersionOptionName, "CID version (0 or 1). CIDv1 enables raw-leaves and is required for non-sha2-256 hashes; CIDv0 forces dag-pb leaves. Default: Import.CidVersion"),
 		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. Default: Import.HashFunction"),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. Note: CIDv1 automatically enables raw-leaves. Default: false for CIDv0, true for CIDv1 (Import.UnixFSRawLeaves)"),
 		// Chunking & DAG Structure
@@ -323,7 +322,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		}
 
 		progress, _ := req.Options[progressOptionName].(bool)
-		trickle, trickleSet := req.Options[trickleOptionName].(bool)
+		trickle, _ := req.Options[trickleOptionName].(bool)
 		wrap, _ := req.Options[wrapOptionName].(bool)
 		onlyHash, _ := req.Options[onlyHashOptionName].(bool)
 		silent, _ := req.Options[silentOptionName].(bool)
@@ -331,13 +330,14 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		dopin, _ := req.Options[pinOptionName].(bool)
 		pinName, pinNameSet := req.Options[pinNameOptionName].(string)
 		rawblks, rbset := req.Options[rawLeavesOptionName].(bool)
+		rawLeavesSetByUser := rbset // whether --raw-leaves was passed on the CLI (captured before the preserve-mode block below may clear rbset)
 		maxFileLinks, maxFileLinksSet := req.Options[maxFileLinksOptionName].(int)
 		maxDirectoryLinks, maxDirectoryLinksSet := req.Options[maxDirectoryLinksOptionName].(int)
 		maxHAMTFanout, maxHAMTFanoutSet := req.Options[maxHAMTFanoutOptionName].(int)
-		var sizeEstimationMode uio.SizeEstimationMode
 		nocopy, _ := req.Options[noCopyOptionName].(bool)
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
+		cidVersionSetByUser := cidVerSet // whether --cid-version was passed on the CLI
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
@@ -369,49 +369,14 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		// The help text marks it as DEPRECATED. Users should use --dereference-symlinks instead,
 		// which is a superset (resolves both CLI arg symlinks AND nested symlinks in directories).
 
-		// Wire --trickle from config
-		if !trickleSet && !cfg.Import.UnixFSDAGLayout.IsDefault() {
-			layout := cfg.Import.UnixFSDAGLayout.WithDefault(config.DefaultUnixFSDAGLayout)
-			trickle = layout == config.DAGLayoutTrickle
-		}
-
-		if chunker == "" {
-			chunker = cfg.Import.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)
-		}
-
-		if hashFunStr == "" {
-			hashFunStr = cfg.Import.HashFunction.WithDefault(config.DefaultHashFunction)
-		}
-
-		if !cidVerSet && !cfg.Import.CidVersion.IsDefault() {
-			cidVerSet = true
-			cidVer = int(cfg.Import.CidVersion.WithDefault(config.DefaultCidVersion))
-		}
-
-		// Pin names are only used when explicitly provided via --pin-name=value
-
-		if !rbset && cfg.Import.UnixFSRawLeaves != config.Default {
-			rbset = true
-			rawblks = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
-		}
-
-		if !maxFileLinksSet && !cfg.Import.UnixFSFileMaxLinks.IsDefault() {
-			maxFileLinksSet = true
-			maxFileLinks = int(cfg.Import.UnixFSFileMaxLinks.WithDefault(config.DefaultUnixFSFileMaxLinks))
-		}
-
-		if !maxDirectoryLinksSet && !cfg.Import.UnixFSDirectoryMaxLinks.IsDefault() {
-			maxDirectoryLinksSet = true
-			maxDirectoryLinks = int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
-		}
-
-		if !maxHAMTFanoutSet && !cfg.Import.UnixFSHAMTDirectoryMaxFanout.IsDefault() {
-			maxHAMTFanoutSet = true
-			maxHAMTFanout = int(cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout))
-		}
-
-		// SizeEstimationMode is always set from config (no CLI flag)
-		sizeEstimationMode = cfg.Import.HAMTSizeEstimationMode()
+		// DAG-shaping defaults (CID version, raw leaves, chunker, hash, the
+		// per-block link limits, HAMT size estimation, and layout) are resolved
+		// by UnixfsAPI.Add from the node's Import config, not here. This command
+		// forwards only the flags the user set explicitly and lets the coreapi
+		// fill in the rest, so config resolution lives in one place and the
+		// coreapi can apply the raw-leaves bundle rule (config raw leaves apply
+		// only when the effective CID version, which a non-sha2-256 hash may
+		// force to CIDv1, matches the config's).
 
 		fastProvideRoot = config.ResolveBoolFromConfig(fastProvideRoot, fastProvideRootSet, cfg.Import.FastProvideRoot, config.DefaultFastProvideRoot)
 		fastProvideDAG = config.ResolveBoolFromConfig(fastProvideDAG, fastProvideDAGSet, cfg.Import.FastProvideDAG, config.DefaultFastProvideDAG)
@@ -428,14 +393,25 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		// Storing optional mode or mtime (UnixFS 1.5) requires root block
 		// to always be 'dag-pb' and not 'raw'. Below adjusts raw-leaves setting, if possible.
 		if preserveMode || preserveMtime || mode != 0 || mtime != 0 {
-			// Error if --raw-leaves flag was explicitly passed by the user.
+			// Error only if --raw-leaves=true was explicitly passed on the CLI.
 			// (let user make a decision to manually disable it and retry)
-			if rbset && rawblks {
+			// Raw leaves coming from config default is silently overridden below.
+			if rawLeavesSetByUser && rawblks {
 				return fmt.Errorf("%s can't be used with UnixFS metadata like mode or modification time", rawLeavesOptionName)
 			}
 			// No explicit preference from user, disable raw-leaves and continue
 			rbset = true
 			rawblks = false
+		}
+
+		// --cid-version=0 and --raw-leaves contradict: CIDv0 has no raw leaf
+		// codec. Raw leaves at cidVer==0 can only come from an explicit
+		// --raw-leaves here (config raw-leaves is applied by the coreapi, and
+		// only when the effective CID version matches the config's; a config
+		// pinning CidVersion=0 with UnixFSRawLeaves=true is rejected at daemon
+		// start), so this is always a user contradiction.
+		if cidVersionSetByUser && cidVer == 0 && rawblks {
+			return fmt.Errorf("%s can't be true with --cid-version=0 (CIDv0 requires dag-pb leaves)", rawLeavesOptionName)
 		}
 
 		if onlyHash && toFilesSet {
@@ -446,11 +422,6 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		}
 		if wrap && toFilesSet {
 			return fmt.Errorf("%s and %s options are not compatible", wrapOptionName, toFilesOptionName)
-		}
-
-		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
-		if !ok {
-			return fmt.Errorf("unrecognized hash function: %q", strings.ToLower(hashFunStr))
 		}
 
 		enc, err := cmdenv.GetCidEncoder(req)
@@ -466,12 +437,8 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		}
 
 		opts := []options.UnixfsAddOption{
-			options.Unixfs.Hash(hashFunCode),
-
 			options.Unixfs.Inline(inline),
 			options.Unixfs.InlineLimit(inlineLimit),
-
-			options.Unixfs.Chunker(chunker),
 
 			options.Unixfs.Pin(dopin, pinName),
 			options.Unixfs.HashOnly(onlyHash),
@@ -517,8 +484,18 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			opts = append(opts, options.Unixfs.MaxHAMTFanout(maxHAMTFanout))
 		}
 
-		// SizeEstimationMode is always set from config
-		opts = append(opts, options.Unixfs.SizeEstimationMode(sizeEstimationMode))
+		// Forward hash and chunker only when set on the CLI; otherwise
+		// UnixfsAPI.Add applies the Import config default.
+		if hashFunStr != "" {
+			hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
+			if !ok {
+				return fmt.Errorf("unrecognized hash function: %q", strings.ToLower(hashFunStr))
+			}
+			opts = append(opts, options.Unixfs.Hash(hashFunCode))
+		}
+		if chunker != "" {
+			opts = append(opts, options.Unixfs.Chunker(chunker))
+		}
 
 		if trickle {
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))

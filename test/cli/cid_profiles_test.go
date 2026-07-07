@@ -158,8 +158,8 @@ var unixfsV12025 = cidProfileExpectations{
 }
 
 // defaultProfile points to the profile that matches Kubo's implicit default behavior.
-// Today this is unixfs-v0-2015. When Kubo changes defaults, update this pointer.
-var defaultProfile = unixfsV02015
+// Today this is unixfs-v1-2025. When Kubo changes defaults, update this pointer.
+var defaultProfile = unixfsV12025
 
 const (
 	cidV0Length = 34 // CIDv0 sha2-256
@@ -192,7 +192,7 @@ func TestCIDProfiles(t *testing.T) {
 	// Test default behavior (no profile specified)
 	t.Run("default", func(t *testing.T) {
 		t.Parallel()
-		// Default behavior should match defaultProfile (currently unixfs-v0-2015)
+		// Default behavior should match defaultProfile (currently unixfs-v1-2025)
 		defaultExp := defaultProfile
 		defaultExp.Name = "default"
 		defaultExp.ProfileArgs = nil // no profile args = default behavior
@@ -589,9 +589,9 @@ func fileOverMaxLinksBytes(exp cidProfileExpectations) int64 {
 // seedForProfile returns the deterministic seed used in add_test.go for file max links tests.
 func seedForProfile(exp cidProfileExpectations) string {
 	switch exp.Name {
-	case "unixfs-v0-2015", "default":
+	case "unixfs-v0-2015":
 		return "v0-seed"
-	case "unixfs-v1-2025":
+	case "unixfs-v1-2025", "default":
 		return "v1-2025-seed"
 	default:
 		return exp.Name + "-seed"
@@ -601,9 +601,9 @@ func seedForProfile(exp cidProfileExpectations) string {
 // chunkSeedForProfile returns the deterministic seed for chunk threshold tests.
 func chunkSeedForProfile(exp cidProfileExpectations) string {
 	switch exp.Name {
-	case "unixfs-v0-2015", "default":
+	case "unixfs-v0-2015":
 		return "chunk-v0-seed"
-	case "unixfs-v1-2025":
+	case "unixfs-v1-2025", "default":
 		return "chunk-v1-seed"
 	default:
 		return "chunk-" + exp.Name + "-seed"
@@ -614,9 +614,9 @@ func chunkSeedForProfile(exp cidProfileExpectations) string {
 // Uses the same seed for both under/at threshold tests to ensure consistency.
 func hamtSeedForProfile(exp cidProfileExpectations) string {
 	switch exp.Name {
-	case "unixfs-v0-2015", "default":
+	case "unixfs-v0-2015":
 		return "hamt-unixfs-v0-2015"
-	case "unixfs-v1-2025":
+	case "unixfs-v1-2025", "default":
 		return "hamt-unixfs-v1-2025"
 	default:
 		return "hamt-" + exp.Name
@@ -624,7 +624,7 @@ func hamtSeedForProfile(exp cidProfileExpectations) string {
 }
 
 // TestDefaultMatchesExpectedProfile verifies that default ipfs add behavior
-// matches the expected profile (currently unixfs-v0-2015).
+// matches the expected profile (currently unixfs-v1-2025).
 func TestDefaultMatchesExpectedProfile(t *testing.T) {
 	t.Parallel()
 
@@ -644,6 +644,36 @@ func TestDefaultMatchesExpectedProfile(t *testing.T) {
 
 	require.Equal(t, cidWithProfile, cidDefault,
 		"default behavior should match %s profile", defaultProfile.Name)
+}
+
+// TestImportProfileStartupNotice verifies the daemon nudges repos that still
+// rely on implicit UnixFS import defaults to pin a CID profile.
+func TestImportProfileStartupNotice(t *testing.T) {
+	t.Parallel()
+
+	const notice = "implicit UnixFS Import.* config defaults"
+
+	t.Run("warns when Import CID settings are implicit", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		// Clear the profile init wrote, so the repo relies on implicit defaults.
+		node.IPFS("config", "--json", "Import", "{}")
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		stderr := node.Daemon.Stderr.String()
+		require.Contains(t, stderr, notice)
+		require.Contains(t, stderr, "unixfs-v1-2025")
+	})
+
+	t.Run("no notice once a profile is applied", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init() // init applies unixfs-v1-2025
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		require.NotContains(t, node.Daemon.Stderr.String(), notice)
+	})
 }
 
 // TestProtobufHelpers verifies the protobuf size calculation helpers.

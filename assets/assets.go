@@ -48,6 +48,8 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 		dirMap[gopath.Base(p)] = files.NewBytesFile(d)
 	}
 
+	// Init docs get the repo's configured CID version and leaf format from
+	// UnixfsAPI.Add, matching `ipfs add` on this node (ipfs/kubo#4143).
 	basePath, err := api.Unixfs().Add(nd.Context(), files.NewMapDirectory(dirMap))
 	if err != nil {
 		return cid.Cid{}, err

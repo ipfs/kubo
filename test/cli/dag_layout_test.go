@@ -46,13 +46,13 @@ func TestBalancedDAGLayout(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 
-		// Create file that triggers multi-level DAG.
-		// For default v0: 175 chunks × 256KiB = ~44.8 MiB (just over 174 max links)
-		// This creates a 2-level DAG where balanced layout ensures uniform depth.
+		// Create file that triggers multi-level DAG. Force 256KiB chunks and 174
+		// max links so 45 MiB yields ~180 chunks, just over the link limit, for a
+		// 2-level DAG regardless of the default import profile.
 		fileSize := "45MiB"
 		seed := "balanced-test"
 
-		cidStr := node.IPFSAddDeterministic(fileSize, seed)
+		cidStr := node.IPFSAddDeterministic(fileSize, seed, "--chunker=size-262144", "--max-file-links=174")
 
 		// Collect leaf depths by walking DAG
 		depths := collectLeafDepths(t, node, cidStr, 0)
@@ -85,7 +85,7 @@ func TestBalancedDAGLayout(t *testing.T) {
 		// Trickle produces non-uniform leaf depths, optimized for append-only
 		// and streaming reads (no seeking). This subtest validates the test
 		// logic by confirming we can detect varying depths.
-		cidStr := node.IPFSAddDeterministic(fileSize, seed, "--trickle")
+		cidStr := node.IPFSAddDeterministic(fileSize, seed, "--trickle", "--chunker=size-262144", "--max-file-links=174")
 
 		depths := collectLeafDepths(t, node, cidStr, 0)
 

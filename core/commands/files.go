@@ -567,7 +567,7 @@ being GC'ed.
 
 		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		if mkParents {
-			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.LegacyFallbackUnixFSDirectoryMaxLinks))
 			sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
 			err := ensureContainingDirectoryExists(nd.FilesRoot, dst,
 				mfs.WithCidBuilder(prefix),
@@ -1078,9 +1078,26 @@ See '--to-files' in 'ipfs add --help' for more information.
 			return err
 		}
 
-		if !rawLeavesDef && cfg.Import.UnixFSRawLeaves != config.Default {
+		// Apply the config's raw-leaves default only when the effective CID
+		// version matches the config's. If the caller forced a different version
+		// (via --cid-version, or a --hash that pushes the prefix to CIDv1 the way
+		// getPrefix does), the config's raw-leaves choice was for the other
+		// version, so leave RawLeaves unset and let MFS use that version's
+		// default (CIDv1 auto-enables raw leaves). This mirrors the bundle rule
+		// the coreapi applies to `ipfs add`.
+		configCidVer := int(cfg.Import.CidVersion.WithDefault(config.LegacyFallbackCidVersion))
+		cidVer, cidVerSet := req.Options[filesCidVersionOptionName].(int)
+		_, hashSet := req.Options[filesHashOptionName].(string)
+		effectiveCidVer := configCidVer
+		if cidVerSet {
+			effectiveCidVer = cidVer
+		}
+		if hashSet && effectiveCidVer == 0 {
+			effectiveCidVer = 1
+		}
+		if !rawLeavesDef && cfg.Import.UnixFSRawLeaves != config.Default && effectiveCidVer == configCidVer {
 			rawLeavesDef = true
-			rawLeaves = cfg.Import.UnixFSRawLeaves.WithDefault(config.DefaultUnixFSRawLeaves)
+			rawLeaves = cfg.Import.UnixFSRawLeaves.WithDefault(config.LegacyFallbackUnixFSRawLeaves)
 		}
 
 		prefix, err := getPrefix(req, &cfg.Import)
@@ -1094,7 +1111,7 @@ See '--to-files' in 'ipfs add --help' for more information.
 		}
 
 		if mkParents {
-			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+			maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.LegacyFallbackUnixFSDirectoryMaxLinks))
 			sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
 			err := ensureContainingDirectoryExists(nd.FilesRoot, path,
 				mfs.WithCidBuilder(prefix),
@@ -1228,7 +1245,7 @@ Examples:
 		}
 		root := n.FilesRoot
 
-		maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.DefaultUnixFSDirectoryMaxLinks))
+		maxDirLinks := int(cfg.Import.UnixFSDirectoryMaxLinks.WithDefault(config.LegacyFallbackUnixFSDirectoryMaxLinks))
 		sizeEstimationMode := cfg.Import.HAMTSizeEstimationMode()
 
 		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{Mkparents: dashp, Flush: flush},

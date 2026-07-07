@@ -447,7 +447,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	// Directory sharding settings from Import config.
 	// These globals affect both `ipfs add` and MFS (`ipfs files` API).
 	shardSizeThreshold := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
-	shardMaxFanout := cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.DefaultUnixFSHAMTDirectoryMaxFanout)
+	shardMaxFanout := cfg.Import.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.LegacyFallbackUnixFSHAMTDirectoryMaxFanout)
 	uio.HAMTShardingSize = int(shardSizeThreshold)
 	uio.DefaultShardWidth = int(shardMaxFanout)
 	uio.HAMTSizeEstimation = cfg.Import.HAMTSizeEstimationMode()

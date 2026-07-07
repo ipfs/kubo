@@ -121,6 +121,15 @@ environment variable:
 			if err != nil {
 				return err
 			}
+
+			// New repos adopt the unixfs-v1-2025 import profile from IPIP-499
+			// (CIDv1 with modern defaults); see ipfs/kubo#4143. This is applied
+			// only to the freshly generated config, not to a config supplied via
+			// `ipfs init - < config.json`. A user-provided --profile such as
+			// unixfs-v0-2015 is applied later in doInit and overrides this.
+			if err := config.Profiles[config.DefaultImportProfile].Transform(conf); err != nil {
+				return err
+			}
 		}
 
 		profiles, _ := req.Options[profileOptionName].(string)
@@ -248,7 +257,20 @@ func initializeIpnsKeyspace(repoRoot string) error {
 	}
 	defer nd.Close()
 
+	// Seed the self record's empty directory with the repo's configured CID
+	// version so a CIDv1 default yields a CIDv1 empty dir (ipfs/kubo#4143).
+	cfg, err := nd.Repo.Config()
+	if err != nil {
+		return err
+	}
+	cidBuilder, err := cfg.Import.UnixFSCidBuilder()
+	if err != nil {
+		return err
+	}
 	emptyDir := unixfs.EmptyDirNode()
+	if err := emptyDir.SetCidBuilder(cidBuilder); err != nil {
+		return err
+	}
 
 	// pin recursively because this might already be pinned
 	// and doing a direct pin would throw an error in that case

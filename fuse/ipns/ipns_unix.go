@@ -89,7 +89,7 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, gcLocker bstore.GCLocke
 		StoreMode:  mountsCfg.StoreMode.WithDefault(config.DefaultStoreMode),
 		DAG:        ipfs.Dag(),
 		RepoPath:   repoPath,
-		Blksize:    fusemnt.BlksizeFromChunker(imp.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)),
+		Blksize:    fusemnt.BlksizeFromChunker(imp.UnixFSChunker.WithDefault(config.LegacyFallbackUnixFSChunker)),
 		GCLocker:   gcLocker,
 		MountCtx:   ctx,
 	}

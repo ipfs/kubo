@@ -107,6 +107,40 @@ func TestValidateImportConfig_CidVersion(t *testing.T) {
 	}
 }
 
+func TestValidateImportConfig_CidVersionRawLeaves(t *testing.T) {
+	tests := []struct {
+		name       string
+		setVersion bool
+		cidVer     int64
+		rawLeaves  Flag
+		wantErr    bool
+	}{
+		{name: "cidv1 with raw leaves is valid", setVersion: true, cidVer: 1, rawLeaves: True, wantErr: false},
+		{name: "cidv0 without raw leaves is valid", setVersion: true, cidVer: 0, rawLeaves: False, wantErr: false},
+		{name: "cidv0 with raw leaves is rejected", setVersion: true, cidVer: 0, rawLeaves: True, wantErr: true},
+		{name: "raw leaves with unset version defaults to 0 and is rejected", setVersion: false, rawLeaves: True, wantErr: true},
+		{name: "defaults are valid", setVersion: false, rawLeaves: Default, wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Import{UnixFSRawLeaves: tt.rawLeaves}
+			if tt.setVersion {
+				cfg.CidVersion = *NewOptionalInteger(tt.cidVer)
+			}
+
+			err := ValidateImportConfig(cfg)
+
+			if tt.wantErr && err == nil {
+				t.Errorf("ValidateImportConfig() expected error, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("ValidateImportConfig() unexpected error: %v", err)
+			}
+		})
+	}
+}
+
 func TestValidateImportConfig_UnixFSFileMaxLinks(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -484,7 +518,7 @@ func TestValidateImportConfig_DAGLayout(t *testing.T) {
 }
 
 func TestImport_UnixFSCidBuilder(t *testing.T) {
-	defaultMhType := mh.Names[strings.ToLower(DefaultHashFunction)]
+	defaultMhType := mh.Names[strings.ToLower(LegacyFallbackHashFunction)]
 
 	tests := []struct {
 		name       string
@@ -547,7 +581,7 @@ func TestImport_UnixFSCidBuilder(t *testing.T) {
 
 // TestImport_UnixFSCidBuilderDefaults verifies that UnixFSCidBuilder always
 // returns an explicit builder even when no config is set, so that MFS
-// respects kubo's DefaultCidVersion rather than relying on boxo's internal
+// respects kubo's LegacyFallbackCidVersion rather than relying on boxo's internal
 // CIDv0 default (relevant for https://github.com/ipfs/kubo/issues/4143).
 func TestImport_UnixFSCidBuilderDefaults(t *testing.T) {
 	cfg := &Import{}
@@ -563,12 +597,12 @@ func TestImport_UnixFSCidBuilderDefaults(t *testing.T) {
 		t.Fatalf("builder.Sum failed: %v", err)
 	}
 	pref := c.Prefix()
-	if pref.Version != uint64(DefaultCidVersion) {
-		t.Errorf("CID version = %d, want DefaultCidVersion (%d)", pref.Version, DefaultCidVersion)
+	if pref.Version != uint64(LegacyFallbackCidVersion) {
+		t.Errorf("CID version = %d, want LegacyFallbackCidVersion (%d)", pref.Version, LegacyFallbackCidVersion)
 	}
-	wantMhType := mh.Names[strings.ToLower(DefaultHashFunction)]
+	wantMhType := mh.Names[strings.ToLower(LegacyFallbackHashFunction)]
 	if pref.MhType != wantMhType {
-		t.Errorf("multihash type = 0x%x, want 0x%x (DefaultHashFunction=%s)", pref.MhType, wantMhType, DefaultHashFunction)
+		t.Errorf("multihash type = 0x%x, want 0x%x (LegacyFallbackHashFunction=%s)", pref.MhType, wantMhType, LegacyFallbackHashFunction)
 	}
 }
 

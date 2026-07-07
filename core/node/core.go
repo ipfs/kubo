@@ -222,13 +222,28 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 
 		var nd *merkledag.ProtoNode
 		ctx := helpers.LifecycleCtx(mctx, lc)
+
+		// Get configured settings from Import config.
+		cfg, err := repo.Config()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get config: %w", err)
+		}
+
 		val, err := repo.Datastore().Get(ctx, FilesRootDatastoreKey)
 
 		switch {
 		case errors.Is(err, datastore.ErrNotFound):
 			nd = unixfs.EmptyDirNode()
-			err := dag.Add(ctx, nd)
+			// Seed a fresh MFS root with the configured CID version so a CIDv1
+			// default produces a CIDv1 root (ipfs/kubo#4143).
+			cidBuilder, err := cfg.Import.UnixFSCidBuilder()
 			if err != nil {
+				return nil, fmt.Errorf("failed to build MFS CID builder from Import config: %w", err)
+			}
+			if err := nd.SetCidBuilder(cidBuilder); err != nil {
+				return nil, fmt.Errorf("failed to set MFS root CID builder: %w", err)
+			}
+			if err := dag.Add(ctx, nd); err != nil {
 				return nil, fmt.Errorf("failure writing filesroot to dagstore: %s", err)
 			}
 		case err == nil:
@@ -264,11 +279,6 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 			prov = nil
 		}
 
-		// Get configured settings from Import config
-		cfg, err := repo.Config()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get config: %w", err)
-		}
 		mfsOpts, err := cfg.Import.MFSRootOptions()
 		if err != nil {
 			return nil, fmt.Errorf("failed to build MFS options from Import config: %w", err)

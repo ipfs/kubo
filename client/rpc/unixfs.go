@@ -42,7 +42,6 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 	req := api.core().Request("add").
 		Option("hash", mht).
 		Option("chunker", options.Chunker).
-		Option("cid-version", options.CidVersion).
 		Option("fscache", options.FsCache).
 		Option("inline", options.Inline).
 		Option("inline-limit", options.InlineLimit).
@@ -52,8 +51,23 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 		Option("silent", options.Silent).
 		Option("progress", options.Progress)
 
+	// Only forward cid-version and raw-leaves when the caller set them
+	// explicitly; otherwise let the daemon apply its configured Import
+	// defaults (the CID version follows the daemon's import profile).
+	if options.CidVersionSet {
+		req.Option("cid-version", options.CidVersion)
+	}
 	if options.RawLeavesSet {
 		req.Option("raw-leaves", options.RawLeaves)
+	}
+	if options.MaxFileLinksSet {
+		req.Option("max-file-links", options.MaxFileLinks)
+	}
+	if options.MaxDirectoryLinksSet {
+		req.Option("max-directory-links", options.MaxDirectoryLinks)
+	}
+	if options.MaxHAMTFanoutSet {
+		req.Option("max-hamt-fanout", options.MaxHAMTFanout)
 	}
 
 	switch options.Layout {
