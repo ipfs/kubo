@@ -73,6 +73,10 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 		return nil, fmt.Errorf("key with name '%s' already exists", name)
 	}
 
+	if err := caopts.CheckKeySize(options.Algorithm, options.Size); err != nil {
+		return nil, err
+	}
+
 	var sk crypto.PrivKey
 	var pk crypto.PubKey
 

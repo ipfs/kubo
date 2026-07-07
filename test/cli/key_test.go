@@ -102,3 +102,22 @@ d417YkRfLfQovtY6OH++bZLXuZfF4cIDZ+2N3486dmbEqpbAxLLP
 		assert.Contains(t, node.IPFS("key", "list").Stdout.String(), "backup")
 	})
 }
+
+func TestKeyGenFixedSize(t *testing.T) {
+	t.Parallel()
+	node := harness.NewT(t).NewNode().Init()
+
+	// ed25519 and secp256k1 keys are always 256 bits. key gen accepts --size
+	// only when it matches; a mismatched value is an error, so a user asking
+	// for 2048 bits is told no rather than handed a 256-bit key.
+	for _, keyType := range []string{"ed25519", "secp256k1"} {
+		t.Run(keyType, func(t *testing.T) {
+			matched := node.IPFS("key", "gen", "--type="+keyType, "--size=256", "matched-"+keyType).Stdout.Trimmed()
+			assert.NotEmpty(t, matched)
+
+			res := node.RunIPFS("key", "gen", "--type="+keyType, "--size=2048", "mismatched-"+keyType)
+			assert.NotEqual(t, 0, res.ExitCode())
+			assert.Contains(t, res.Stderr.String(), "invalid key size 2048: "+keyType+" keys are always 256 bits")
+		})
+	}
+}
