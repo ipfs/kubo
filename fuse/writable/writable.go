@@ -675,16 +675,17 @@ func (fh *FileHandle) Write(_ context.Context, data []byte, off int64) (uint32, 
 // Flush persists buffered writes to the DAG and invalidates the
 // kernel's cached attrs so the next stat sees the updated size.
 //
-// We intentionally ignore ctx: the underlying MFS flush cannot be
-// safely canceled mid-operation, and abandoning it would leak a
-// background goroutine that races with the subsequent Release.
+// ctx does not gate the flush itself: the MFS flush cannot be safely
+// canceled mid-operation, and abandoning it would leak a background
+// goroutine that races with the subsequent Release. It is passed to
+// the pin lock like the other handlers.
 //
 // Cache invalidation happens here (in addition to Release) because
 // the kernel calls Flush synchronously inside close() but sends
 // Release asynchronously after close() returns. Without this, a
 // stat() immediately after close() could see stale cached attrs.
-func (fh *FileHandle) Flush(_ context.Context) syscall.Errno {
-	defer fh.cfg.pinLock(context.Background())()
+func (fh *FileHandle) Flush(ctx context.Context) syscall.Errno {
+	defer fh.cfg.pinLock(ctx)()
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
 
@@ -699,8 +700,8 @@ func (fh *FileHandle) Flush(_ context.Context) syscall.Errno {
 // content and attrs so readers opening the same path see the new data.
 // Invalidation happens here (not in Flush) because fd.Close commits
 // the final DAG node; Flush alone may not have the final size yet.
-func (fh *FileHandle) Release(_ context.Context) syscall.Errno {
-	defer fh.cfg.pinLock(context.Background())()
+func (fh *FileHandle) Release(ctx context.Context) syscall.Errno {
+	defer fh.cfg.pinLock(ctx)()
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
 
@@ -717,8 +718,8 @@ func (fh *FileHandle) Release(_ context.Context) syscall.Errno {
 // ensure data reaches persistent storage; a fresh reader on the same
 // path must see the synced bytes immediately, not the size the kernel
 // cached from the initial Create response.
-func (fh *FileHandle) Fsync(_ context.Context, _ uint32) syscall.Errno {
-	defer fh.cfg.pinLock(context.Background())()
+func (fh *FileHandle) Fsync(ctx context.Context, _ uint32) syscall.Errno {
+	defer fh.cfg.pinLock(ctx)()
 	fh.mu.Lock()
 	defer fh.mu.Unlock()
 
