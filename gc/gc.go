@@ -21,6 +21,10 @@ import (
 
 var log = logging.Logger("gc")
 
+// gcResultBufferSize bounds the GC result channel so the sweep goroutine can
+// keep deleting blocks without stalling on a slow consumer.
+const gcResultBufferSize = 128
+
 // Result represents an incremental output from a garbage collection
 // run.  It contains either an error, or the cid of a removed object.
 type Result struct {
@@ -61,7 +65,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 	bsrv := bserv.New(bs, offline.Exchange(bs))
 	ds := dag.NewDAGService(bsrv)
 
-	output := make(chan Result, 128)
+	output := make(chan Result, gcResultBufferSize)
 
 	go func() {
 		defer cancel()
@@ -74,7 +78,8 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 		// callback means there are no best-effort roots to keep.
 		var roots []cid.Cid
 		if bestEffortRoots != nil {
-			r, err := bestEffortRoots(ctx)
+			var err error
+			roots, err = bestEffortRoots(ctx)
 			if err != nil {
 				select {
 				case output <- Result{Error: err}:
@@ -82,7 +87,6 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 				}
 				return
 			}
-			roots = r
 		}
 
 		gcs, err := ColoredSet(ctx, pn, ds, roots, output)

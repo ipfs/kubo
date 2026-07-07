@@ -96,7 +96,7 @@ func TestGC(t *testing.T) {
 // snapshotted before the lock, a concurrent MFS write, which takes the pin lock,
 // can add blocks the snapshot misses and the sweep then deletes them.
 func TestGCSnapshotsBestEffortRootsUnderLock(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	ds := dssync.MutexWrap(datastore.NewMapDatastore())
 	bs := blockstore.NewGCBlockstore(blockstore.NewBlockstore(ds), blockstore.NewGCLocker())
