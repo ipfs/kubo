@@ -73,53 +73,21 @@ jobs:
       - run: chmod +x cmd/ipfs/ipfs
       - run: sudo apt update
       - run: sudo apt install -y libxkbcommon0 libxdamage1 libgbm1 libpango-1.0-0 libcairo2 # dependencies for playwright
-      # Cache node_modules based on latest @helia/interop version from npm registry.
-      # This ensures we always test against the latest release while still benefiting
-      # from caching when the version hasn't changed.
-      - name: Get latest @helia/interop version
-        id: helia-version
-        run: echo "version=$(npm view @helia/interop version)" >> $GITHUB_OUTPUT
-      - name: Cache helia-interop node_modules
-        uses: actions/cache@v6
-        id: helia-cache
+      # TODO: revert this block to `npm install @helia/interop` from the npm
+      # registry once ipfs/helia#1083 ships. That PR adapts the interop suite to
+      # Kubo's new unixfs-v1-2025 default; the published release still expects the
+      # old CIDv0 / 256 KiB defaults and fails against this build. Until then,
+      # build @helia/interop from the PR branch. Reverting restores the
+      # npm-install + node_modules .aegir.js workaround steps (see git history).
+      - name: Check out @helia/interop from ipfs/helia#1083
+        uses: actions/checkout@v7
         with:
-          path: node_modules
-          key: ${{ runner.os }}-helia-interop-${{ steps.helia-version.outputs.version }}
-      - name: Install @helia/interop
-        if: steps.helia-cache.outputs.cache-hit != 'true'
-        run: npm install @helia/interop
-      # Recurring @helia/interop regression: the published .aegir.js is unusable
-      # from inside node_modules, in one of two ways.
-      #
-      # 1. Missing: the package ships without .aegir.js in its "files", so
-      #    `aegir test` has no config and discovers no spec files. Happened around
-      #    ipfs/helia#1001 (fixed by ipfs/helia#1003), and again in ipfs/helia#1049
-      #    ("feat!: make libp2p optional"), which dropped it from 11.0.0-11.0.2.
-      # 2. Present but broken: the shipped config globs the TypeScript sources
-      #    (./src/*.spec.ts), written for running tests inside the helia monorepo.
-      #    Node refuses to type-strip .ts files under node_modules
-      #    (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING, no tsconfig is shipped),
-      #    so mocha dies on the first spec. This is what ipfs/helia#1066 restored
-      #    in 11.0.3.
-      #
-      # In both cases we write a minimal config pointing at the prebuilt
-      # ./dist/src, which is all a `-t node` run needs; the rest of helia's own
-      # config is browser-only setup skipped under node. A shipped config that
-      # does not glob .ts files is left untouched, so this step self-heals once
-      # helia publishes a node_modules-safe config. It writes into node_modules
-      # and is fragile if helia's dist layout shifts.
-      - name: Work around unusable @helia/interop/.aegir.js (ipfs/helia#1049, ipfs/helia#1066)
-        run: |
-          config=node_modules/@helia/interop/.aegir.js
-          if [ ! -f "$config" ]; then
-            echo "export default { test: { files: './dist/src/*.spec.js' } }" > "$config"
-            echo "injected minimal $config: file missing from published package"
-          elif grep -qE "files:.*\.spec\.ts" "$config"; then
-            echo "export default { test: { files: './dist/src/*.spec.js' } }" > "$config"
-            echo "replaced $config: shipped config globs .ts sources, which node cannot run from node_modules"
-          else
-            echo "$config is usable as shipped, no workaround needed"
-          fi
+          repository: ipfs/helia
+          ref: wip/kubo-cidv1-interop-fix
+          path: helia
+      - name: Build helia workspaces
+        run: npm install && npm run build
+        working-directory: helia
       # We run aegir directly (instead of the helia-interop binary) because the
       # bin spawns a bare `aegir test` with no way to pass the flags below.
       # --exit: the node interop specs spawn kubo daemons (via ipfsd-ctl +
@@ -130,7 +98,7 @@ jobs:
         run: npx aegir test -t node --bail -- --exit
         env:
           KUBO_BINARY: ${{ github.workspace }}/cmd/ipfs/ipfs
-        working-directory: node_modules/@helia/interop
+        working-directory: helia/packages/interop
   ipfs-webui:
     needs: [interop-prep]
     runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
