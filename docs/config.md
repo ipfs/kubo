@@ -107,6 +107,7 @@ config file at runtime.
     - [`Internal.ShutdownTimeout`](#internalshutdowntimeout)
     - [`Internal.CGNATCheck`](#internalcgnatcheck)
     - [`Internal.DeadListenerCheck`](#internaldeadlistenercheck)
+    - [`Internal.NonPublicAddrPublishing`](#internalnonpublicaddrpublishing)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
@@ -1988,6 +1989,20 @@ The check runs at startup and whenever listen addresses change. It logs an
 Set to `false` to disable the check.
 
 Default: `true`
+
+Type: `flag`
+
+### `Internal.NonPublicAddrPublishing`
+
+Controls whether the node publishes addresses that are not globally reachable: private-network ranges, carrier-grade NAT (`100.64.0.0/10`), link-local, loopback, unique local addresses, reserved IPv6 space, and special-use DNS names such as `.local`. Such addresses are useless to peers on the wider internet, and they say a little about your internal network.
+
+Set to `false` to keep them out of the peerstore self-entry and the signed peer record, so they stay out of DHT records and out of the signed record peers receive over identify. Useful when you want to pin down exactly what a node publishes, for example while reproducing a routing problem. Set it to `true` to publish them, which is what a LAN-only or test node wants.
+
+A few limits worth knowing. Addresses without an IP or DNS component, such as `/p2p-circuit`, are never filtered. The setting changes only what the node publishes, never what it listens on or dials, so [`ipfs id`](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-id) and [`ipfs swarm addrs local`](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-swarm-addrs-local) still report the unfiltered set. Peers reading the signed peer record see the filtered addresses; the older unsigned address list that identify also carries is untouched.
+
+When left unset, Kubo passes no option and the go-libp2p default applies.
+
+Default: unset (go-libp2p default)
 
 Type: `flag`
 

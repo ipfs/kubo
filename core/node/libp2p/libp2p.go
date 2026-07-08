@@ -104,3 +104,16 @@ func ForceReachability(val *config.OptionalString) func() (opts Libp2pOpts, err 
 		return
 	}
 }
+
+// NonPublicAddrPublishing controls whether non-globally-routable addresses stay
+// in the peerstore self-entry and the signed peer record. Leaving the flag unset
+// passes no option, so go-libp2p's own default decides.
+func NonPublicAddrPublishing(val config.Flag) func() (opts Libp2pOpts) {
+	return func() (opts Libp2pOpts) {
+		if val == config.Default {
+			return
+		}
+		opts.Opts = append(opts.Opts, libp2p.NonPublicAddrPublishing(val == config.True))
+		return
+	}
+}
