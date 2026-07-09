@@ -8,6 +8,15 @@
 
 Kubo ships with built-in support for denylist format from [IPIP-383](https://specs.ipfs.tech/ipips/ipip-0383/).
 
+> [!TIP]
+> Denylists are reactive: you block bad content after it appears and keep adding
+> entries as more shows up, which turns into whack-a-mole. If your gateway only
+> needs to serve a known set of content, an allowlist is simpler and stronger.
+> Run it with [`Gateway.NoFetch=true`](gateway.md#serve-only-your-own-content-gatewaynofetchtrue)
+> so it serves only the content you host and returns `404 Not Found` for
+> everything else, instead of fetching any CID on request and then having to
+> block the bad ones.
+
 ## Default behavior
 
 Official Kubo build does not ship with any denylists enabled by default.
@@ -79,7 +88,6 @@ Paths with unicode and whitespace need to be percent-encoded:
 ```
 
 Sensitive content paths can be double-hashed to block without revealing them.
-Double-hashed list example: https://badbits.dwebops.pub/badbits.deny
 
 See [IPIP-383](https://specs.ipfs.tech/ipips/ipip-0383/) for detailed format specification and more examples.
 

@@ -1634,74 +1634,10 @@ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 
 ### `Gateway` recipes
 
-Below is a list of the most common gateway setups.
-
-> [!IMPORTANT]
-> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) if running behind nginx or another reverse proxy.
-
-- Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
-
-   ```console
-   $ ipfs config --json Gateway.PublicGateways '{
-       "dweb.link": {
-         "UseSubdomains": true,
-         "Paths": ["/ipfs", "/ipns"]
-       }
-     }'
-   ```
-
-  - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. Separately, gateway operators should decide if the gateway node should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
-  - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
-
-     `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
-
-  - **X-Forwarded-Proto:** if you run Kubo behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcard TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
-
-     `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
-
-     `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`
-
-  - **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
-
-     `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
-
-- Public [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
-
-   ```console
-   $ ipfs config --json Gateway.PublicGateways '{
-       "ipfs.io": {
-         "UseSubdomains": false,
-         "Paths": ["/ipfs", "/ipns"]
-       }
-     }'
-   ```
-
-  - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. When running an open, recursive gateway, decide if the gateway should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
-
-- Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
-
-  ```console
-  ipfs config --json Gateway.NoDNSLink false
-  ```
-
-  - Note that `NoDNSLink: false` is the default (it works out of the box unless set to `true` manually)
-
-- Hardened, site-specific [DNSLink gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#dnslink-gateway).
-
-  Disable fetching of remote data (`NoFetch: true`) and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
-  Then, enable DNSLink gateway only for the specific hostname (for which data
-  is already present on the node), without exposing any content-addressing `Paths`:
-
-   ```console
-   $ ipfs config --json Gateway.NoFetch true
-   $ ipfs config --json Gateway.NoDNSLink true
-   $ ipfs config --json Gateway.PublicGateways '{
-       "en.wikipedia-on-ipfs.org": {
-         "NoDNSLink": false,
-         "Paths": []
-       }
-     }'
-   ```
+Common gateway setups are documented in the gateway guide under
+[Gateway recipes](gateway.md#gateway-recipes): the choice between serving any
+content from the network and serving only your own content (`Gateway.NoFetch`),
+plus the subdomain, path, and DNSLink URL styles.
 
 ## `Identity`
 
