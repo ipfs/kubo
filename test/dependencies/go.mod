@@ -7,9 +7,9 @@ replace github.com/ipfs/kubo => ../../
 require (
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/golangci/golangci-lint v1.64.8
-	github.com/ipfs/go-cidutil v0.1.1
+	github.com/ipfs/go-cidutil v0.1.2
 	github.com/ipfs/go-log/v2 v2.9.2
-	github.com/ipfs/go-test v0.3.0
+	github.com/ipfs/go-test v0.3.1-0.20260708202122-34b242570607
 	github.com/ipfs/hang-fds v0.1.0
 	github.com/ipfs/iptb v1.4.1
 	github.com/ipfs/iptb-plugins v0.5.1
@@ -137,17 +137,17 @@ require (
 	github.com/ipfs/bbloom v0.1.0 // indirect
 	github.com/ipfs/boxo v0.41.1-0.20260707130650-177b35c8ef09 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
-	github.com/ipfs/go-block-format v0.2.3 // indirect
-	github.com/ipfs/go-cid v0.6.1 // indirect
-	github.com/ipfs/go-datastore v0.9.1 // indirect
+	github.com/ipfs/go-block-format v0.2.4 // indirect
+	github.com/ipfs/go-cid v0.6.2 // indirect
+	github.com/ipfs/go-datastore v0.9.2 // indirect
 	github.com/ipfs/go-dsqueue v0.2.0 // indirect
 	github.com/ipfs/go-ipfs-cmds v0.16.1 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
-	github.com/ipfs/go-ipld-format v0.6.3 // indirect
+	github.com/ipfs/go-ipld-format v0.6.4 // indirect
 	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
-	github.com/ipfs/go-unixfsnode v1.10.4 // indirect
+	github.com/ipfs/go-unixfsnode v1.10.5-0.20260709012559-da47d415e73c // indirect
 	github.com/ipfs/kubo v0.31.0 // indirect
 	github.com/ipld/go-car/v2 v2.17.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect

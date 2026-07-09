@@ -23,10 +23,10 @@ require (
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
 	github.com/ipfs/boxo v0.41.1-0.20260707130650-177b35c8ef09
-	github.com/ipfs/go-block-format v0.2.3
-	github.com/ipfs/go-cid v0.6.1
-	github.com/ipfs/go-cidutil v0.1.1
-	github.com/ipfs/go-datastore v0.9.1
+	github.com/ipfs/go-block-format v0.2.4
+	github.com/ipfs/go-cid v0.6.2
+	github.com/ipfs/go-cidutil v0.1.2
+	github.com/ipfs/go-datastore v0.9.2
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.3.4
 	github.com/ipfs/go-ds-flatfs v0.6.0
@@ -36,14 +36,14 @@ require (
 	github.com/ipfs/go-fs-lock v0.1.1
 	github.com/ipfs/go-ipfs-cmds v0.16.1
 	github.com/ipfs/go-ipld-cbor v0.2.1
-	github.com/ipfs/go-ipld-format v0.6.3
+	github.com/ipfs/go-ipld-format v0.6.4
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.3.0
 	github.com/ipfs/go-log/v2 v2.9.2
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
-	github.com/ipfs/go-test v0.3.0
-	github.com/ipfs/go-unixfsnode v1.10.4
+	github.com/ipfs/go-test v0.3.1-0.20260708202122-34b242570607
+	github.com/ipfs/go-unixfsnode v1.10.5-0.20260709012559-da47d415e73c
 	github.com/ipld/go-car/v2 v2.17.0
 	github.com/ipld/go-codec-dagpb v1.7.0
 	github.com/ipld/go-ipld-prime v0.24.0
