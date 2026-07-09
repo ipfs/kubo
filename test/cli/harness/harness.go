@@ -222,6 +222,8 @@ func (h *Harness) Cleanup() {
 	log.Debugf("removing harness dir")
 	err := os.RemoveAll(h.Dir)
 	if err != nil {
+		ents, _ := os.ReadDir(h.Dir)
+		log.Error("dir has entries:", ents)
 		log.Panicf("removing temp dir %s: %s", h.Dir, err)
 	}
 }

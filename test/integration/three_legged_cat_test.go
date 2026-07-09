@@ -10,11 +10,11 @@ import (
 	"time"
 
 	bootstrap2 "github.com/ipfs/boxo/bootstrap"
+	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/core/coreapi"
 	mock "github.com/ipfs/kubo/core/mock"
 	"github.com/ipfs/kubo/thirdparty/unit"
-
-	"github.com/ipfs/boxo/files"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
 	"github.com/libp2p/go-libp2p/core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
@@ -26,7 +26,7 @@ func TestThreeLeggedCatTransfer(t *testing.T) {
 		RoutingLatency:    0,
 		BlockstoreLatency: 0,
 	}
-	if err := RunThreeLeggedCat(RandomBytes(1*unit.MB), conf); err != nil {
+	if err := RunThreeLeggedCat(random.Bytes(1*unit.MB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -34,7 +34,7 @@ func TestThreeLeggedCatTransfer(t *testing.T) {
 func TestThreeLeggedCatDegenerateSlowBlockstore(t *testing.T) {
 	SkipUnlessEpic(t)
 	conf := testutil.LatencyConfig{BlockstoreLatency: 50 * time.Millisecond}
-	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
+	if err := RunThreeLeggedCat(random.Bytes(1*unit.KB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -42,7 +42,7 @@ func TestThreeLeggedCatDegenerateSlowBlockstore(t *testing.T) {
 func TestThreeLeggedCatDegenerateSlowNetwork(t *testing.T) {
 	SkipUnlessEpic(t)
 	conf := testutil.LatencyConfig{NetworkLatency: 400 * time.Millisecond}
-	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
+	if err := RunThreeLeggedCat(random.Bytes(1*unit.KB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -50,7 +50,7 @@ func TestThreeLeggedCatDegenerateSlowNetwork(t *testing.T) {
 func TestThreeLeggedCatDegenerateSlowRouting(t *testing.T) {
 	SkipUnlessEpic(t)
 	conf := testutil.LatencyConfig{RoutingLatency: 400 * time.Millisecond}
-	if err := RunThreeLeggedCat(RandomBytes(1*unit.KB), conf); err != nil {
+	if err := RunThreeLeggedCat(random.Bytes(1*unit.KB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -58,7 +58,7 @@ func TestThreeLeggedCatDegenerateSlowRouting(t *testing.T) {
 func TestThreeLeggedCat100MBMacbookCoastToCoast(t *testing.T) {
 	SkipUnlessEpic(t)
 	conf := testutil.LatencyConfig{}.NetworkNYtoSF().BlockstoreSlowSSD2014().RoutingSlow()
-	if err := RunThreeLeggedCat(RandomBytes(100*unit.MB), conf); err != nil {
+	if err := RunThreeLeggedCat(random.Bytes(100*unit.MB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
