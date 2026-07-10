@@ -76,12 +76,12 @@ require (
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0 // indirect
 	github.com/ipfs/bbloom v0.1.0 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
-	github.com/ipfs/go-block-format v0.2.3 // indirect
-	github.com/ipfs/go-cid v0.6.1 // indirect
-	github.com/ipfs/go-cidutil v0.1.1 // indirect
-	github.com/ipfs/go-datastore v0.9.1 // indirect
+	github.com/ipfs/go-block-format v0.2.4 // indirect
+	github.com/ipfs/go-cid v0.6.2 // indirect
+	github.com/ipfs/go-cidutil v0.1.2 // indirect
+	github.com/ipfs/go-datastore v0.9.2 // indirect
 	github.com/ipfs/go-ds-badger v0.3.4 // indirect
-	github.com/ipfs/go-ds-flatfs v0.6.0 // indirect
+	github.com/ipfs/go-ds-flatfs v0.6.1 // indirect
 	github.com/ipfs/go-ds-leveldb v0.5.2 // indirect
 	github.com/ipfs/go-ds-measure v0.2.2 // indirect
 	github.com/ipfs/go-ds-pebble v0.5.12 // indirect
@@ -92,7 +92,7 @@ require (
 	github.com/ipfs/go-ipfs-pq v0.0.4 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
-	github.com/ipfs/go-ipld-format v0.6.3 // indirect
+	github.com/ipfs/go-ipld-format v0.6.4 // indirect
 	github.com/ipfs/go-ipld-git v0.1.1 // indirect
 	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
 	github.com/ipfs/go-libdht v0.5.0 // indirect
@@ -100,7 +100,7 @@ require (
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.3 // indirect
 	github.com/ipfs/go-test v0.3.0 // indirect
-	github.com/ipfs/go-unixfsnode v1.10.4 // indirect
+	github.com/ipfs/go-unixfsnode v1.10.5 // indirect
 	github.com/ipld/go-car/v2 v2.17.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.24.0 // indirect
@@ -210,16 +210,16 @@ require (
 	go.uber.org/zap/exp v0.3.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	golang.org/x/crypto v0.53.0 // indirect
-	golang.org/x/exp v0.0.0-20260603202125-055de637280b // indirect
-	golang.org/x/mod v0.37.0 // indirect
-	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/telemetry v0.0.0-20260508192327-42602be52be6 // indirect
-	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/crypto v0.54.0 // indirect
+	golang.org/x/exp v0.0.0-20260709172345-9ea1abe57597 // indirect
+	golang.org/x/mod v0.38.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260708182218-49f421fb7959 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	golang.org/x/tools v0.45.0 // indirect
+	golang.org/x/tools v0.48.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
