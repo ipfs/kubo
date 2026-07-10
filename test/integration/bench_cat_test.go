@@ -2,6 +2,7 @@ package integrationtest
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"math"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/files"
-	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 	mock "github.com/ipfs/kubo/core/mock"
@@ -24,7 +24,7 @@ func BenchmarkCat2MB(b *testing.B) { benchmarkVarCat(b, unit.MB*2) }
 func BenchmarkCat4MB(b *testing.B) { benchmarkVarCat(b, unit.MB*4) }
 
 func benchmarkVarCat(b *testing.B, size int64) {
-	data := random.Bytes(size)
+	data := RandomBytes(size)
 	b.SetBytes(size)
 	for n := 0; n < b.N; n++ {
 		err := benchCat(b, data, instant)
@@ -36,7 +36,8 @@ func benchmarkVarCat(b *testing.B, size int64) {
 
 func benchCat(b *testing.B, data []byte, conf testutil.LatencyConfig) error {
 	b.StopTimer()
-	ctx := b.Context()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// create network
 	mn := mocknet.New()

@@ -34,7 +34,7 @@ func compareResults() error {
 }
 
 func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
-	seed := random.NewSeed()
+	seed := random.MakeSeed(1)
 	results := testing.Benchmark(func(b *testing.B) {
 		b.SetBytes(amount)
 		for i := 0; i < b.N; i++ {

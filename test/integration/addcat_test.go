@@ -26,6 +26,14 @@ import (
 
 var log = logging.Logger("epictest")
 
+const kSeed = 1
+
+var randSeed [32]byte
+
+func init() {
+	randSeed = random.MakeSeed(kSeed)
+}
+
 func Test1KBInstantaneous(t *testing.T) {
 	conf := testutil.LatencyConfig{
 		NetworkLatency:    0,
@@ -33,7 +41,7 @@ func Test1KBInstantaneous(t *testing.T) {
 		BlockstoreLatency: 0,
 	}
 
-	if err := DirectAddCat(random.Bytes(1*unit.KB), conf); err != nil {
+	if err := DirectAddCat(RandomBytes(1*unit.KB), conf); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -65,21 +73,24 @@ func TestDegenerateSlowRouting(t *testing.T) {
 func Test100MBMacbookCoastToCoast(t *testing.T) {
 	SkipUnlessEpic(t)
 	conf := testutil.LatencyConfig{}.NetworkNYtoSF().BlockstoreSlowSSD2014().RoutingSlow()
-	if err := DirectAddCat(random.Bytes(100*1024*1024), conf); err != nil {
+	if err := DirectAddCat(RandomBytes(100*1024*1024), conf); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func AddCatPowers(conf testutil.LatencyConfig, megabytesMax int64) error {
 	var i int64
-	rnd := random.New()
 	for i = 1; i < megabytesMax; i = i * 2 {
 		fmt.Printf("%d MB\n", i)
-		if err := DirectAddCat(rnd.Bytes(i*1024*1024), conf); err != nil {
+		if err := DirectAddCat(RandomBytes(i*1024*1024), conf); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func RandomBytes(n int64) []byte {
+	return random.NewSeeded(randSeed).Bytes(n)
 }
 
 func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
