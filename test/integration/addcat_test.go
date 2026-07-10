@@ -26,8 +26,6 @@ import (
 
 var log = logging.Logger("epictest")
 
-var kSeed = [32]byte([]byte("abcdefghijklmnopqrstuvwxyz012345"))
-
 func Test1KBInstantaneous(t *testing.T) {
 	conf := testutil.LatencyConfig{
 		NetworkLatency:    0,
