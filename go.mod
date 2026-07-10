@@ -51,11 +51,11 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/libp2p/go-doh-resolver v0.5.0
-	github.com/libp2p/go-libp2p v0.48.0
+	github.com/libp2p/go-libp2p v0.48.1-0.20260708062241-95be6665b014 // TODO: switch to a tagged release once one ships past v0.48.0
 	github.com/libp2p/go-libp2p-http v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.41.0
 	github.com/libp2p/go-libp2p-kbucket v0.8.0
-	github.com/libp2p/go-libp2p-pubsub v0.16.0
+	github.com/libp2p/go-libp2p-pubsub v0.16.1-0.20260707102207-01917ab4bc72 // TODO: switch to a tagged release once one ships past v0.16.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
 	github.com/libp2p/go-libp2p-record v0.3.1
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.5

@@ -21,6 +21,8 @@ require (
 require (
 	4d63.com/gocheckcompilerdirectives v1.3.0 // indirect
 	4d63.com/gochecknoglobals v0.2.2 // indirect
+	filippo.io/bigmod v0.1.1-0.20260103110540-f8a47775ebe5 // indirect
+	filippo.io/keygen v0.0.0-20260114151900-8e2790ea4c5b // indirect
 	github.com/4meepo/tagalign v1.4.2 // indirect
 	github.com/Abirdcfly/dupword v0.1.3 // indirect
 	github.com/Antonboom/errname v1.0.0 // indirect
@@ -181,7 +183,7 @@ require (
 	github.com/libp2p/go-cidranger v1.1.0 // indirect
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.3.0 // indirect
-	github.com/libp2p/go-libp2p v0.48.0 // indirect
+	github.com/libp2p/go-libp2p v0.48.1-0.20260708062241-95be6665b014 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
 	github.com/libp2p/go-libp2p-kad-dht v0.41.0 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.8.0 // indirect
