@@ -280,5 +280,3 @@ exclude (
 	github.com/ipfs/go-ipfs-cmds v2.0.1+incompatible
 	github.com/libp2p/go-libp2p v6.0.23+incompatible
 )
-
-replace github.com/ipfs/go-test => /Users/ajg/pl/ipfs/go-test
