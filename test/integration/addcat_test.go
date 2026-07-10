@@ -31,7 +31,7 @@ const kSeed = 1
 var randSeed [32]byte
 
 func init() {
-	randSeed = random.MakeSeed(kSeed)
+	randSeed = random.Uint64ToSeed(kSeed)
 }
 
 func Test1KBInstantaneous(t *testing.T) {

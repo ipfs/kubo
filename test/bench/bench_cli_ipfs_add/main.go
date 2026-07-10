@@ -42,7 +42,7 @@ func compareResults() error {
 
 func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 	var benchmarkError error
-	seed := random.MakeSeed(1)
+	seed := random.Uint64ToSeed(1)
 
 	results := testing.Benchmark(func(b *testing.B) {
 		b.SetBytes(amount)

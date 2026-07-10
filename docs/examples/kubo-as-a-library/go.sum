@@ -339,8 +339,8 @@ github.com/ipfs/go-metrics-interface v0.3.0 h1:YwG7/Cy4R94mYDUuwsBfeziJCVm9pBMJ6
 github.com/ipfs/go-metrics-interface v0.3.0/go.mod h1:OxxQjZDGocXVdyTPocns6cOLwHieqej/jos7H4POwoY=
 github.com/ipfs/go-peertaskqueue v0.8.3 h1:tBPpGJy+A92RqtRFq5amJn0Uuj8Pw8tXi0X3eHfHM8w=
 github.com/ipfs/go-peertaskqueue v0.8.3/go.mod h1:OqVync4kPOcXEGdj/LKvox9DCB5mkSBeXsPczCxLtYA=
-github.com/ipfs/go-test v0.3.1-0.20260709160526-27b54c53fe50 h1:cpWm5BZTPXaxXkmOzRLtP4gjVJeTwssNe2+9tYG2uO0=
-github.com/ipfs/go-test v0.3.1-0.20260709160526-27b54c53fe50/go.mod h1:JK+U8pRpATZb7lsYNSJlCj3WYB3cFfWIbI6nWRM/GFk=
+github.com/ipfs/go-test v0.3.1-0.20260713001830-e9e6d6b05737 h1:34LJghR980JwiLQHxil4SGO8wDC9omOGikmEMvTbTj8=
+github.com/ipfs/go-test v0.3.1-0.20260713001830-e9e6d6b05737/go.mod h1:JK+U8pRpATZb7lsYNSJlCj3WYB3cFfWIbI6nWRM/GFk=
 github.com/ipfs/go-unixfsnode v1.10.5 h1:V34JV7fM90y+2ZUef7ToShjmwAZ8oo1yP7zrpWzC5L4=
 github.com/ipfs/go-unixfsnode v1.10.5/go.mod h1:u/9Ukl+XYpfKTMu+NXQqxbzAJVTwSCoyTYBGgE+JdSE=
 github.com/ipld/go-car/v2 v2.17.0 h1:zgjSxf/lQNYcQPX08cvb5rSdEY8sv5OOnQIsZhZMPx4=
