@@ -63,7 +63,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: lts/*
       - uses: actions/download-artifact@v8
@@ -155,7 +155,7 @@ jobs:
         with:
           repository: ipfs/ipfs-webui
           path: ipfs-webui
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: 'ipfs-webui/.tool-versions'
       - id: webui-ref
