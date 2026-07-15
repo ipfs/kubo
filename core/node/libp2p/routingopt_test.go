@@ -206,14 +206,19 @@ func TestEndpointCapabilitiesReadWriteLogic(t *testing.T) {
 }
 
 // stubHost is a minimal host.Host stub for testing httpRouterAddrFunc.
-// reachable mocks ConfirmedAddrs (AutoNAT V2 result); hostAddrs mocks
-// Addrs(), which in a real host returns wildcard-resolved interface
-// addresses after the AddrsFactory filters (NoAnnounce/AddrFilters).
+// hostAddrs mocks Addrs(), which in a real host returns wildcard-resolved
+// interface addresses after the AddrsFactory ran (NoAnnounce filtering, the
+// AutoTLS /tls/ws address, certhashes).
 type stubHost struct {
-	reachable []ma.Multiaddr
 	hostAddrs []ma.Multiaddr
+	reachable []ma.Multiaddr
 }
 
+// ConfirmedAddrs mocks the AutoNAT V2 confirmed set. httpRouterAddrFunc must
+// not consult it: AutoNAT only sees listen addresses, so the AddrsFactory-
+// synthesized AutoTLS /tls/ws address can never appear in it, and a record
+// narrowed to this set carries nothing a browser can dial.
+// See https://github.com/ipfs/kubo/issues/11369.
 func (h *stubHost) ConfirmedAddrs() (reachable, unreachable, unknown []ma.Multiaddr) {
 	return h.reachable, nil, nil
 }
@@ -237,77 +242,126 @@ func (h *stubHost) ConnManager() connmgr.ConnManager { panic("unused") }
 func (h *stubHost) EventBus() event.Bus              { panic("unused") }
 
 func TestHttpRouterAddrFunc(t *testing.T) {
-	// hostAddrs simulates what host.Addrs() returns in a running daemon:
-	// wildcard Swarm binds resolved to concrete interfaces, with the
-	// libp2p AddrsFactory (NoAnnounce/AddrFilters) already applied.
-	resolvedAddrs := []string{
-		"/ip4/192.168.1.10/tcp/4001",
-		"/ip4/192.168.1.10/udp/4001/quic-v1",
-	}
+	// A publicly reachable node with every transport kubo can announce.
+	// This is what host.Addrs() returns in a running daemon: wildcard Swarm
+	// binds resolved to concrete interfaces (so the LAN address shows up
+	// next to the public one), AddrsFactory applied, certhashes attached.
+	const (
+		autoTLSWS    = "/dns4/1-2-3-4.k51qzi5uqu5dlwbcbb2u3ptbnhs5lpj4nc3xbhrgqrkgo3l0h5xgv9k1nn9k1.libp2p.direct/tcp/4001/tls/ws"
+		webRTCDirect = "/ip4/1.2.3.4/udp/4001/webrtc-direct/certhash/uEiDDq4_xKlbjmeSaEwB7UUcH_TS1z2WLwkGuOHZgKZgUSw"
+		webTransport = "/ip4/1.2.3.4/udp/4001/quic-v1/webtransport/certhash/uEiDDq4_xKlbjmeSaEwB7UUcH_TS1z2WLwkGuOHZgKZgUSw"
+		publicTCP    = "/ip4/1.2.3.4/tcp/4001"
+		publicQUIC   = "/ip4/1.2.3.4/udp/4001/quic-v1"
+		lanTCP       = "/ip4/192.168.1.10/tcp/4001"
+		lanQUIC      = "/ip4/192.168.1.10/udp/4001/quic-v1"
+		loopbackTCP  = "/ip4/127.0.0.1/tcp/4001"
+	)
+	publicNodeAddrs := []string{autoTLSWS, webRTCDirect, webTransport, publicTCP, publicQUIC, lanTCP, loopbackTCP}
+	lanOnlyAddrs := []string{lanTCP, lanQUIC}
 
 	tests := []struct {
 		name      string
-		reachable []string // autonat confirmed addrs (nil = none)
 		hostAddrs []string // host.Addrs() output (nil = none)
+		reachable []string // AutoNAT V2 confirmed set; must NOT influence the result
 		cfg       config.Addresses
 		want      []string
 	}{
 		{
-			name:      "prefers autonat confirmed reachable addrs over host.Addrs fallback",
-			reachable: []string{"/ip4/1.2.3.4/tcp/4001", "/ip4/1.2.3.4/udp/4001/quic-v1"},
-			hostAddrs: resolvedAddrs,
+			// Regression test for https://github.com/ipfs/kubo/issues/11369:
+			// the record must be built from host.Addrs(), never from
+			// ConfirmedAddrs. reachable carries the narrowed set AutoNAT
+			// reports on such a node (no AutoTLS, no webrtc-direct); the
+			// browser-dialable addrs from hostAddrs must win.
+			name:      "browser-dialable transports reach the record on a public node",
+			hostAddrs: publicNodeAddrs,
+			reachable: []string{publicTCP, publicQUIC, webTransport},
 			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"}},
-			want:      []string{"/ip4/1.2.3.4/tcp/4001", "/ip4/1.2.3.4/udp/4001/quic-v1"},
+			want:      []string{autoTLSWS, webRTCDirect, webTransport, publicTCP, publicQUIC},
 		},
 		{
-			name:      "falls back to host.Addrs when autonat has no confirmed addrs",
-			hostAddrs: resolvedAddrs,
+			name:      "LAN-only node announces what it has",
+			hostAddrs: lanOnlyAddrs,
 			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic-v1"}},
-			want:      resolvedAddrs,
+			want:      lanOnlyAddrs,
 		},
 		{
-			name:      "Announce overrides autonat and host.Addrs",
-			reachable: []string{"/ip4/1.2.3.4/tcp/4001"},
-			hostAddrs: resolvedAddrs,
+			name:      "empty host.Addrs announces nothing",
+			hostAddrs: nil,
+			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}},
+			want:      nil,
+		},
+		{
+			name:      "empty host.Addrs with AppendAnnounce announces AppendAnnounce",
+			hostAddrs: nil,
+			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, AppendAnnounce: []string{"/ip4/10.0.0.1/tcp/4001"}},
+			want:      []string{"/ip4/10.0.0.1/tcp/4001"},
+		},
+		{
+			name:      "Announce overrides host.Addrs",
+			hostAddrs: publicNodeAddrs,
 			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, Announce: []string{"/ip4/5.6.7.8/tcp/4001"}},
 			want:      []string{"/ip4/5.6.7.8/tcp/4001"},
 		},
 		{
-			name:      "AppendAnnounce added to autonat addrs",
-			reachable: []string{"/ip4/1.2.3.4/tcp/4001"},
-			hostAddrs: resolvedAddrs,
+			// AppendAnnounce is an explicit operator override, so it survives
+			// the public-address filter even when it is a LAN address.
+			name:      "AppendAnnounce added to host.Addrs",
+			hostAddrs: []string{publicTCP, lanTCP},
 			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, AppendAnnounce: []string{"/ip4/10.0.0.1/tcp/4001"}},
-			want:      []string{"/ip4/1.2.3.4/tcp/4001", "/ip4/10.0.0.1/tcp/4001"},
+			want:      []string{publicTCP, "/ip4/10.0.0.1/tcp/4001"},
 		},
 		{
-			name:      "AppendAnnounce added to host.Addrs fallback",
-			hostAddrs: resolvedAddrs,
+			name:      "AppendAnnounce added to LAN-only fallback",
+			hostAddrs: lanOnlyAddrs,
 			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, AppendAnnounce: []string{"/ip4/10.0.0.1/tcp/4001"}},
-			want:      append(append([]string{}, resolvedAddrs...), "/ip4/10.0.0.1/tcp/4001"),
+			want:      append(append([]string{}, lanOnlyAddrs...), "/ip4/10.0.0.1/tcp/4001"),
+		},
+		{
+			// The AddrsFactory injects AppendAnnounce into h.Addrs(), so the
+			// same addr arrives twice: once inside hostAddrs and once via the
+			// explicit re-append. The record must carry it exactly once.
+			name:      "AppendAnnounce present in host.Addrs is not duplicated",
+			hostAddrs: []string{publicTCP, "/ip4/5.6.7.8/tcp/4001"},
+			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, AppendAnnounce: []string{"/ip4/5.6.7.8/tcp/4001"}},
+			want:      []string{publicTCP, "/ip4/5.6.7.8/tcp/4001"},
+		},
+		{
+			// A public AppendAnnounce echoed back through h.Addrs() must not
+			// count as "the node has a public address" and evict the real
+			// LAN addresses of an otherwise private node.
+			name:      "public AppendAnnounce does not evict LAN-only fallback addrs",
+			hostAddrs: append([]string{"/ip4/5.6.7.8/tcp/4001"}, lanOnlyAddrs...),
+			cfg:       config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, AppendAnnounce: []string{"/ip4/5.6.7.8/tcp/4001"}},
+			want:      append(append([]string{}, lanOnlyAddrs...), "/ip4/5.6.7.8/tcp/4001"),
 		},
 		{
 			// NoAnnounce (including server profile CIDR ranges) is applied by the
 			// libp2p AddrsFactory before host.Addrs() returns, so httpRouterAddrFunc
-			// itself performs no filtering on the fallback.
+			// never sees the filtered addresses.
 			name:      "NoAnnounce filtering happens upstream in host.Addrs",
-			hostAddrs: []string{"/ip4/192.168.1.10/tcp/4001"}, // already filtered by addrFactory
+			hostAddrs: []string{lanTCP}, // already filtered by addrFactory
 			cfg: config.Addresses{
 				Swarm:      []string{"/ip4/0.0.0.0/tcp/4001"},
 				NoAnnounce: []string{"/ip4/127.0.0.0/ipcidr/8"},
 			},
-			want: []string{"/ip4/192.168.1.10/tcp/4001"},
+			want: []string{lanTCP},
 		},
 		{
 			name: "AppendAnnounce added to Announce",
 			cfg:  config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, Announce: []string{"/ip4/5.6.7.8/tcp/4001"}, AppendAnnounce: []string{"/ip4/10.0.0.1/tcp/4001"}},
 			want: []string{"/ip4/5.6.7.8/tcp/4001", "/ip4/10.0.0.1/tcp/4001"},
 		},
+		{
+			name: "AppendAnnounce overlapping Announce is not duplicated",
+			cfg:  config.Addresses{Swarm: []string{"/ip4/0.0.0.0/tcp/4001"}, Announce: []string{"/ip4/5.6.7.8/tcp/4001"}, AppendAnnounce: []string{"/ip4/5.6.7.8/tcp/4001", "/ip4/10.0.0.1/tcp/4001"}},
+			want: []string{"/ip4/5.6.7.8/tcp/4001", "/ip4/10.0.0.1/tcp/4001"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &stubHost{
-				reachable: parseMultiaddrs(tt.reachable),
 				hostAddrs: parseMultiaddrs(tt.hostAddrs),
+				reachable: parseMultiaddrs(tt.reachable),
 			}
 			fn := httpRouterAddrFunc(h, tt.cfg)
 			assert.Equal(t, parseMultiaddrs(tt.want), fn())
