@@ -83,7 +83,7 @@ require (
 	github.com/ipfs/go-ds-badger v0.3.4 // indirect
 	github.com/ipfs/go-ds-flatfs v0.6.1 // indirect
 	github.com/ipfs/go-ds-leveldb v0.5.2 // indirect
-	github.com/ipfs/go-ds-measure v0.2.2 // indirect
+	github.com/ipfs/go-ds-measure v0.2.3 // indirect
 	github.com/ipfs/go-ds-pebble v0.5.12 // indirect
 	github.com/ipfs/go-dsqueue v0.2.0 // indirect
 	github.com/ipfs/go-fs-lock v0.1.1 // indirect
@@ -91,7 +91,7 @@ require (
 	github.com/ipfs/go-ipfs-ds-help v1.1.1 // indirect
 	github.com/ipfs/go-ipfs-pq v0.0.4 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
-	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
+	github.com/ipfs/go-ipld-cbor v0.3.0 // indirect
 	github.com/ipfs/go-ipld-format v0.6.4 // indirect
 	github.com/ipfs/go-ipld-git v0.1.1 // indirect
 	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
@@ -99,7 +99,7 @@ require (
 	github.com/ipfs/go-log/v2 v2.9.2 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.3 // indirect
-	github.com/ipfs/go-test v0.3.0 // indirect
+	github.com/ipfs/go-test v0.4.0 // indirect
 	github.com/ipfs/go-unixfsnode v1.10.5 // indirect
 	github.com/ipld/go-car/v2 v2.17.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect

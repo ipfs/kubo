@@ -9,7 +9,7 @@ require (
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/ipfs/go-cidutil v0.1.2
 	github.com/ipfs/go-log/v2 v2.9.2
-	github.com/ipfs/go-test v0.3.0
+	github.com/ipfs/go-test v0.4.0
 	github.com/ipfs/hang-fds v0.1.0
 	github.com/ipfs/iptb v1.4.1
 	github.com/ipfs/iptb-plugins v0.5.1
@@ -145,7 +145,7 @@ require (
 	github.com/ipfs/go-dsqueue v0.2.0 // indirect
 	github.com/ipfs/go-ipfs-cmds v0.16.1 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
-	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
+	github.com/ipfs/go-ipld-cbor v0.3.0 // indirect
 	github.com/ipfs/go-ipld-format v0.6.4 // indirect
 	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
