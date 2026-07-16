@@ -31,18 +31,18 @@ require (
 	github.com/ipfs/go-ds-badger v0.3.4
 	github.com/ipfs/go-ds-flatfs v0.6.1
 	github.com/ipfs/go-ds-leveldb v0.5.2
-	github.com/ipfs/go-ds-measure v0.2.2
+	github.com/ipfs/go-ds-measure v0.2.3
 	github.com/ipfs/go-ds-pebble v0.5.12
 	github.com/ipfs/go-fs-lock v0.1.1
 	github.com/ipfs/go-ipfs-cmds v0.16.1
-	github.com/ipfs/go-ipld-cbor v0.2.1
+	github.com/ipfs/go-ipld-cbor v0.3.0
 	github.com/ipfs/go-ipld-format v0.6.4
 	github.com/ipfs/go-ipld-git v0.1.1
 	github.com/ipfs/go-ipld-legacy v0.3.0
 	github.com/ipfs/go-log/v2 v2.9.2
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
-	github.com/ipfs/go-test v0.3.0
+	github.com/ipfs/go-test v0.4.0
 	github.com/ipfs/go-unixfsnode v1.10.5
 	github.com/ipld/go-car/v2 v2.17.0
 	github.com/ipld/go-codec-dagpb v1.7.0
