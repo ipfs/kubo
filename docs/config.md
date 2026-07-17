@@ -774,6 +774,7 @@ When activated, together with [`AutoTLS.AutoWSS`](#autotlsautowss) (default) or 
 **Note:**
 
 - This feature requires a publicly reachable node. If behind NAT, manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`) is required.
+- On a node without a certificate yet, broker health is confirmed before the first registration attempt (HTTP GET of `/v1/health` at [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint) must return HTTP 204). The check runs after [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay), once the node is publicly reachable. While the broker keeps failing the check, certificate setup is postponed and health is re-checked hourly; issuance starts automatically once the broker recovers.
 - The first time AutoTLS is used, it may take 5-15 minutes + [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay) before `/ws` listener is added. Be patient.
 - Avoid manual configuration. [`AutoTLS.AutoWSS=true`](#autotlsautowss) should automatically add `/ws` listener to existing, firewall-forwarded `/tcp` ports.
 - To troubleshoot, use `GOLOG_LOG_LEVEL="error,autotls=debug` for detailed logs, or `GOLOG_LOG_LEVEL="error,autotls=info` for quieter output.
