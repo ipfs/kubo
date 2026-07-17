@@ -138,6 +138,12 @@ Works when on-demand pinning is disabled, to clear old registrations.
 			}
 			c := rp.RootCid()
 
+			// Check the store first so an unregistered CID errors before any pin is touched.
+			if _, err := store.Get(req.Context, c); err != nil {
+				return err
+			}
+
+			// Only remove pins carrying the Kubo-internal kubo:on-demand name; user pins on the same CID are kept.
 			isOurs, err := ondemandpin.PinHasName(req.Context, n.Pinning, c, ondemandpin.OnDemandPinName)
 			if err != nil {
 				return fmt.Errorf("checking pin state for %s: %w", c, err)

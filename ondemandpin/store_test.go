@@ -40,7 +40,16 @@ func TestStoreRoundTrip(t *testing.T) {
 	require.NoError(t, s.Remove(ctx, c))
 
 	_, err = s.Get(ctx, c)
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrNotRegistered)
+}
+
+// Get on a CID that was never registered returns ErrNotRegistered.
+func TestStoreGetNotRegistered(t *testing.T) {
+	ctx := context.Background()
+	s := newTestStore(t)
+
+	_, err := s.Get(ctx, testCID(t, "never-registered"))
+	assert.ErrorIs(t, err, ErrNotRegistered)
 }
 
 // List returns all registered records.

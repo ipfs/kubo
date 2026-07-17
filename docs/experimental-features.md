@@ -626,9 +626,9 @@ The feature consists of:
 - A **registry** of CIDs to monitor, managed via `ipfs pin ondemand add|rm|ls`.
 - A **background checker** that periodically queries the DHT for each
   registered CID and pins or unpins accordingly.
-- **Pin partitioning**: the checker marks its pins with the name `"on-demand"`
-  to distinguish them from user-created pins and will never remove a pin it
-  did not create.
+- **Pin partitioning**: the checker marks its pins with the name
+  `"kubo:on-demand"`, so the checker can tell its
+  pins apart from user pins and will never remove a pin it did not create.
 
 When the checker pins a CID it also publishes a provider record to the DHT
 so other peers can discover the content on this node.

@@ -83,7 +83,11 @@ func (s *Store) Get(ctx context.Context, c cid.Cid) (*Record, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return s.get(ctx, dsKey(c))
+	rec, err := s.get(ctx, dsKey(c))
+	if errors.Is(err, datastore.ErrNotFound) {
+		return nil, fmt.Errorf("%s: %w", c, ErrNotRegistered)
+	}
+	return rec, err
 }
 
 func (s *Store) List(ctx context.Context) ([]Record, error) {

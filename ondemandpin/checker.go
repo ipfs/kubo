@@ -16,7 +16,9 @@ var log = logging.Logger("ondemandpin")
 
 // OnDemandPinName is the pin name the checker uses when creating pins (Kubo specific. Other implementation may divert from this method).
 // Pins carrying this name are considered managed by on-demand pinning and may be removed automatically when replication recovers.
-const OnDemandPinName = "on-demand"
+// The name is part of the Kubo-internal "kubo:" namespace, which ValidatePinName refuses for user-supplied
+// names, so only Kubo-internal code can create pins with this name.
+const OnDemandPinName = "kubo:on-demand"
 
 // checkTimeout prevents hung DHT query or pin/unpin operation from blocking the checker indefinitely.
 const checkTimeout = 5 * time.Minute

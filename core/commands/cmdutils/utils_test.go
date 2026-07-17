@@ -178,4 +178,9 @@ func TestValidatePinName(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "bytes")
 	})
-}
+
+	t.Run("pin name with reserved prefix is rejected", func(t *testing.T) {
+		err := ValidatePinName(ReservedPinNamePrefix + "on-demand")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "reserved")
+	})
