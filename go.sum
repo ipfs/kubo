@@ -344,8 +344,8 @@ github.com/ipfs-shipyard/nopfs/ipfs v0.25.0 h1:OqNqsGZPX8zh3eFMO8Lf8EHRRnSGBMqcd
 github.com/ipfs-shipyard/nopfs/ipfs v0.25.0/go.mod h1:BxhUdtBgOXg1B+gAPEplkg/GpyTZY+kCMSfsJvvydqU=
 github.com/ipfs/bbloom v0.1.0 h1:nIWwfIE3AaG7RCDQIsrUonGCOTp7qSXzxH7ab/ss964=
 github.com/ipfs/bbloom v0.1.0/go.mod h1:lDy3A3i6ndgEW2z1CaRFvDi5/ZTzgM1IxA/pkL7Wgts=
-github.com/ipfs/boxo v0.41.1-0.20260707130650-177b35c8ef09 h1:jl4/IHR4IRb0QOVw6vFxUL4NRnetk1V42HIdipWu+aw=
-github.com/ipfs/boxo v0.41.1-0.20260707130650-177b35c8ef09/go.mod h1:mnR769LN1W7rDI6z1GBLmD15x4pvMdW0oWxik8j3y6g=
+github.com/ipfs/boxo v0.41.1-0.20260717051107-441032d6a863 h1:C3Xufr5x4qxdhlR3LKL6eKBMJQKpzeNBoGCniXv448I=
+github.com/ipfs/boxo v0.41.1-0.20260717051107-441032d6a863/go.mod h1:DLLtSR+2xJF3W5HRGPvL3H+y+MfBzdy1/IPlLwU0n1A=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-block-format v0.0.3/go.mod h1:4LmD4ZUw0mhO+JSKdpWwrzATiEfM7WWgQ8H5l6P8MVk=
@@ -412,8 +412,8 @@ github.com/ipfs/go-metrics-prometheus v0.1.0 h1:bApWOHkrH3VTBHzTHrZSfq4n4weOZDzZ
 github.com/ipfs/go-metrics-prometheus v0.1.0/go.mod h1:2GtL525C/4yxtvSXpRJ4dnE45mCX9AS0XRa03vHx7G0=
 github.com/ipfs/go-peertaskqueue v0.8.3 h1:tBPpGJy+A92RqtRFq5amJn0Uuj8Pw8tXi0X3eHfHM8w=
 github.com/ipfs/go-peertaskqueue v0.8.3/go.mod h1:OqVync4kPOcXEGdj/LKvox9DCB5mkSBeXsPczCxLtYA=
-github.com/ipfs/go-test v0.3.0 h1:0Y4Uve3tp9HI+2lIJjfOliOrOgv/YpXg/l1y3P4DEYE=
-github.com/ipfs/go-test v0.3.0/go.mod h1:JK+U8pRpATZb7lsYNSJlCj3WYB3cFfWIbI6nWRM/GFk=
+github.com/ipfs/go-test v0.4.1 h1:n6uNSakIgpTQIRorqNg2O02aMIFDLQk2z4rBfrlD3Uw=
+github.com/ipfs/go-test v0.4.1/go.mod h1:QmvVBf9kClNtRuFow4DASq03eFvjKla4Fy/UAkeeLO8=
 github.com/ipfs/go-unixfsnode v1.10.5 h1:V34JV7fM90y+2ZUef7ToShjmwAZ8oo1yP7zrpWzC5L4=
 github.com/ipfs/go-unixfsnode v1.10.5/go.mod h1:u/9Ukl+XYpfKTMu+NXQqxbzAJVTwSCoyTYBGgE+JdSE=
 github.com/ipld/go-car/v2 v2.17.0 h1:zgjSxf/lQNYcQPX08cvb5rSdEY8sv5OOnQIsZhZMPx4=
