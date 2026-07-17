@@ -154,7 +154,7 @@ require (
 	github.com/ipld/go-car/v2 v2.17.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.24.0 // indirect
-	github.com/ipshipyard/p2p-forge v0.9.2-0.20260717121503-3b0a9470e456 // indirect
+	github.com/ipshipyard/p2p-forge v0.10.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jgautheron/goconst v1.7.1 // indirect
