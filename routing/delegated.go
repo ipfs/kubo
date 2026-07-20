@@ -42,8 +42,9 @@ var log = logging.Logger("routing/delegated")
 var DHTDatastoreKey = datastore.NewKey("/dht")
 
 // DHTValueDatastore returns the namespaced view of base under which the DHT
-// stores value records.
-func DHTValueDatastore(base datastore.Batching) datastore.Batching {
+// stores value records. The offline router uses the same view so that
+// records published online resolve offline and vice versa.
+func DHTValueDatastore(base datastore.Datastore) datastore.Batching {
 	return namespace.Wrap(base, DHTDatastoreKey)
 }
 

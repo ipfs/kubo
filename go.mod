@@ -22,7 +22,7 @@ require (
 	github.com/hashicorp/go-version v1.9.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.41.1-0.20260717051107-441032d6a863
+	github.com/ipfs/boxo v0.41.1-0.20260720193818-a47e98c95ee0
 	github.com/ipfs/go-block-format v0.2.4
 	github.com/ipfs/go-cid v0.6.2
 	github.com/ipfs/go-cidutil v0.1.2
@@ -50,10 +50,10 @@ require (
 	github.com/ipshipyard/p2p-forge v0.10.0
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/libp2p/go-doh-resolver v0.5.0
+	github.com/libp2p/go-doh-resolver v0.6.0
 	github.com/libp2p/go-libp2p v0.48.1-0.20260708062241-95be6665b014 // TODO: switch to a tagged release once one ships past v0.48.0
 	github.com/libp2p/go-libp2p-http v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.42.0
+	github.com/libp2p/go-libp2p-kad-dht v0.42.1-0.20260720183211-2cba273e45d8
 	github.com/libp2p/go-libp2p-kbucket v0.9.0
 	github.com/libp2p/go-libp2p-pubsub v0.17.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0
@@ -64,7 +64,7 @@ require (
 	github.com/mattn/go-isatty v0.0.22
 	github.com/miekg/dns v1.1.72
 	github.com/multiformats/go-multiaddr v0.16.1
-	github.com/multiformats/go-multiaddr-dns v0.5.0
+	github.com/multiformats/go-multiaddr-dns v0.6.0
 	github.com/multiformats/go-multibase v0.3.0
 	github.com/multiformats/go-multicodec v0.10.0
 	github.com/multiformats/go-multihash v0.2.3
