@@ -19,8 +19,8 @@ import (
 	host "github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
-	basichost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 type RoutingOptionArgs struct {
@@ -320,58 +320,64 @@ var (
 	NilRouterOption               = constructNilRouting
 )
 
-// confirmedAddrsHost matches libp2p hosts that support AutoNAT V2 address confirmation.
-type confirmedAddrsHost interface {
-	ConfirmedAddrs() (reachable, unreachable, unknown []ma.Multiaddr)
-}
-
-// Compile-time check: BasicHost must satisfy confirmedAddrsHost.
-// ConfirmedAddrs is not part of the core host.Host interface and is marked
-// experimental in go-libp2p. If BasicHost ever drops or changes this method,
-// this assertion will fail at build time. In that case, update
-// httpRouterAddrFunc (this file) and the swarm autonat command
-// (core/commands/swarm_addrs_autonat.go) which both type-assert to this
-// interface.
-var _ confirmedAddrsHost = (*basichost.BasicHost)(nil)
-
 // httpRouterAddrFunc returns a function that resolves provider addresses for
 // HTTP routers at provide-time.
 //
 // Resolution logic:
 //   - If Announce is set, use it as a static override (no dynamic resolution).
-//   - Otherwise, prefer AutoNAT V2 confirmed reachable addresses when available,
-//     falling back to host.Addrs() which resolves 0.0.0.0/:: Swarm binds to
-//     concrete interface addresses and applies the libp2p AddrsFactory
-//     (Addresses.NoAnnounce CIDR filters and Swarm.AddrFilters).
-//   - AppendAnnounce addresses are always appended.
+//   - Otherwise announce host.Addrs(), the same set identify sends to peers:
+//     0.0.0.0/:: Swarm binds resolved to concrete interface addresses, the
+//     libp2p AddrsFactory applied (Addresses.NoAnnounce, and the AutoTLS
+//     /tls/ws address, which only exists here), and certhashes attached.
+//   - Narrowed to globally routable addresses when the node has any, matching
+//     the DHT provide path (selfAddrsFunc in core/node/provider.go). A node
+//     with no public address keeps announcing what it has, so LAN-only setups
+//     pointing at a local router still publish something dialable.
+//   - AppendAnnounce addresses are always appended, exactly once, and are
+//     exempt from both NoAnnounce and the public-address narrowing: an
+//     explicit operator entry wins.
+//
+// Do not narrow this to AutoNAT V2 confirmed reachable addresses. AutoNAT only
+// ever sees listen addresses, so an address the AddrsFactory synthesizes (the
+// AutoTLS /tls/ws one) can never be confirmed, and browser clients that reach
+// us through a delegated router are left with nothing they can dial.
+// See https://github.com/ipfs/kubo/issues/11369.
 func httpRouterAddrFunc(h host.Host, cfgAddrs config.Addresses) func() []ma.Multiaddr {
 	appendAddrs := parseMultiaddrs(cfgAddrs.AppendAnnounce)
 
 	// If Announce is explicitly set, use it as a static override.
 	if len(cfgAddrs.Announce) > 0 {
-		staticAddrs := slices.Concat(parseMultiaddrs(cfgAddrs.Announce), appendAddrs)
+		announceAddrs := parseMultiaddrs(cfgAddrs.Announce)
+		// Skip AppendAnnounce entries already listed in Announce,
+		// mirroring makeAddrsFactory (addrs.go).
+		extra := ma.FilterAddrs(appendAddrs, func(a ma.Multiaddr) bool {
+			return !ma.Contains(announceAddrs, a)
+		})
+		staticAddrs := slices.Concat(announceAddrs, extra)
 		return func() []ma.Multiaddr { return staticAddrs }
 	}
 
-	ch, hasConfirmed := h.(confirmedAddrsHost)
 	return func() []ma.Multiaddr {
-		if hasConfirmed {
-			reachable, _, _ := ch.ConfirmedAddrs()
-			if len(reachable) > 0 {
-				if len(appendAddrs) == 0 {
-					return reachable
-				}
-				return slices.Concat(reachable, appendAddrs)
-			}
+		addrs := h.Addrs()
+		if len(appendAddrs) > 0 {
+			// The AddrsFactory (makeAddrsFactory in addrs.go) already injects
+			// AppendAnnounce into h.Addrs(). Take those out so the re-append
+			// below emits them exactly once, and so a public AppendAnnounce
+			// entry cannot trip the public-addr guard on a node whose own
+			// addresses are all private.
+			addrs = ma.FilterAddrs(addrs, func(a ma.Multiaddr) bool {
+				return !ma.Contains(appendAddrs, a)
+			})
 		}
-		// Fallback: host.Addrs() resolves wildcard binds (0.0.0.0, ::) to
-		// concrete interface addresses and applies the libp2p AddrsFactory,
-		// which is where Addresses.NoAnnounce CIDR filtering happens.
-		hostAddrs := h.Addrs()
+		// Delegated routers are public indexes, so keep loopback and LAN
+		// addresses out of the record whenever we have a routable one.
+		if public := ma.FilterAddrs(addrs, manet.IsPublicAddr); len(public) > 0 {
+			addrs = public
+		}
 		if len(appendAddrs) == 0 {
-			return hostAddrs
+			return addrs
 		}
-		return slices.Concat(hostAddrs, appendAddrs)
+		return slices.Concat(addrs, appendAddrs)
 	}
 }
 
