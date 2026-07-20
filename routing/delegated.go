@@ -1,7 +1,6 @@
 package routing
 
 import (
-	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	drclient "github.com/ipfs/boxo/routing/http/client"
 	"github.com/ipfs/boxo/routing/http/contentrouter"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/namespace"
 	logging "github.com/ipfs/go-log/v2"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
@@ -30,6 +30,22 @@ import (
 )
 
 var log = logging.Logger("routing/delegated")
+
+// DHTDatastoreKey is the repo datastore namespace holding DHT value records
+// ("/dht/pk/...", "/dht/ipns/..."). Keeping them out of the repo root
+// separates DHT-cached third-party records from data owned by other
+// subsystems (namesys publishes own IPNS records under "/ipns/...") and lets
+// future layout migrations scope their scans to this prefix. Provider records
+// are not wrapped: the DHT's provider store hard-codes its own dedicated
+// "/providers/..." prefix, and keeping that path stable preserves stored
+// records across upgrades.
+var DHTDatastoreKey = datastore.NewKey("/dht")
+
+// DHTValueDatastore returns the namespaced view of base under which the DHT
+// stores value records.
+func DHTValueDatastore(base datastore.Batching) datastore.Batching {
+	return namespace.Wrap(base, DHTDatastoreKey)
+}
 
 // Parse creates a composed router from the custom routing configuration.
 //
@@ -290,7 +306,6 @@ type ExtraDHTParams struct {
 	Host           host.Host
 	Validator      record.Validator
 	Datastore      datastore.Batching
-	Context        context.Context
 }
 
 func dhtRoutingFromConfig(conf config.Router, extra *ExtraDHTParams) (routing.Routing, error) {
@@ -335,12 +350,11 @@ func createDHT(params *ExtraDHTParams, public bool, mode dht.ModeOpt) (routing.R
 		dht.Concurrency(10),
 		dht.Mode(mode),
 		dht.Datastore(params.Datastore),
+		dht.ValueDatastore(DHTValueDatastore(params.Datastore)),
 		dht.Validator(params.Validator),
 		dht.BootstrapPeers(params.BootstrapPeers...))
 
-	return dht.New(
-		params.Context, params.Host, opts...,
-	)
+	return dht.New(params.Host, opts...)
 }
 
 func createFullRT(params *ExtraDHTParams) (routing.Routing, error) {
@@ -349,6 +363,7 @@ func createFullRT(params *ExtraDHTParams) (routing.Routing, error) {
 		fullrt.DHTOption(
 			dht.Validator(params.Validator),
 			dht.Datastore(params.Datastore),
+			dht.ValueDatastore(DHTValueDatastore(params.Datastore)),
 			dht.BootstrapPeers(params.BootstrapPeers...),
 			dht.BucketSize(20),
 		),

@@ -99,7 +99,6 @@ require (
 	github.com/ipfs/go-log/v2 v2.9.2 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.3 // indirect
-	github.com/ipfs/go-test v0.4.1 // indirect
 	github.com/ipfs/go-unixfsnode v1.10.5 // indirect
 	github.com/ipld/go-car/v2 v2.17.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
@@ -118,8 +117,8 @@ require (
 	github.com/libp2p/go-doh-resolver v0.5.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.3.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.41.0 // indirect
-	github.com/libp2p/go-libp2p-kbucket v0.8.0 // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.42.0 // indirect
+	github.com/libp2p/go-libp2p-kbucket v0.9.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.17.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
 	github.com/libp2p/go-libp2p-record v0.3.1 // indirect

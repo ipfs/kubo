@@ -45,7 +45,6 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 		opts = append(opts, o...)
 	}
 
-	ctx := helpers.LifecycleCtx(mctx, lc)
 	cfg, err := params.Repo.Config()
 	if err != nil {
 		return out, err
@@ -69,7 +68,6 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 	optimisticProvide := cfg.Experimental.OptimisticProvide || cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled)
 
 	routingOptArgs := RoutingOptionArgs{
-		Ctx:                           ctx,
 		Datastore:                     params.Repo.Datastore(),
 		Validator:                     params.Validator,
 		BootstrapPeers:                bootstrappers,
