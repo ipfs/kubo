@@ -121,7 +121,15 @@ func (s *Store) Update(ctx context.Context, rec *Record) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return s.put(ctx, dsKey(rec.Cid), rec)
+	key := dsKey(rec.Cid)
+	has, err := s.ds.Has(ctx, key)
+	if err != nil {
+		return fmt.Errorf("checking record: %w", err)
+	}
+	if !has {
+		return fmt.Errorf("%s: %w", rec.Cid, ErrNotRegistered)
+	}
+	return s.put(ctx, key, rec)
 }
 
 func (s *Store) get(ctx context.Context, key datastore.Key) (*Record, error) {

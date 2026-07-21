@@ -2,6 +2,7 @@ package ondemandpin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"time"
@@ -332,6 +333,10 @@ func (c *Checker) backoffDelay(failures int) time.Duration {
 
 func (c *Checker) saveRecord(ctx context.Context, rec *Record) {
 	if err := c.store.Update(ctx, rec); err != nil {
+		if errors.Is(err, ErrNotRegistered) {
+			log.Debugw("record gone during check, not recreating", "cid", rec.Cid)
+			return
+		}
 		log.Errorw("failed to update record", "cid", rec.Cid, "error", err)
 	}
 }

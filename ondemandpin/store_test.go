@@ -63,3 +63,20 @@ func TestStoreList(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, records, 2)
 }
+
+func TestStoreUpdateDoesNotResurrect(t *testing.T) {
+	ctx := context.Background()
+	s := newTestStore(t)
+	c := testCID(t, "gone")
+
+	require.NoError(t, s.Add(ctx, c))
+	rec, err := s.Get(ctx, c)
+	require.NoError(t, err)
+
+	require.NoError(t, s.Remove(ctx, c))
+	err = s.Update(ctx, rec)
+	assert.ErrorIs(t, err, ErrNotRegistered)
+
+	_, err = s.Get(ctx, c)
+	assert.ErrorIs(t, err, ErrNotRegistered)
+}
