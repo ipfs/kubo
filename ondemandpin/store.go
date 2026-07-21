@@ -24,6 +24,8 @@ type Record struct {
 	Cid             cid.Cid   `json:"Cid"`
 	LastAboveTarget time.Time `json:"LastAboveTarget,omitempty"`
 	UnpinAt         time.Time `json:"UnpinAt,omitempty"` // grace deadline (includes jitter)
+	FailureCount    int       `json:"FailureCount,omitempty"`
+	NextCheckAt     time.Time `json:"NextCheckAt,omitempty"`
 	CreatedAt       time.Time `json:"CreatedAt"`
 }
 

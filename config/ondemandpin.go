@@ -15,6 +15,9 @@ const (
 	// Must exceed amino.DefaultProvideValidity so stale DHT records expire
 	// before unpin. The extra day covers check-interval skew.
 	DefaultOnDemandPinUnpinGracePeriod = amino.DefaultProvideValidity + 24*time.Hour
+
+	// Max NextCheckAt delay after repeated check failures (Cap).
+	DefaultOnDemandPinCheckBackoffMax = DefaultOnDemandPinUnpinGracePeriod
 )
 
 type OnDemandPinning struct {

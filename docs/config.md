@@ -2271,7 +2271,10 @@ Type: `optionalInteger`
 
 ### `OnDemandPinning.CheckInterval`
 
-How often the background checker evaluates all on-demand pins.
+How often the checker starts a sweep of registered CIDs. If a sweep overruns
+this duration, the next sweep starts when the previous one finishes. After a
+failed check, that CID is skipped until `NextCheckAt`
+(`CheckInterval * 2^(failures-1)`, max 72h).
 
 Default: `"10m"`
 

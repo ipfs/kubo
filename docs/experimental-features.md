@@ -626,7 +626,8 @@ The feature consists of:
 
 - A **registry** of CIDs to monitor, managed via `ipfs pin ondemand add|rm|ls`.
 - A **background checker** that periodically queries the DHT for each
-  registered CID and pins or unpins accordingly.
+  registered CID and pins or unpins accordingly. Failed CIDs are retried
+  with exponential backoff (max 72h).
 - **Pin partitioning**: the checker marks its pins with the name
   `"kubo:on-demand"`, so the checker can tell its
   pins apart from user pins and will never remove a pin it did not create.

@@ -2,6 +2,7 @@ package ondemandpin
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -138,7 +139,6 @@ func TestCheckerPinsBelowTarget(t *testing.T) {
 	assert.True(t, p.isPinned(c))
 }
 
-// Content at or above min is left alone (including the deadband up to max).
 func TestCheckerDoesNotPinInDeadband(t *testing.T) {
 	ctx := context.Background()
 	checker, store, r, p, _ := newTestChecker(t)
@@ -152,7 +152,6 @@ func TestCheckerDoesNotPinInDeadband(t *testing.T) {
 	assert.False(t, p.isPinned(c))
 }
 
-// Pinned content is unpinned only after the grace period expires above max.
 func TestCheckerUnpinsAfterGracePeriod(t *testing.T) {
 	ctx := context.Background()
 	checker, store, r, p, clock := newTestChecker(t)
@@ -225,7 +224,6 @@ func TestCheckerSkipsPinCreatedDuringLookup(t *testing.T) {
 	assert.Equal(t, "user-pin", p.pinned[c])
 }
 
-// Ownership follows the reserved pin name, not a store flag.
 func TestCheckerOwnsPinByNameNotStoreField(t *testing.T) {
 	ctx := context.Background()
 	checker, store, r, p, clock := newTestChecker(t)
@@ -243,7 +241,6 @@ func TestCheckerOwnsPinByNameNotStoreField(t *testing.T) {
 	assert.False(t, p.isPinned(c), "name-owned pin must unpin after grace")
 }
 
-// blockingRouting closes only when ctx is cancelled, mimicking a hung lookup.
 type blockingRouting struct{}
 
 func (blockingRouting) FindProvidersAsync(ctx context.Context, _ cid.Cid, _ int) <-chan peer.AddrInfo {
@@ -266,7 +263,6 @@ func TestCountProvidersUnknownOnCancel(t *testing.T) {
 	assert.Equal(t, 0, count)
 }
 
-// emitThenBlockRouting emits providers, then blocks until ctx cancel.
 type emitThenBlockRouting struct {
 	providers []peer.ID
 }
@@ -312,7 +308,6 @@ func TestCountProvidersOkWhenEnoughFoundDespiteCancel(t *testing.T) {
 	assert.Equal(t, 5, count)
 }
 
-// Cancelled provider lookup does not count as zero providers.
 func TestCheckerSkipsWhenProviderCountUnknown(t *testing.T) {
 	ctx := context.Background()
 	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
@@ -325,9 +320,57 @@ func TestCheckerSkipsWhenProviderCountUnknown(t *testing.T) {
 
 	checkCtx, cancel := context.WithTimeout(ctx, 20*time.Millisecond)
 	defer cancel()
-	checker.checkRecord(checkCtx, mustGet(t, store, c))
+	checker.checkRecord(checkCtx, mustGet(t, store, c), false)
 
 	assert.False(t, p.isPinned(c))
+	rec := mustGet(t, store, c)
+	assert.Equal(t, 1, rec.FailureCount)
+	assert.False(t, rec.NextCheckAt.IsZero())
+}
+
+type failPinOnce struct {
+	*mockPins
+	fail bool
+}
+
+func (p *failPinOnce) Pin(ctx context.Context, c cid.Cid, name string) error {
+	if p.fail {
+		return errors.New("pin failed")
+	}
+	return p.mockPins.Pin(ctx, c, name)
+}
+
+func TestCheckerBackoffSkipsUntilDue(t *testing.T) {
+	ctx := context.Background()
+	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
+	r := newMockRouting()
+	pins := &failPinOnce{mockPins: newMockPins(), fail: true}
+	clock := newFakeClock()
+	checker := NewChecker(store, pins, nil, r, peer.ID("self"), config.OnDemandPinning{})
+	checker.checkInterval = time.Minute
+	checker.now = clock.Now
+	checker.graceJitter = func() time.Duration { return 0 }
+
+	c := testCID(t, "backoff")
+	require.NoError(t, store.Add(ctx, c))
+	r.setProviders(c, peer.ID("p1"))
+
+	checker.checkAll(ctx)
+	assert.False(t, pins.isPinned(c))
+	rec := mustGet(t, store, c)
+	require.Equal(t, 1, rec.FailureCount)
+	require.Equal(t, clock.Now().Add(time.Minute), rec.NextCheckAt)
+
+	pins.fail = false
+	checker.checkAll(ctx)
+	assert.False(t, pins.isPinned(c))
+
+	clock.Advance(time.Minute)
+	checker.checkAll(ctx)
+	assert.True(t, pins.isPinned(c))
+	rec = mustGet(t, store, c)
+	assert.Equal(t, 0, rec.FailureCount)
+	assert.True(t, rec.NextCheckAt.IsZero())
 }
 
 func mustGet(t *testing.T, store *Store, c cid.Cid) *Record {
