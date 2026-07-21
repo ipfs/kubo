@@ -2272,7 +2272,10 @@ How long replication must stay above target before the local pin is removed.
 This prevents thrashing when provider counts fluctuate near the target
 boundary.
 
-Default: `"24h"`
+Default must exceed DHT provider-record validity (48h), otherwise a node can
+unpin while stale records still inflate the count and it holds the last live copy.
+
+Default: `"72h"`
 
 Type: `optionalDuration`
 

@@ -1,11 +1,18 @@
 package config
 
-import "time"
+import (
+	"time"
+
+	"github.com/libp2p/go-libp2p-kad-dht/amino"
+)
 
 const (
 	DefaultOnDemandPinReplicationTarget = 5
 	DefaultOnDemandPinCheckInterval     = 10 * time.Minute
-	DefaultOnDemandPinUnpinGracePeriod  = 24 * time.Hour
+
+	// Must exceed amino.DefaultProvideValidity so stale DHT records expire
+	// before unpin. The extra day covers check-interval skew.
+	DefaultOnDemandPinUnpinGracePeriod = amino.DefaultProvideValidity + 24*time.Hour
 )
 
 type OnDemandPinning struct {

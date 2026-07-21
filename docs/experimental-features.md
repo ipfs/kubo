@@ -637,7 +637,9 @@ so other peers can discover the content on this node.
 attacks. An attacker could inflate provider counts to trick nodes into
 unpinning content that is not actually well-replicated. The grace period
 provides partial mitigation by requiring fake provider records to be
-sustained for its full duration (default 24 hours).
+sustained for its full duration (default 72 hours, chosen to outlast the
+48h DHT provider record validity so records of dead peers expire before
+the unpin decision).
 
 ### How to enable
 

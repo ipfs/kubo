@@ -58,7 +58,7 @@ Configuration at [`OnDemandPinning`](https://github.com/ipfs/kubo/blob/master/do
 |---|---|---|
 | `OnDemandPinning.ReplicationTarget` | `5` | Minimum providers in DHT (excluding self) |
 | `OnDemandPinning.CheckInterval` | `"10m"` | How often the checker runs |
-| `OnDemandPinning.UnpinGracePeriod` | `"24h"` | How long above target before unpinning |
+| `OnDemandPinning.UnpinGracePeriod` | `"72h"` | How long above target before unpinning (outlasts the 48h DHT provider record validity) |
 
 See [experimental features](https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#on-demand-pinning)
 for full documentation.
