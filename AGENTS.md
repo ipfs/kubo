@@ -6,7 +6,7 @@ This file provides instructions for AI coding agents working on the [Kubo](https
 
 | Task              | Command                                                  |
 |-------------------|----------------------------------------------------------|
-| Tidy deps         | `make mod_tidy` (run first if `go.mod` changed)         |
+| Tidy deps         | `make mod_tidy` (all modules; required if deps changed)  |
 | Build             | `make build`                                             |
 | Unit tests        | `go test ./... -run TestName -v`                         |
 | Integration tests | `make build && go test ./test/cli/... -run TestName -v`  |
@@ -81,7 +81,7 @@ make -O test_go_lint # run linter (use this instead of golangci-lint directly)
 
 **Always build with `make build`, never `go build`.** The Makefile injects required `-ldflags` for `CurrentCommit`, `taggedRelease`, and `buildOrigin`.
 
-If you modify `go.mod` (add/remove/update dependencies), you must run `make mod_tidy` first, before building or testing. Use `make mod_tidy` instead of `go mod tidy` directly, as the project has multiple `go.mod` files.
+If you change dependencies in any `go.mod`, you must run `make mod_tidy`, and you must run it before committing, pushing, or opening a PR. The repo has three `go.mod` files (root, `docs/examples/kubo-as-a-library`, and `test/dependencies`) that have to stay on the same dependency versions. `make mod_tidy` runs `go mod tidy` in every one of them; a bare `go mod tidy` only touches the module you run it in, which lets the pins drift out of sync between modules (for example the root pointing at one boxo commit while `test/dependencies` points at another). Run it before building or testing too, since it also updates `go.sum`.
 
 If you modify any `.go` files outside of `test/`, you must run `make build` before running integration tests.
 
@@ -166,9 +166,9 @@ pkill -f "ipfs daemon"
 
 ## Before Submitting
 
-Run these steps in order before considering work complete:
+Run these steps in order before committing, pushing, or opening a PR:
 
-1. `make mod_tidy` (if `go.mod` changed)
+1. `make mod_tidy` (required whenever any `go.mod` changed, so all three modules stay in sync)
 2. `go fmt ./...`
 3. `make build` (if non-test `.go` files changed)
 4. `make -O test_go_lint`
