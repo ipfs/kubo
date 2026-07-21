@@ -25,6 +25,7 @@ import (
 	"github.com/ipfs/kubo/core"
 	iface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/node"
+	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
@@ -166,7 +167,7 @@ func newGatewayBackend(n *core.IpfsNode) (gateway.IPFSBackend, error) {
 			namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL)),
 		}
 
-		vsRouting = offlineroute.NewOfflineRouter(n.Repo.Datastore(), n.RecordValidator)
+		vsRouting = offlineroute.NewOfflineRouter(irouting.DHTValueDatastore(n.Repo.Datastore()), n.RecordValidator)
 		nsys, err = namesys.NewNameSystem(vsRouting, nsOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("error constructing namesys: %w", err)

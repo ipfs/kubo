@@ -367,6 +367,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		PeerWith(cfg.Peering.Peers...),
 
 		fx.Invoke(IpnsRepublisher(repubPeriod, recordLifetime)),
+		fx.Invoke(PurgeStaleDHTValueRecords),
 
 		fx.Provide(p2p.New),
 

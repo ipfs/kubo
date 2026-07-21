@@ -29,6 +29,7 @@ import (
 	coreiface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/internal/fusemount"
+	irouting "github.com/ipfs/kubo/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
@@ -231,7 +232,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 			namesys.WithMaxCacheTTL(cfg.Ipns.MaxCacheTTL.WithDefault(config.DefaultIpnsMaxCacheTTL)),
 		}
 
-		subAPI.routing = offlineroute.NewOfflineRouter(subAPI.repo.Datastore(), subAPI.recordValidator)
+		subAPI.routing = offlineroute.NewOfflineRouter(irouting.DHTValueDatastore(subAPI.repo.Datastore()), subAPI.recordValidator)
 
 		subAPI.namesys, err = namesys.NewNameSystem(subAPI.routing, nsOptions...)
 		if err != nil {
