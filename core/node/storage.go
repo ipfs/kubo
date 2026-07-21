@@ -209,7 +209,6 @@ func deleteStaleDHTValueRecords(ctx context.Context, ds datastore.Batching) (int
 	}
 	defer results.Close()
 
-	syncKey := datastore.NewKey("/")
 	var batch datastore.Batch
 	var count, pending int
 	for result := range results.Next() {
@@ -237,9 +236,6 @@ func deleteStaleDHTValueRecords(ctx context.Context, ds datastore.Batching) (int
 			if err := batch.Commit(ctx); err != nil {
 				return count, fmt.Errorf("committing delete batch: %w", err)
 			}
-			if err := ds.Sync(ctx, syncKey); err != nil {
-				return count, fmt.Errorf("syncing deletes: %w", err)
-			}
 			batch = nil
 			pending = 0
 		}
@@ -248,7 +244,9 @@ func deleteStaleDHTValueRecords(ctx context.Context, ds datastore.Batching) (int
 		if err := batch.Commit(ctx); err != nil {
 			return count, fmt.Errorf("committing delete batch: %w", err)
 		}
-		if err := ds.Sync(ctx, syncKey); err != nil {
+	}
+	if count > 0 {
+		if err := ds.Sync(ctx, datastore.NewKey("/")); err != nil {
 			return count, fmt.Errorf("syncing deletes: %w", err)
 		}
 	}
