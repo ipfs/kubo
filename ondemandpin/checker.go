@@ -182,6 +182,17 @@ func (c *Checker) handleUnderReplicated(ctx context.Context, rec *Record, count 
 		return
 	}
 
+	// Re-check: a user pin may have appeared during the provider lookup.
+	pinnedNow, err := c.pins.IsPinned(ctx, rec.Cid)
+	if err != nil {
+		log.Errorw("failed to re-check pin state before pinning, skipping CID", "cid", rec.Cid, "error", err)
+		return
+	}
+	if pinnedNow {
+		log.Debugw("skipping pin: CID gained a pin during provider lookup", "cid", rec.Cid)
+		return
+	}
+
 	if err := c.pins.Pin(ctx, rec.Cid, OnDemandPinName); err != nil {
 		log.Errorw("failed to pin", "cid", rec.Cid, "error", err)
 		return

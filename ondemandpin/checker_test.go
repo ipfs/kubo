@@ -163,3 +163,33 @@ func TestCheckerUnpinsAfterGracePeriod(t *testing.T) {
 	checker.checkAll(ctx)
 	assert.False(t, p.isPinned(c), "past grace period")
 }
+
+type pinDuringLookupRouting struct {
+	*mockRouting
+	pins    *mockPins
+	pinName string
+}
+
+func (r *pinDuringLookupRouting) FindProvidersAsync(ctx context.Context, c cid.Cid, limit int) <-chan peer.AddrInfo {
+	r.pins.pinned[c] = r.pinName
+	return r.mockRouting.FindProvidersAsync(ctx, c, limit)
+}
+
+// / Re-check before Pin: a user pin that landed during the DHT lookup must not be overwritten.
+func TestCheckerSkipsPinCreatedDuringLookup(t *testing.T) {
+	ctx := context.Background()
+	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
+	r := newMockRouting()
+	p := newMockPins()
+	racing := &pinDuringLookupRouting{mockRouting: r, pins: p, pinName: "user-pin"}
+	checker := NewChecker(store, p, nil, racing, peer.ID("self"), config.OnDemandPinning{})
+	checker.now = newFakeClock().Now
+
+	c := testCID(t, "raced")
+	require.NoError(t, store.Add(ctx, c))
+	r.setProviders(c, peer.ID("p1"))
+
+	checker.checkAll(ctx)
+
+	assert.Equal(t, "user-pin", p.pinned[c])
+}
