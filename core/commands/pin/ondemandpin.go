@@ -207,13 +207,14 @@ Use --live to include real-time provider counts from the DHT.
 
 		live, _ := req.Options[onDemandLiveOptionName].(bool)
 
-		var globalTarget int
+		var replicationMin, replicationMax int
 		if live {
 			cfg, err := n.Repo.Config()
 			if err != nil {
 				return err
 			}
-			globalTarget = int(cfg.OnDemandPinning.ReplicationTarget.WithDefault(config.DefaultOnDemandPinReplicationTarget))
+			replicationMin = int(cfg.OnDemandPinning.ReplicationTargetMin.WithDefault(config.DefaultOnDemandPinReplicationTargetMin))
+			replicationMax = int(cfg.OnDemandPinning.ReplicationTargetMax.WithDefault(config.DefaultOnDemandPinReplicationTargetMax))
 		}
 
 		var records []ondemandpin.Record
@@ -259,7 +260,7 @@ Use --live to include real-time provider counts from the DHT.
 			}
 
 			if live && n.Routing != nil {
-				count, ok := ondemandpin.CountProviders(req.Context, n.Routing, n.Identity, rec.Cid, globalTarget)
+				count, ok := ondemandpin.CountProviders(req.Context, n.Routing, n.Identity, rec.Cid, replicationMin, replicationMax)
 				if ok {
 					out.Providers = &count
 				}

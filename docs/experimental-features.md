@@ -616,10 +616,11 @@ ipfs config --json Experimental.GatewayOverLibp2p true
 
 Experimental, disabled by default.
 
-On-demand pinning lets a node automatically pin content when DHT provider
-counts fall below a configurable replication target, and unpin when
-replication recovers above target for a grace period. Under-replicated
-content gets pinned; storage is freed once enough other providers exist.
+On-demand pinning lets a node pin content when DHT provider counts fall below
+a minimum, and unpin after they stay above a maximum for a grace period
+(plus a short random delay). Values between min and max are left alone.
+ipfs-cluster replication factors assign pins among known peers; this feature
+only watches the DHT and decides locally.
 
 The feature consists of:
 
@@ -650,8 +651,8 @@ ipfs config --json Experimental.OnDemandPinningEnabled true
 ### Configuring
 
 See [`OnDemandPinning`](https://github.com/ipfs/kubo/blob/master/docs/config.md#ondemandpinning)
-for tunable parameters: `ReplicationTarget`, `CheckInterval`,
-and `UnpinGracePeriod`.
+for tunable parameters: `ReplicationTargetMin`, `ReplicationTargetMax`,
+`CheckInterval`, and `UnpinGracePeriod`.
 
 ### Basic usage
 

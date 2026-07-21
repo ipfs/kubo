@@ -111,8 +111,17 @@ func newTestChecker(t *testing.T) (*Checker, *Store, *mockRouting, *mockPins, *f
 	checker.checkInterval = time.Minute
 	checker.unpinGracePeriod = 200 * time.Millisecond
 	checker.now = clock.Now
+	checker.graceJitter = func() time.Duration { return 0 }
 
 	return checker, store, r, p, clock
+}
+
+func providers(n int) []peer.ID {
+	out := make([]peer.ID, n)
+	for i := range out {
+		out[i] = peer.ID(string(rune('a' + i)))
+	}
+	return out
 }
 
 // Under-replicated content gets pinned.
@@ -129,21 +138,21 @@ func TestCheckerPinsBelowTarget(t *testing.T) {
 	assert.True(t, p.isPinned(c))
 }
 
-// Well-replicated content is left alone.
-func TestCheckerDoesNotPinAboveTarget(t *testing.T) {
+// Content at or above min is left alone (including the deadband up to max).
+func TestCheckerDoesNotPinInDeadband(t *testing.T) {
 	ctx := context.Background()
 	checker, store, r, p, _ := newTestChecker(t)
-	c := testCID(t, "well-replicated")
+	c := testCID(t, "deadband")
 
 	require.NoError(t, store.Add(ctx, c))
-	r.setProviders(c, peer.ID("p1"), peer.ID("p2"), peer.ID("p3"), peer.ID("p4"), peer.ID("p5"), peer.ID("p6"))
+	r.setProviders(c, providers(6)...) // min=5, max=7
 
 	checker.checkAll(ctx)
 
 	assert.False(t, p.isPinned(c))
 }
 
-// Pinned content is unpinned only after the grace period expires.
+// Pinned content is unpinned only after the grace period expires above max.
 func TestCheckerUnpinsAfterGracePeriod(t *testing.T) {
 	ctx := context.Background()
 	checker, store, r, p, clock := newTestChecker(t)
@@ -154,14 +163,36 @@ func TestCheckerUnpinsAfterGracePeriod(t *testing.T) {
 	checker.checkAll(ctx)
 	require.True(t, p.isPinned(c))
 
-	// Providers recover above target.
-	r.setProviders(c, peer.ID("p1"), peer.ID("p2"), peer.ID("p3"), peer.ID("p4"), peer.ID("p5"), peer.ID("p6"))
+	// Providers recover above max (default 7).
+	r.setProviders(c, providers(8)...)
 	checker.checkAll(ctx)
 	assert.True(t, p.isPinned(c), "not yet past grace period")
 
 	clock.Advance(250 * time.Millisecond)
 	checker.checkAll(ctx)
 	assert.False(t, p.isPinned(c), "past grace period")
+}
+
+func TestCheckerGraceIncludesJitter(t *testing.T) {
+	ctx := context.Background()
+	checker, store, r, p, clock := newTestChecker(t)
+	checker.graceJitter = func() time.Duration { return 100 * time.Millisecond }
+	c := testCID(t, "jitter")
+
+	require.NoError(t, store.Add(ctx, c))
+	require.NoError(t, p.Pin(ctx, c, OnDemandPinName))
+	r.setProviders(c, providers(8)...)
+
+	checker.checkAll(ctx)
+	assert.True(t, p.isPinned(c))
+
+	clock.Advance(250 * time.Millisecond) // grace only; jitter not yet elapsed
+	checker.checkAll(ctx)
+	assert.True(t, p.isPinned(c), "still within grace+jitter")
+
+	clock.Advance(100 * time.Millisecond)
+	checker.checkAll(ctx)
+	assert.False(t, p.isPinned(c), "past grace+jitter")
 }
 
 type pinDuringLookupRouting struct {
@@ -175,7 +206,7 @@ func (r *pinDuringLookupRouting) FindProvidersAsync(ctx context.Context, c cid.C
 	return r.mockRouting.FindProvidersAsync(ctx, c, limit)
 }
 
-// Re-check before Pin: a user pin that landed during the DHT lookup must not be overwritten.
+// Pin that appeared during the DHT lookup is left alone.
 func TestCheckerSkipsPinCreatedDuringLookup(t *testing.T) {
 	ctx := context.Background()
 	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
@@ -194,8 +225,7 @@ func TestCheckerSkipsPinCreatedDuringLookup(t *testing.T) {
 	assert.Equal(t, "user-pin", p.pinned[c])
 }
 
-// A pin with the reserved name is managed even if the store never recorded a
-// separate ownership flag (the old crash window between Pin and saveRecord).
+// Ownership follows the reserved pin name, not a store flag.
 func TestCheckerOwnsPinByNameNotStoreField(t *testing.T) {
 	ctx := context.Background()
 	checker, store, r, p, clock := newTestChecker(t)
@@ -203,7 +233,7 @@ func TestCheckerOwnsPinByNameNotStoreField(t *testing.T) {
 
 	require.NoError(t, store.Add(ctx, c))
 	require.NoError(t, p.Pin(ctx, c, OnDemandPinName))
-	r.setProviders(c, peer.ID("p1"), peer.ID("p2"), peer.ID("p3"), peer.ID("p4"), peer.ID("p5"), peer.ID("p6"))
+	r.setProviders(c, providers(8)...)
 
 	checker.checkAll(ctx)
 	assert.True(t, p.isPinned(c), "grace period just started")
@@ -231,7 +261,7 @@ func TestCountProvidersUnknownOnCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	count, ok := CountProviders(ctx, blockingRouting{}, peer.ID("self"), testCID(t, "unknown"), 5)
+	count, ok := CountProviders(ctx, blockingRouting{}, peer.ID("self"), testCID(t, "unknown"), 5, 7)
 	assert.False(t, ok)
 	assert.Equal(t, 0, count)
 }
@@ -271,18 +301,18 @@ func TestCountProvidersOkWhenEnoughFoundDespiteCancel(t *testing.T) {
 	var ok bool
 	go func() {
 		defer close(done)
-		count, ok = CountProviders(ctx, r, peer.ID("self"), testCID(t, "enough"), 5)
+		count, ok = CountProviders(ctx, r, peer.ID("self"), testCID(t, "enough"), 5, 7)
 	}()
 
 	time.Sleep(20 * time.Millisecond) // let providers flush
 	cancel()
 	<-done
 
-	require.True(t, ok, "count >= target is reliable even if the lookup is then cancelled")
+	require.True(t, ok)
 	assert.Equal(t, 5, count)
 }
 
-// A cancelled/timed-out provider lookup must not be treated as zero providers.
+// Cancelled provider lookup does not count as zero providers.
 func TestCheckerSkipsWhenProviderCountUnknown(t *testing.T) {
 	ctx := context.Background()
 	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))

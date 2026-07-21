@@ -23,6 +23,7 @@ const dsPrefix = "/ondemand-pins/"
 type Record struct {
 	Cid             cid.Cid   `json:"Cid"`
 	LastAboveTarget time.Time `json:"LastAboveTarget,omitempty"`
+	UnpinAt         time.Time `json:"UnpinAt,omitempty"` // grace deadline (includes jitter)
 	CreatedAt       time.Time `json:"CreatedAt"`
 }
 

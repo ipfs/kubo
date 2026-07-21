@@ -127,7 +127,8 @@ config file at runtime.
     - [`Mounts.StoreMtime`](#mountsstoremtime)
     - [`Mounts.StoreMode`](#mountsstoremode)
   - [`OnDemandPinning`](#ondemandpinning)
-    - [`OnDemandPinning.ReplicationTarget`](#ondemandpinningreplicationtarget)
+    - [`OnDemandPinning.ReplicationTargetMin`](#ondemandpinningreplicationtargetmin)
+    - [`OnDemandPinning.ReplicationTargetMax`](#ondemandpinningreplicationtargetmax)
     - [`OnDemandPinning.CheckInterval`](#ondemandpinningcheckinterval)
     - [`OnDemandPinning.UnpinGracePeriod`](#ondemandpinningunpingraceperiod)
 
@@ -2249,12 +2250,22 @@ Type: `duration`
 Configures the on-demand pinning system. Requires
 [`Experimental.OnDemandPinningEnabled`](#experimentalondemandpinningenabled).
 
-### `OnDemandPinning.ReplicationTarget`
+### `OnDemandPinning.ReplicationTargetMin`
 
-The minimum number of providers desired in the DHT (excluding the local node).
-When fewer providers are found, the node pins the content locally.
+Pin when fewer than this many providers are found in the DHT (excluding the
+local node).
 
 Default: `5`
+
+Type: `optionalInteger`
+
+### `OnDemandPinning.ReplicationTargetMax`
+
+Start the unpin grace period only when more than this many providers are found
+(excluding the local node). Between min and max (inclusive) the checker does
+nothing. Must be >= `ReplicationTargetMin`.
+
+Default: `7`
 
 Type: `optionalInteger`
 
@@ -2268,12 +2279,12 @@ Type: `optionalDuration`
 
 ### `OnDemandPinning.UnpinGracePeriod`
 
-How long replication must stay above target before the local pin is removed.
-This prevents thrashing when provider counts fluctuate near the target
-boundary.
+How long the provider count must stay above max before the local pin is removed.
+The checker also adds a random delay of up to `2 * CheckInterval` when grace
+starts, so nodes that entered grace together do not all unpin at once.
 
-Default must exceed DHT provider-record validity (48h), otherwise a node can
-unpin while stale records still inflate the count and it holds the last live copy.
+Should be longer than DHT provider-record validity (48h). A shorter value can
+unpin while stale records still make the count look healthy.
 
 Default: `"72h"`
 
