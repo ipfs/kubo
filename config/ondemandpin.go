@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/libp2p/go-libp2p-kad-dht/amino"
@@ -24,4 +25,19 @@ type OnDemandPinning struct {
 
 	// How long replication must stay above target before unpinning.
 	UnpinGracePeriod OptionalDuration
+}
+
+// ValidateOnDemandPinningConfig rejects non-positive intervals/grace periods
+// and ReplicationTarget < 1 (ticker panic / never pins, then unpins).
+func ValidateOnDemandPinningConfig(cfg *OnDemandPinning) error {
+	if target := cfg.ReplicationTarget.WithDefault(DefaultOnDemandPinReplicationTarget); target < 1 {
+		return fmt.Errorf("OnDemandPinning.ReplicationTarget must be at least 1, got %d", target)
+	}
+	if interval := cfg.CheckInterval.WithDefault(DefaultOnDemandPinCheckInterval); interval <= 0 {
+		return fmt.Errorf("OnDemandPinning.CheckInterval must be positive, got %v", interval)
+	}
+	if grace := cfg.UnpinGracePeriod.WithDefault(DefaultOnDemandPinUnpinGracePeriod); grace <= 0 {
+		return fmt.Errorf("OnDemandPinning.UnpinGracePeriod must be positive, got %v", grace)
+	}
+	return nil
 }

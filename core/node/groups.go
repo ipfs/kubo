@@ -450,6 +450,13 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		return fx.Error(err)
 	}
 
+	// Only validate when enabled; unused sections must not block startup when disabled.
+	if cfg.Experimental.OnDemandPinningEnabled {
+		if err := config.ValidateOnDemandPinningConfig(&cfg.OnDemandPinning); err != nil {
+			return fx.Error(err)
+		}
+	}
+
 	// Directory sharding settings from Import config.
 	// These globals affect both `ipfs add` and MFS (`ipfs files` API).
 	shardSizeThreshold := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)

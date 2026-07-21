@@ -8,6 +8,7 @@ import (
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
+	"github.com/libp2p/go-libp2p-kad-dht/amino"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
 )
@@ -85,6 +86,12 @@ func (c *Checker) Enqueue(ci cid.Cid) {
 func (c *Checker) Run(ctx context.Context) {
 	log.Info("on-demand pin checker started")
 	defer log.Info("on-demand pin checker stopped")
+
+	// Warn when grace period is shorter than record validity (allowed for tests; risky on public DHT).
+	if c.unpinGracePeriod < amino.DefaultProvideValidity {
+		log.Warnw("UnpinGracePeriod is shorter than the DHT provider record validity; provider counts may include dead peers and this node may unpin the last live copy",
+			"gracePeriod", c.unpinGracePeriod, "recordValidity", amino.DefaultProvideValidity)
+	}
 
 	ticker := time.NewTicker(c.checkInterval)
 	defer ticker.Stop()
