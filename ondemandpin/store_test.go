@@ -35,7 +35,6 @@ func TestStoreRoundTrip(t *testing.T) {
 	rec, err := s.Get(ctx, c)
 	require.NoError(t, err)
 	assert.Equal(t, c, rec.Cid)
-	assert.False(t, rec.PinnedByUs)
 
 	require.NoError(t, s.Remove(ctx, c))
 

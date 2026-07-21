@@ -144,11 +144,11 @@ Works when on-demand pinning is disabled, to clear old registrations.
 			}
 
 			// Only remove pins carrying the Kubo-internal kubo:on-demand name; user pins on the same CID are kept.
-			isOurs, err := ondemandpin.PinHasName(req.Context, n.Pinning, c, ondemandpin.OnDemandPinName)
+			hasOnDemandPin, err := ondemandpin.PinHasName(req.Context, n.Pinning, c, ondemandpin.OnDemandPinName)
 			if err != nil {
 				return fmt.Errorf("checking pin state for %s: %w", c, err)
 			}
-			if isOurs {
+			if hasOnDemandPin {
 				if err := api.Pin().Rm(req.Context, rp); err != nil {
 					return fmt.Errorf("unpinning %s: %w", c, err)
 				}
@@ -245,9 +245,13 @@ Use --live to include real-time provider counts from the DHT.
 		}
 
 		for _, rec := range records {
+			hasOnDemandPin, err := ondemandpin.PinHasName(req.Context, n.Pinning, rec.Cid, ondemandpin.OnDemandPinName)
+			if err != nil {
+				return fmt.Errorf("checking pin state for %s: %w", rec.Cid, err)
+			}
 			out := OnDemandLsOutput{
 				Cid:        rec.Cid.String(),
-				PinnedByUs: rec.PinnedByUs,
+				PinnedByUs: hasOnDemandPin,
 				CreatedAt:  rec.CreatedAt.Format(time.RFC3339),
 			}
 			if !rec.LastAboveTarget.IsZero() {

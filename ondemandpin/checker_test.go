@@ -175,7 +175,7 @@ func (r *pinDuringLookupRouting) FindProvidersAsync(ctx context.Context, c cid.C
 	return r.mockRouting.FindProvidersAsync(ctx, c, limit)
 }
 
-// / Re-check before Pin: a user pin that landed during the DHT lookup must not be overwritten.
+// Re-check before Pin: a user pin that landed during the DHT lookup must not be overwritten.
 func TestCheckerSkipsPinCreatedDuringLookup(t *testing.T) {
 	ctx := context.Background()
 	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
@@ -192,4 +192,23 @@ func TestCheckerSkipsPinCreatedDuringLookup(t *testing.T) {
 	checker.checkAll(ctx)
 
 	assert.Equal(t, "user-pin", p.pinned[c])
+}
+
+// A pin with the reserved name is managed even if the store never recorded a
+// separate ownership flag (the old crash window between Pin and saveRecord).
+func TestCheckerOwnsPinByNameNotStoreField(t *testing.T) {
+	ctx := context.Background()
+	checker, store, r, p, clock := newTestChecker(t)
+	c := testCID(t, "name-owned")
+
+	require.NoError(t, store.Add(ctx, c))
+	require.NoError(t, p.Pin(ctx, c, OnDemandPinName))
+	r.setProviders(c, peer.ID("p1"), peer.ID("p2"), peer.ID("p3"), peer.ID("p4"), peer.ID("p5"), peer.ID("p6"))
+
+	checker.checkAll(ctx)
+	assert.True(t, p.isPinned(c), "grace period just started")
+
+	clock.Advance(250 * time.Millisecond)
+	checker.checkAll(ctx)
+	assert.False(t, p.isPinned(c), "name-owned pin must unpin after grace")
 }

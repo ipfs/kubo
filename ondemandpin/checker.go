@@ -141,10 +141,10 @@ func (c *Checker) checkOne(ctx context.Context, ci cid.Cid) {
 
 // checkRecord evaluates a single on-demand pin record in three phases:
 //
-//  1. Guard: if the CID already has an external pin (not created by us), skip it to avoid interfering with user-managed pins.
-//     We use PinService.IsPinned (any pin) here — not Record.PinnedByUs (on-demand pins).
+//  1. Guard: if the CID has a pin without the reserved OnDemandPinName, skip it.
 //  2. Under-replicated: if provider count is low, pin locally.
-//  3. Well-replicated: if provider count is high for a full grace period, unpin (on-demand pins only).
+//  3. Well-replicated: if provider count is high for a full grace period, unpin
+//     only when the pin still has OnDemandPinName.
 func (c *Checker) checkRecord(ctx context.Context, rec *Record) {
 	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
 	defer cancel()
@@ -154,34 +154,34 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record) {
 		log.Errorw("failed to check pin state, skipping CID", "cid", rec.Cid, "error", err)
 		return
 	}
-	if !rec.PinnedByUs && pinned {
+	hasOnDemandPin, err := c.pins.HasPinWithName(ctx, rec.Cid, OnDemandPinName)
+	if err != nil {
+		log.Errorw("failed to check pin name, skipping CID", "cid", rec.Cid, "error", err)
+		return
+	}
+	if pinned && !hasOnDemandPin {
 		log.Debugw("skipping: CID has a user-managed pin", "cid", rec.Cid)
 		return
 	}
 
 	count := CountProviders(ctx, c.routing, c.selfID, rec.Cid, c.replicationTarget)
-	log.Debugw("provider count", "cid", rec.Cid, "count", count, "target", c.replicationTarget, "pinnedByUs", rec.PinnedByUs)
+	log.Debugw("provider count", "cid", rec.Cid, "count", count, "target", c.replicationTarget, "hasOnDemandPin", hasOnDemandPin)
 
 	if count < c.replicationTarget {
-		c.handleUnderReplicated(ctx, rec, count, pinned)
+		c.handleUnderReplicated(ctx, rec, count, hasOnDemandPin)
 	} else {
-		c.handleWellReplicated(ctx, rec, count)
+		c.handleWellReplicated(ctx, rec, count, hasOnDemandPin)
 	}
 }
 
-// handleUnderReplicated pins the CID if it isn't already pinned.
-func (c *Checker) handleUnderReplicated(ctx context.Context, rec *Record, count int, pinExists bool) {
-	if rec.PinnedByUs && pinExists {
+// handleUnderReplicated pins the CID if it does not already have OnDemandPinName.
+func (c *Checker) handleUnderReplicated(ctx context.Context, rec *Record, count int, hasOnDemandPin bool) {
+	if hasOnDemandPin {
 		if !rec.LastAboveTarget.IsZero() {
 			rec.LastAboveTarget = time.Time{}
 			c.saveRecord(ctx, rec)
 		}
 		return
-	}
-
-	if rec.PinnedByUs {
-		log.Warnw("pin was removed externally, will re-pin", "cid", rec.Cid)
-		rec.PinnedByUs = false
 	}
 
 	if !c.hasStorageBudget(ctx) {
@@ -204,7 +204,6 @@ func (c *Checker) handleUnderReplicated(ctx context.Context, rec *Record, count 
 		log.Errorw("failed to pin", "cid", rec.Cid, "error", err)
 		return
 	}
-	rec.PinnedByUs = true
 	rec.LastAboveTarget = time.Time{}
 	log.Infow("pinned", "cid", rec.Cid, "providers", count, "target", c.replicationTarget)
 
@@ -214,9 +213,9 @@ func (c *Checker) handleUnderReplicated(ctx context.Context, rec *Record, count 
 	c.saveRecord(ctx, rec)
 }
 
-// handleWellReplicated manages grace-period-then-unpin.
-func (c *Checker) handleWellReplicated(ctx context.Context, rec *Record, count int) {
-	if !rec.PinnedByUs {
+// handleWellReplicated manages grace-period-then-unpin for pins with OnDemandPinName.
+func (c *Checker) handleWellReplicated(ctx context.Context, rec *Record, count int, hasOnDemandPin bool) {
+	if !hasOnDemandPin {
 		return
 	}
 
@@ -231,13 +230,13 @@ func (c *Checker) handleWellReplicated(ctx context.Context, rec *Record, count i
 		return
 	}
 
-	hasOurPin, err := c.pins.HasPinWithName(ctx, rec.Cid, OnDemandPinName)
+	stillOnDemand, err := c.pins.HasPinWithName(ctx, rec.Cid, OnDemandPinName)
 	if err != nil {
 		log.Errorw("failed to check pin name, skipping unpin", "cid", rec.Cid, "error", err)
 		return
 	}
 
-	if hasOurPin {
+	if stillOnDemand {
 		if err := c.pins.Unpin(ctx, rec.Cid); err != nil {
 			log.Errorw("failed to unpin", "cid", rec.Cid, "error", err)
 			return
@@ -247,7 +246,6 @@ func (c *Checker) handleWellReplicated(ctx context.Context, rec *Record, count i
 		log.Infow("relinquishing management: pin name changed externally", "cid", rec.Cid)
 	}
 
-	rec.PinnedByUs = false
 	rec.LastAboveTarget = time.Time{}
 	c.saveRecord(ctx, rec)
 }
