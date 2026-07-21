@@ -455,6 +455,10 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		if err := config.ValidateOnDemandPinningConfig(&cfg.OnDemandPinning); err != nil {
 			return fx.Error(err)
 		}
+		routingType := cfg.Routing.Type.WithDefault(config.DefaultRoutingType)
+		if err := config.ValidateOnDemandPinningRouting(routingType); err != nil {
+			return fx.Error(err)
+		}
 	}
 
 	// Directory sharding settings from Import config.

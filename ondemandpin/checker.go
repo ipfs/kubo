@@ -164,7 +164,12 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record) {
 		return
 	}
 
-	count := CountProviders(ctx, c.routing, c.selfID, rec.Cid, c.replicationTarget)
+	// Warn if Cancel/timeout and count < target (do not treat these as under-replicated unless DHT walk finished far enough.)
+	count, ok := CountProviders(ctx, c.routing, c.selfID, rec.Cid, c.replicationTarget)
+	if !ok {
+		log.Warnw("provider count unknown (lookup cancelled or timed out), skipping CID", "cid", rec.Cid)
+		return
+	}
 	log.Debugw("provider count", "cid", rec.Cid, "count", count, "target", c.replicationTarget, "hasOnDemandPin", hasOnDemandPin)
 
 	if count < c.replicationTarget {
@@ -271,8 +276,9 @@ func (c *Checker) hasStorageBudget(ctx context.Context) bool {
 	return used < limit
 }
 
-// CountProviders counts unique providers with target+1 results to ensure that, even if selfID appears, we still discover up to target.
-func CountProviders(ctx context.Context, cr routing.ContentRouting, selfID peer.ID, c cid.Cid, target int) int {
+// CountProviders returns unique providers (asks for target+1 so self can be skipped)
+// and ok=false if the lookup was cancelled before count reached target.
+func CountProviders(ctx context.Context, cr routing.ContentRouting, selfID peer.ID, c cid.Cid, target int) (count int, ok bool) {
 	ch := cr.FindProvidersAsync(ctx, c, target+1)
 
 	seen := make(map[peer.ID]struct{})
@@ -282,7 +288,11 @@ func CountProviders(ctx context.Context, cr routing.ContentRouting, selfID peer.
 		}
 		seen[pi.ID] = struct{}{}
 	}
-	return len(seen)
+	count = len(seen)
+	if ctx.Err() != nil && count < target {
+		return count, false
+	}
+	return count, true
 }
 
 // PinHasName is used by checker (via PinService.HasPinWithName) and the rm command to identify pins managed by on-demand pinning.

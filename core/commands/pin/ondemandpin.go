@@ -259,8 +259,10 @@ Use --live to include real-time provider counts from the DHT.
 			}
 
 			if live && n.Routing != nil {
-				count := ondemandpin.CountProviders(req.Context, n.Routing, n.Identity, rec.Cid, globalTarget)
-				out.Providers = &count
+				count, ok := ondemandpin.CountProviders(req.Context, n.Routing, n.Identity, rec.Cid, globalTarget)
+				if ok {
+					out.Providers = &count
+				}
 			}
 
 			if err := res.Emit(&out); err != nil {

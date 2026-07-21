@@ -41,3 +41,12 @@ func ValidateOnDemandPinningConfig(cfg *OnDemandPinning) error {
 	}
 	return nil
 }
+
+// ValidateOnDemandPinningRouting rejects Routing.Type=none.
+// Otherwise the checker would pin every registered CID on a null router.
+func ValidateOnDemandPinningRouting(routingType string) error {
+	if routingType == "none" {
+		return fmt.Errorf("on-demand pinning requires a routing system that can answer provider queries; Routing.Type=%q cannot", routingType)
+	}
+	return nil
+}

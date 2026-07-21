@@ -31,3 +31,10 @@ func TestValidateOnDemandPinningConfig(t *testing.T) {
 		assert.ErrorContains(t, err, "UnpinGracePeriod")
 	})
 }
+
+func TestValidateOnDemandPinningRouting(t *testing.T) {
+	assert.NoError(t, ValidateOnDemandPinningRouting("auto"))
+	assert.NoError(t, ValidateOnDemandPinningRouting("dht"))
+	assert.NoError(t, ValidateOnDemandPinningRouting("delegated"))
+	assert.ErrorContains(t, ValidateOnDemandPinningRouting("none"), "Routing.Type")
+}

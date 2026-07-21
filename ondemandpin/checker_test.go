@@ -212,3 +212,97 @@ func TestCheckerOwnsPinByNameNotStoreField(t *testing.T) {
 	checker.checkAll(ctx)
 	assert.False(t, p.isPinned(c), "name-owned pin must unpin after grace")
 }
+
+// blockingRouting closes only when ctx is cancelled, mimicking a hung lookup.
+type blockingRouting struct{}
+
+func (blockingRouting) FindProvidersAsync(ctx context.Context, _ cid.Cid, _ int) <-chan peer.AddrInfo {
+	ch := make(chan peer.AddrInfo)
+	go func() {
+		defer close(ch)
+		<-ctx.Done()
+	}()
+	return ch
+}
+
+func (blockingRouting) Provide(context.Context, cid.Cid, bool) error { return nil }
+
+func TestCountProvidersUnknownOnCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	count, ok := CountProviders(ctx, blockingRouting{}, peer.ID("self"), testCID(t, "unknown"), 5)
+	assert.False(t, ok)
+	assert.Equal(t, 0, count)
+}
+
+// emitThenBlockRouting emits providers, then blocks until ctx cancel.
+type emitThenBlockRouting struct {
+	providers []peer.ID
+}
+
+func (r emitThenBlockRouting) FindProvidersAsync(ctx context.Context, _ cid.Cid, limit int) <-chan peer.AddrInfo {
+	ch := make(chan peer.AddrInfo)
+	go func() {
+		defer close(ch)
+		for i, id := range r.providers {
+			if i >= limit {
+				break
+			}
+			select {
+			case ch <- peer.AddrInfo{ID: id}:
+			case <-ctx.Done():
+				return
+			}
+		}
+		<-ctx.Done()
+	}()
+	return ch
+}
+
+func (emitThenBlockRouting) Provide(context.Context, cid.Cid, bool) error { return nil }
+
+func TestCountProvidersOkWhenEnoughFoundDespiteCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	r := emitThenBlockRouting{providers: []peer.ID{"p1", "p2", "p3", "p4", "p5"}}
+
+	done := make(chan struct{})
+	var count int
+	var ok bool
+	go func() {
+		defer close(done)
+		count, ok = CountProviders(ctx, r, peer.ID("self"), testCID(t, "enough"), 5)
+	}()
+
+	time.Sleep(20 * time.Millisecond) // let providers flush
+	cancel()
+	<-done
+
+	require.True(t, ok, "count >= target is reliable even if the lookup is then cancelled")
+	assert.Equal(t, 5, count)
+}
+
+// A cancelled/timed-out provider lookup must not be treated as zero providers.
+func TestCheckerSkipsWhenProviderCountUnknown(t *testing.T) {
+	ctx := context.Background()
+	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
+	p := newMockPins()
+	checker := NewChecker(store, p, nil, blockingRouting{}, peer.ID("self"), config.OnDemandPinning{})
+	checker.now = newFakeClock().Now
+
+	c := testCID(t, "hung-lookup")
+	require.NoError(t, store.Add(ctx, c))
+
+	checkCtx, cancel := context.WithTimeout(ctx, 20*time.Millisecond)
+	defer cancel()
+	checker.checkRecord(checkCtx, mustGet(t, store, c))
+
+	assert.False(t, p.isPinned(c))
+}
+
+func mustGet(t *testing.T, store *Store, c cid.Cid) *Record {
+	t.Helper()
+	rec, err := store.Get(context.Background(), c)
+	require.NoError(t, err)
+	return rec
+}
