@@ -159,6 +159,7 @@ func (c *Checker) checkOne(ctx context.Context, ci cid.Cid) {
 
 // checkRecord pins below min, starts grace above max, clears grace in the deadband.
 // immediate=true clears FailureCount/NextCheckAt before running.
+// checkTimeout covers DHT/pin-state lookup only; Pin uses ctx (daemon lifecycle).
 func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) {
 	if immediate {
 		rec.FailureCount = 0
@@ -167,15 +168,15 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) 
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
+	lookupCtx, cancel := context.WithTimeout(ctx, checkTimeout)
 	defer cancel()
 
-	pinned, err := c.pins.IsPinned(ctx, rec.Cid)
+	pinned, err := c.pins.IsPinned(lookupCtx, rec.Cid)
 	if err != nil {
 		c.recordFailure(ctx, rec, fmt.Errorf("check pin state: %w", err))
 		return
 	}
-	hasOnDemandPin, err := c.pins.HasPinWithName(ctx, rec.Cid, OnDemandPinName)
+	hasOnDemandPin, err := c.pins.HasPinWithName(lookupCtx, rec.Cid, OnDemandPinName)
 	if err != nil {
 		c.recordFailure(ctx, rec, fmt.Errorf("check pin name: %w", err))
 		return
@@ -186,7 +187,7 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) 
 		return
 	}
 
-	count, ok := CountProviders(ctx, c.routing, c.selfID, rec.Cid, c.replicationMin, c.replicationMax)
+	count, ok := CountProviders(lookupCtx, c.routing, c.selfID, rec.Cid, c.replicationMin, c.replicationMax)
 	if !ok {
 		c.recordFailure(ctx, rec, fmt.Errorf("provider count unknown"))
 		return
@@ -195,12 +196,12 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) 
 
 	switch {
 	case count < c.replicationMin:
-		if err := c.handleUnderReplicated(ctx, rec, count, hasOnDemandPin); err != nil {
+		if err := c.handleUnderReplicated(ctx, lookupCtx, rec, count, hasOnDemandPin); err != nil {
 			c.recordFailure(ctx, rec, err)
 			return
 		}
 	case count > c.replicationMax:
-		if err := c.handleWellReplicated(ctx, rec, count, hasOnDemandPin); err != nil {
+		if err := c.handleWellReplicated(ctx, lookupCtx, rec, count, hasOnDemandPin); err != nil {
 			c.recordFailure(ctx, rec, err)
 			return
 		}
@@ -211,19 +212,20 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) 
 }
 
 // handleUnderReplicated pins the CID if it does not already have OnDemandPinName.
-func (c *Checker) handleUnderReplicated(ctx context.Context, rec *Record, count int, hasOnDemandPin bool) error {
+// lookupCtx is for quick pin-state checks; runCtx is for Pin/Provide/store (may outlast checkTimeout).
+func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *Record, count int, hasOnDemandPin bool) error {
 	if hasOnDemandPin {
-		c.clearGrace(ctx, rec)
+		c.clearGrace(runCtx, rec)
 		return nil
 	}
 
-	if !c.hasStorageBudget(ctx) {
+	if !c.hasStorageBudget(runCtx) {
 		log.Warnw("skipping pin: repo near storage limit", "cid", rec.Cid)
 		return nil
 	}
 
 	// Re-check: a user pin may have appeared during the provider lookup.
-	pinnedNow, err := c.pins.IsPinned(ctx, rec.Cid)
+	pinnedNow, err := c.pins.IsPinned(lookupCtx, rec.Cid)
 	if err != nil {
 		return fmt.Errorf("re-check pin state: %w", err)
 	}
@@ -232,21 +234,21 @@ func (c *Checker) handleUnderReplicated(ctx context.Context, rec *Record, count 
 		return nil
 	}
 
-	if err := c.pins.Pin(ctx, rec.Cid, OnDemandPinName); err != nil {
+	if err := c.pins.Pin(runCtx, rec.Cid, OnDemandPinName); err != nil {
 		return fmt.Errorf("pin: %w", err)
 	}
 	rec.LastAboveTarget = time.Time{}
 	rec.UnpinAt = time.Time{}
 	log.Infow("pinned", "cid", rec.Cid, "providers", count, "min", c.replicationMin)
 
-	if err := c.routing.Provide(ctx, rec.Cid, true); err != nil {
+	if err := c.routing.Provide(runCtx, rec.Cid, true); err != nil {
 		log.Warnw("failed to provide after pin", "cid", rec.Cid, "error", err)
 	}
-	c.saveRecord(ctx, rec)
+	c.saveRecord(runCtx, rec)
 	return nil
 }
 
-func (c *Checker) handleWellReplicated(ctx context.Context, rec *Record, count int, hasOnDemandPin bool) error {
+func (c *Checker) handleWellReplicated(runCtx, lookupCtx context.Context, rec *Record, count int, hasOnDemandPin bool) error {
 	if !hasOnDemandPin {
 		return nil
 	}
@@ -256,7 +258,7 @@ func (c *Checker) handleWellReplicated(ctx context.Context, rec *Record, count i
 		jitter := c.graceJitter()
 		rec.LastAboveTarget = now
 		rec.UnpinAt = now.Add(c.unpinGracePeriod + jitter)
-		c.saveRecord(ctx, rec)
+		c.saveRecord(runCtx, rec)
 		log.Debugw("grace period started", "cid", rec.Cid, "providers", count, "max", c.replicationMax, "unpinAt", rec.UnpinAt, "jitter", jitter)
 		return nil
 	}
@@ -265,13 +267,13 @@ func (c *Checker) handleWellReplicated(ctx context.Context, rec *Record, count i
 		return nil
 	}
 
-	stillOnDemand, err := c.pins.HasPinWithName(ctx, rec.Cid, OnDemandPinName)
+	stillOnDemand, err := c.pins.HasPinWithName(lookupCtx, rec.Cid, OnDemandPinName)
 	if err != nil {
 		return fmt.Errorf("check pin name before unpin: %w", err)
 	}
 
 	if stillOnDemand {
-		if err := c.pins.Unpin(ctx, rec.Cid); err != nil {
+		if err := c.pins.Unpin(runCtx, rec.Cid); err != nil {
 			return fmt.Errorf("unpin: %w", err)
 		}
 		log.Infow("unpinned", "cid", rec.Cid, "providers", count, "max", c.replicationMax)
@@ -281,7 +283,7 @@ func (c *Checker) handleWellReplicated(ctx context.Context, rec *Record, count i
 
 	rec.LastAboveTarget = time.Time{}
 	rec.UnpinAt = time.Time{}
-	c.saveRecord(ctx, rec)
+	c.saveRecord(runCtx, rec)
 	return nil
 }
 

@@ -340,6 +340,35 @@ func (p *failPinOnce) Pin(ctx context.Context, c cid.Cid, name string) error {
 	return p.mockPins.Pin(ctx, c, name)
 }
 
+type capturePinCtx struct {
+	*mockPins
+	pinCtx context.Context
+}
+
+func (p *capturePinCtx) Pin(ctx context.Context, c cid.Cid, name string) error {
+	p.pinCtx = ctx
+	return p.mockPins.Pin(ctx, c, name)
+}
+
+func TestPinContextHasNoCheckTimeout(t *testing.T) {
+	ctx := context.Background()
+	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
+	r := newMockRouting()
+	pins := &capturePinCtx{mockPins: newMockPins()}
+	checker := NewChecker(store, pins, nil, r, peer.ID("self"), config.OnDemandPinning{})
+	checker.now = newFakeClock().Now
+	checker.graceJitter = func() time.Duration { return 0 }
+
+	c := testCID(t, "pin-ctx")
+	require.NoError(t, store.Add(ctx, c))
+	r.setProviders(c, peer.ID("p1"))
+
+	checker.checkAll(ctx)
+	require.NotNil(t, pins.pinCtx)
+	_, hasDeadline := pins.pinCtx.Deadline()
+	assert.False(t, hasDeadline)
+}
+
 func TestCheckerBackoffSkipsUntilDue(t *testing.T) {
 	ctx := context.Background()
 	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
