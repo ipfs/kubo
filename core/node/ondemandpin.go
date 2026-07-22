@@ -137,6 +137,7 @@ func OnDemandPinChecker(cfg config.OnDemandPinning) func(
 	store *ondemandpin.Store,
 	pinner pin.Pinner,
 	cr routing.ContentRouting,
+	prov DHTProvider,
 	dag format.DAGService,
 	bs blockstore.GCBlockstore,
 	id peer.ID,
@@ -148,13 +149,14 @@ func OnDemandPinChecker(cfg config.OnDemandPinning) func(
 		store *ondemandpin.Store,
 		pinner pin.Pinner,
 		cr routing.ContentRouting,
+		prov DHTProvider,
 		dag format.DAGService,
 		bs blockstore.GCBlockstore,
 		id peer.ID,
 	) *ondemandpin.Checker {
 		pins := &kuboPinService{pinner: pinner, dag: dag, bs: bs}
 		storage := &kuboStorageChecker{repo: r}
-		checker := ondemandpin.NewChecker(store, pins, storage, cr, id, cfg)
+		checker := ondemandpin.NewChecker(store, pins, storage, cr, prov, id, cfg)
 		ctx := helpers.LifecycleCtx(mctx, lc)
 
 		lc.Append(fx.Hook{

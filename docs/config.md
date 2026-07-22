@@ -1247,7 +1247,8 @@ Enables on-demand pinning. When enabled, the node runs a background checker
 that periodically evaluates DHT provider counts for CIDs registered via
 `ipfs pin ondemand add`. CIDs with fewer providers than the replication target
 are pinned; pins are removed after replication stays above target for a grace
-period (default 24h).
+period (default 24h). Requires usable content routing and
+[`Provide.Enabled`](#provideenabled).
 
 See [`OnDemandPinning`](#ondemandpinning) for configuration.
 

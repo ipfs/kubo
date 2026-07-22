@@ -184,3 +184,4 @@ func TestValidatePinName(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "reserved")
 	})
+}

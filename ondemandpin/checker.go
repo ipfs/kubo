@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/amino"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
+	mh "github.com/multiformats/go-multihash"
 )
 
 var log = logging.Logger("ondemandpin")
@@ -38,12 +39,18 @@ type StorageChecker interface {
 	StorageUsage(ctx context.Context) (used, limit uint64, err error)
 }
 
+// Kubo's DHTProvider; may be a no-op.
+type Provider interface {
+	StartProviding(force bool, keys ...mh.Multihash) error
+}
+
 type Checker struct {
-	store   *Store
-	pins    PinService
-	storage StorageChecker
-	routing routing.ContentRouting
-	selfID  peer.ID
+	store    *Store
+	pins     PinService
+	storage  StorageChecker
+	routing  routing.ContentRouting
+	provider Provider
+	selfID   peer.ID
 
 	replicationMin   int
 	replicationMax   int
@@ -62,15 +69,17 @@ func NewChecker(
 	pins PinService,
 	storage StorageChecker,
 	cr routing.ContentRouting,
+	provider Provider,
 	selfID peer.ID,
 	cfg config.OnDemandPinning,
 ) *Checker {
 	c := &Checker{
-		store:   store,
-		pins:    pins,
-		storage: storage,
-		routing: cr,
-		selfID:  selfID,
+		store:    store,
+		pins:     pins,
+		storage:  storage,
+		routing:  cr,
+		provider: provider,
+		selfID:   selfID,
 
 		replicationMin:   int(cfg.ReplicationTargetMin.WithDefault(config.DefaultOnDemandPinReplicationTargetMin)),
 		replicationMax:   int(cfg.ReplicationTargetMax.WithDefault(config.DefaultOnDemandPinReplicationTargetMax)),
@@ -258,7 +267,7 @@ func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *
 	rec.LastResult = "pinned"
 	log.Infow("pinned", "cid", rec.Cid, "providers", count, "min", c.replicationMin)
 
-	if err := c.routing.Provide(runCtx, rec.Cid, true); err != nil {
+	if err := c.provider.StartProviding(true, rec.Cid.Hash()); err != nil {
 		log.Warnw("failed to provide after pin", "cid", rec.Cid, "error", err)
 	}
 	c.saveRecord(runCtx, rec)

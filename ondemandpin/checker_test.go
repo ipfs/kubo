@@ -13,6 +13,7 @@ import (
 	dssync "github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/kubo/config"
 	peer "github.com/libp2p/go-libp2p/core/peer"
+	mh "github.com/multiformats/go-multihash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -70,6 +71,15 @@ func (m *mockRouting) FindProvidersAsync(ctx context.Context, c cid.Cid, limit i
 
 func (m *mockRouting) Provide(context.Context, cid.Cid, bool) error { return nil }
 
+type mockProvider struct {
+	keys []mh.Multihash
+}
+
+func (m *mockProvider) StartProviding(_ bool, keys ...mh.Multihash) error {
+	m.keys = append(m.keys, keys...)
+	return nil
+}
+
 type mockPins struct {
 	pinned map[cid.Cid]string
 }
@@ -101,20 +111,21 @@ func (m *mockPins) isPinned(c cid.Cid) bool {
 	return ok
 }
 
-func newTestChecker(t *testing.T) (*Checker, *Store, *mockRouting, *mockPins, *fakeClock) {
+func newTestChecker(t *testing.T) (*Checker, *Store, *mockRouting, *mockPins, *fakeClock, *mockProvider) {
 	t.Helper()
 	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
 	r := newMockRouting()
 	p := newMockPins()
+	prov := &mockProvider{}
 	clock := newFakeClock()
 
-	checker := NewChecker(store, p, nil, r, peer.ID("self"), config.OnDemandPinning{})
+	checker := NewChecker(store, p, nil, r, prov, peer.ID("self"), config.OnDemandPinning{})
 	checker.checkInterval = time.Minute
 	checker.unpinGracePeriod = 200 * time.Millisecond
 	checker.now = clock.Now
 	checker.graceJitter = func() time.Duration { return 0 }
 
-	return checker, store, r, p, clock
+	return checker, store, r, p, clock, prov
 }
 
 func providers(n int) []peer.ID {
@@ -128,7 +139,7 @@ func providers(n int) []peer.ID {
 // Under-replicated content gets pinned.
 func TestCheckerPinsBelowTarget(t *testing.T) {
 	ctx := context.Background()
-	checker, store, r, p, _ := newTestChecker(t)
+	checker, store, r, p, _, prov := newTestChecker(t)
 	c := testCID(t, "under-replicated")
 
 	require.NoError(t, store.Add(ctx, c))
@@ -141,11 +152,12 @@ func TestCheckerPinsBelowTarget(t *testing.T) {
 	assert.Equal(t, "pinned", rec.LastResult)
 	assert.Equal(t, 2, rec.LastProviderCount)
 	assert.False(t, rec.LastCheckedAt.IsZero())
+	require.Equal(t, []mh.Multihash{c.Hash()}, prov.keys)
 }
 
 func TestCheckerDoesNotPinInDeadband(t *testing.T) {
 	ctx := context.Background()
-	checker, store, r, p, _ := newTestChecker(t)
+	checker, store, r, p, _, _ := newTestChecker(t)
 	c := testCID(t, "deadband")
 
 	require.NoError(t, store.Add(ctx, c))
@@ -158,7 +170,7 @@ func TestCheckerDoesNotPinInDeadband(t *testing.T) {
 
 func TestCheckerUnpinsAfterGracePeriod(t *testing.T) {
 	ctx := context.Background()
-	checker, store, r, p, clock := newTestChecker(t)
+	checker, store, r, p, clock, _ := newTestChecker(t)
 	c := testCID(t, "recovering")
 
 	require.NoError(t, store.Add(ctx, c))
@@ -178,7 +190,7 @@ func TestCheckerUnpinsAfterGracePeriod(t *testing.T) {
 
 func TestCheckerGraceIncludesJitter(t *testing.T) {
 	ctx := context.Background()
-	checker, store, r, p, clock := newTestChecker(t)
+	checker, store, r, p, clock, _ := newTestChecker(t)
 	checker.graceJitter = func() time.Duration { return 100 * time.Millisecond }
 	c := testCID(t, "jitter")
 
@@ -216,7 +228,7 @@ func TestCheckerSkipsPinCreatedDuringLookup(t *testing.T) {
 	r := newMockRouting()
 	p := newMockPins()
 	racing := &pinDuringLookupRouting{mockRouting: r, pins: p, pinName: "user-pin"}
-	checker := NewChecker(store, p, nil, racing, peer.ID("self"), config.OnDemandPinning{})
+	checker := NewChecker(store, p, nil, racing, &mockProvider{}, peer.ID("self"), config.OnDemandPinning{})
 	checker.now = newFakeClock().Now
 
 	c := testCID(t, "raced")
@@ -230,7 +242,7 @@ func TestCheckerSkipsPinCreatedDuringLookup(t *testing.T) {
 
 func TestCheckerOwnsPinByNameNotStoreField(t *testing.T) {
 	ctx := context.Background()
-	checker, store, r, p, clock := newTestChecker(t)
+	checker, store, r, p, clock, _ := newTestChecker(t)
 	c := testCID(t, "name-owned")
 
 	require.NoError(t, store.Add(ctx, c))
@@ -316,7 +328,7 @@ func TestCheckerSkipsWhenProviderCountUnknown(t *testing.T) {
 	ctx := context.Background()
 	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
 	p := newMockPins()
-	checker := NewChecker(store, p, nil, blockingRouting{}, peer.ID("self"), config.OnDemandPinning{})
+	checker := NewChecker(store, p, nil, blockingRouting{}, &mockProvider{}, peer.ID("self"), config.OnDemandPinning{})
 	checker.now = newFakeClock().Now
 
 	c := testCID(t, "hung-lookup")
@@ -360,7 +372,7 @@ func TestPinContextHasNoCheckTimeout(t *testing.T) {
 	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
 	r := newMockRouting()
 	pins := &capturePinCtx{mockPins: newMockPins()}
-	checker := NewChecker(store, pins, nil, r, peer.ID("self"), config.OnDemandPinning{})
+	checker := NewChecker(store, pins, nil, r, &mockProvider{}, peer.ID("self"), config.OnDemandPinning{})
 	checker.now = newFakeClock().Now
 	checker.graceJitter = func() time.Duration { return 0 }
 
@@ -380,7 +392,7 @@ func TestCheckerBackoffSkipsUntilDue(t *testing.T) {
 	r := newMockRouting()
 	pins := &failPinOnce{mockPins: newMockPins(), fail: true}
 	clock := newFakeClock()
-	checker := NewChecker(store, pins, nil, r, peer.ID("self"), config.OnDemandPinning{})
+	checker := NewChecker(store, pins, nil, r, &mockProvider{}, peer.ID("self"), config.OnDemandPinning{})
 	checker.checkInterval = time.Minute
 	checker.now = clock.Now
 	checker.graceJitter = func() time.Duration { return 0 }
@@ -414,7 +426,7 @@ func TestCheckerDryRunDoesNotPinOrUnpin(t *testing.T) {
 	r := newMockRouting()
 	p := newMockPins()
 	clock := newFakeClock()
-	checker := NewChecker(store, p, nil, r, peer.ID("self"), config.OnDemandPinning{
+	checker := NewChecker(store, p, nil, r, &mockProvider{}, peer.ID("self"), config.OnDemandPinning{
 		DryRun: config.True,
 	})
 	checker.checkInterval = time.Minute

@@ -47,3 +47,8 @@ func TestValidateOnDemandPinningRouting(t *testing.T) {
 	assert.NoError(t, ValidateOnDemandPinningRouting("delegated"))
 	assert.ErrorContains(t, ValidateOnDemandPinningRouting("none"), "none")
 }
+
+func TestValidateOnDemandPinningProvide(t *testing.T) {
+	assert.NoError(t, ValidateOnDemandPinningProvide(true))
+	assert.ErrorContains(t, ValidateOnDemandPinningProvide(false), "Provide.Enabled")
+}

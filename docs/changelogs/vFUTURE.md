@@ -46,8 +46,10 @@ Design highlights:
   `StorageMax * StorageGCWatermark`.
 - **Idle timeout**: DAG fetches timeout after 2 minutes without receiving new
   blocks, allowing large downloads while skipping dead records.
-- **Provide after pin**: the checker publishes a DHT provider record after
-  pinning so other peers can discover the content on this node.
+- **Provide after pin**: after pinning, the checker publishes a DHT provider
+  record via `DHTProvider.StartProviding` so other peers can discover the
+  content. Honors `Provide.Enabled` (daemon will not start if providing is off)
+  and re-announces periodically.
 - **Sybil limitation**: provider counts come from DHT queries, which are
   susceptible to Sybil manipulation. Documented as a known limitation.
 

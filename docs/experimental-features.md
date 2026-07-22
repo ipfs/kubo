@@ -635,8 +635,9 @@ The feature consists of:
   `"kubo:on-demand"`, so the checker can tell its
   pins apart from user pins and will never remove a pin it did not create.
 
-When the checker pins a CID it also publishes a provider record to the DHT
-so other peers can discover the content on this node.
+When the checker pins a CID it publishes a DHT provider record (via
+`StartProviding`) so other peers can discover the content on this node.
+Requires `Provide.Enabled`.
 
 **Security consideration**: DHT provider counts can be gamed via Sybil
 attacks. An attacker could inflate provider counts to trick nodes into

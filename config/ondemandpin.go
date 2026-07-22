@@ -64,3 +64,11 @@ func ValidateOnDemandPinningRouting(routingType string) error {
 	}
 	return nil
 }
+
+// ValidateOnDemandPinningProvide rejects Provide.Enabled=false (pins would be invisible).
+func ValidateOnDemandPinningProvide(provideEnabled bool) error {
+	if !provideEnabled {
+		return fmt.Errorf("on-demand pinning needs Provide.Enabled; other nodes cannot discover local pins when providing is off")
+	}
+	return nil
+}
