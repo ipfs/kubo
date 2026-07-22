@@ -619,8 +619,11 @@ Experimental, disabled by default.
 On-demand pinning lets a node pin content when DHT provider counts fall below
 a minimum, and unpin after they stay above a maximum for a grace period
 (plus a short random delay). Values between min and max are left alone.
-ipfs-cluster replication factors assign pins among known peers; this feature
-only watches the DHT and decides locally.
+Provider counts come from `FindProviders`, not from the peer routing table.
+
+[ipfs-cluster replication factors](https://ipfscluster.io/documentation/guides/pinning/#replication-factors)
+assign pins among known peers; this feature only watches the DHT and decides
+locally.
 
 The feature consists of:
 

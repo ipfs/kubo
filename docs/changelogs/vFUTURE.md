@@ -21,9 +21,9 @@ This release was brought to you by the [Shipyard](https://ipshipyard.com/) team.
 #### Experimental on-demand pinning
 
 Automatically pins content when DHT provider counts fall below a configurable
-replication target, and unpins once replication has been above target for a
-grace period. Helps keeping critical data around, without wasting storage on
-overly replicated CIDs.
+min, and unpins once they stay above a max for a grace period. Helps keep
+critical data around without storing overly replicated CIDs. Same rough idea as
+ipfs-cluster replication factors, except nobody coordinates the pinset; each node reacts to DHT counts locally.
 
 The feature is gated behind `Experimental.OnDemandPinningEnabled` and described
 in [ipfs/specs#532](https://github.com/ipfs/specs/pull/532).
@@ -40,9 +40,8 @@ New CLI commands under `ipfs pin ondemand`:
 
 Design highlights:
 
-- **Pin partitioning**: the checker needs to distinguish its pins from user
-  pins to avoid accidental deletion. This implementation uses boxo's pin name
-  field ("on-demand").
+- **Pin partitioning**: the checker marks its pins with the reserved name
+  `kubo:on-demand` so it never removes a user pin.
 - **Storage budget**: skips pinning when repo usage exceeds
   `StorageMax * StorageGCWatermark`.
 - **Idle timeout**: DAG fetches timeout after 2 minutes without receiving new

@@ -2249,6 +2249,8 @@ Type: `duration`
 
 Configures the on-demand pinning system. Requires
 [`Experimental.OnDemandPinningEnabled`](#experimentalondemandpinningenabled).
+See [experimental features](./experimental-features.md#on-demand-pinning) for how
+this differs from ipfs-cluster replication.
 
 ### `OnDemandPinning.ReplicationTargetMin`
 

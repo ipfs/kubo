@@ -23,8 +23,11 @@ var onDemandPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Manage on-demand pins.",
 		ShortDescription: `
-On-demand pins when few DHT providers exist in the routing table; unpins after
-replication stays above target for a grace period. Requires config
+Pins registered CIDs when FindProviders finds few DHT providers; unpins after
+the count stays above max for a grace period. Roughly like ipfs-cluster
+replication factors
+(https://ipfscluster.io/documentation/guides/pinning/#replication-factors),
+except each node decides on its own from the DHT. Requires
 Experimental.OnDemandPinningEnabled.
 `,
 	},
