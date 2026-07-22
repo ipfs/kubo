@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
-	"github.com/ipfs/boxo/path"
 	assets "github.com/ipfs/kubo/assets"
 	oldcmds "github.com/ipfs/kubo/commands"
 	core "github.com/ipfs/kubo/core"
@@ -173,7 +172,7 @@ func doInit(out io.Writer, repoRoot string, empty bool, confProfiles string, con
 		}
 	}
 
-	return initializeIpnsKeyspace(repoRoot)
+	return pinEmptyDir(repoRoot)
 }
 
 func checkWritable(dir string) error {
@@ -233,7 +232,16 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 	return err
 }
 
-func initializeIpnsKeyspace(repoRoot string) error {
+// pinEmptyDir pins the empty unixfs directory in the fresh repo.
+//
+// Until Kubo v0.43 this also published an IPNS record for the node's own
+// key pointing at the empty directory. That record was never visible to
+// the network (the DHT discarded records stored without a receive
+// timestamp), and once the offline publish path started sharing the DHT's
+// value store it would have been served to other peers, making a fresh
+// node's name resolve to an empty directory instead of failing until the
+// first real publish. So the publish is gone; the pin stays.
+func pinEmptyDir(repoRoot string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -257,10 +265,5 @@ func initializeIpnsKeyspace(repoRoot string) error {
 		return err
 	}
 
-	err = nd.Pinning.Flush(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nd.Namesys.Publish(ctx, nd.PrivateKey, path.FromCid(emptyDir.Cid()))
+	return nd.Pinning.Flush(ctx)
 }

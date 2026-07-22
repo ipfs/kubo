@@ -461,7 +461,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
-	if key, _ := repo.SwarmKey(); key != nil || pnet.ForcePrivateNetwork {
+	if isPrivateNetwork {
 		// Private setups can't leverage peers returned by default IPNIs (Routing.Type=auto)
 		// To avoid breaking existing setups, switch them to DHT-only.
 		if routingOption == routingOptionAutoKwd {
@@ -531,6 +531,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		version.SetUserAgentSuffix(versionSuffix)
 	}
 
+	if err := validateDaemonConfig(cfg, routingOption, isPrivateNetwork); err != nil {
+		return err
+	}
+
+	if err := validateDaemonEnvironment(); err != nil {
+		return err
+	}
+
 	node, err := core.NewNode(req.Context, ncfg)
 	if err != nil {
 		return err
@@ -540,40 +548,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if node.PNetFingerprint != nil {
 		fmt.Println("Swarm is limited to private network of peers with the swarm key")
 		fmt.Printf("Swarm key fingerprint: %x\n", node.PNetFingerprint)
-	}
-
-	if (pnet.ForcePrivateNetwork || node.PNetFingerprint != nil) && (routingOption == routingOptionAutoKwd || routingOption == routingOptionAutoClientKwd) {
-		// This should never happen, but better safe than sorry
-		log.Fatal("Private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
-	}
-	// Check for deprecated Provider/Reprovider configuration after migration
-	// This should never happen for regular users, but is useful error for people who have Docker orchestration
-	// that blindly sets config keys (overriding automatic Kubo migration).
-	//nolint:staticcheck // intentionally checking deprecated fields
-	if cfg.Provider.Enabled != config.Default || !cfg.Provider.Strategy.IsDefault() || !cfg.Provider.WorkerCount.IsDefault() {
-		log.Fatal("Deprecated configuration detected. Manually migrate 'Provider' fields to 'Provide' and remove 'Provider' from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
-	}
-	//nolint:staticcheck // intentionally checking deprecated fields
-	if !cfg.Reprovider.Interval.IsDefault() || !cfg.Reprovider.Strategy.IsDefault() {
-		log.Fatal("Deprecated configuration detected. Manually migrate 'Reprovider' fields to 'Provide': Reprovider.Strategy -> Provide.Strategy, Reprovider.Interval -> Provide.DHT.Interval. Remove 'Reprovider' from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
-	}
-	// Check for deprecated "flat" strategy (should have been migrated to "all")
-	if cfg.Provide.Strategy.WithDefault("") == "flat" {
-		log.Fatal("Provide.Strategy='flat' is no longer supported. Use 'all' instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy")
-	}
-	if cfg.Experimental.StrategicProviding {
-		log.Fatal("Experimental.StrategicProviding was removed. Remove it from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#strategic-providing")
-	}
-	// Check for invalid MaxWorkers=0 with SweepEnabled
-	if cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled) &&
-		cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers) == 0 {
-		log.Fatal("Invalid configuration: Provide.DHT.MaxWorkers cannot be 0 when Provide.DHT.SweepEnabled=true. Set Provide.DHT.MaxWorkers to a positive value (e.g., 16) to control resource usage. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtmaxworkers")
-	}
-	if routingOption == routingOptionDelegatedKwd {
-		// Delegated routing is read-only mode - content providing must be disabled
-		if cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
-			log.Fatal("Routing.Type=delegated does not support content providing. Set Provide.Enabled=false in your config.")
-		}
 	}
 
 	printLibp2pPorts(node)
@@ -806,11 +780,6 @@ take effect.
 		})
 	}
 
-	// Hard deprecation notice if someone still uses IPFS_REUSEPORT
-	if flag := os.Getenv("IPFS_REUSEPORT"); flag != "" {
-		log.Fatal("Support for IPFS_REUSEPORT was removed. Use LIBP2P_TCP_REUSEPORT instead.")
-	}
-
 	unmountErrc := make(chan error)
 	context.AfterFunc(node.Context(), func() {
 		<-node.Context().Done()
@@ -986,6 +955,46 @@ func rewriteMaddrToUseLocalhostIfItsAny(maddr ma.Multiaddr) ma.Multiaddr {
 	default:
 		return maddr // not ip
 	}
+}
+
+func validateDaemonConfig(cfg *config.Config, routingOption string, privateNetwork bool) error {
+	if privateNetwork && (routingOption == routingOptionAutoKwd || routingOption == routingOptionAutoClientKwd) {
+		return errors.New("private network does not work with Routing.Type=auto. Update your config to Routing.Type=dht (or none, and do manual peering)")
+	}
+
+	// Check for deprecated Provider/Reprovider configuration after migration.
+	// This should never happen for regular users, but is useful error for people who have Docker orchestration
+	// that blindly sets config keys (overriding automatic Kubo migration).
+	//nolint:staticcheck // intentionally checking deprecated fields
+	if cfg.Provider.Enabled != config.Default || !cfg.Provider.Strategy.IsDefault() || !cfg.Provider.WorkerCount.IsDefault() {
+		return errors.New("deprecated configuration detected. Manually migrate 'Provider' fields to 'Provide' and remove 'Provider' from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
+	}
+	//nolint:staticcheck // intentionally checking deprecated fields
+	if !cfg.Reprovider.Interval.IsDefault() || !cfg.Reprovider.Strategy.IsDefault() {
+		return errors.New("deprecated configuration detected. Manually migrate 'Reprovider' fields to 'Provide': Reprovider.Strategy -> Provide.Strategy, Reprovider.Interval -> Provide.DHT.Interval. Remove 'Reprovider' from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#provide")
+	}
+	if cfg.Provide.Strategy.WithDefault("") == "flat" {
+		return errors.New("Provide.Strategy='flat' is no longer supported. Use 'all' instead. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#providestrategy")
+	}
+	if cfg.Experimental.StrategicProviding {
+		return errors.New("Experimental.StrategicProviding was removed. Remove it from your config. Documentation: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#strategic-providing")
+	}
+	if cfg.Provide.DHT.SweepEnabled.WithDefault(config.DefaultProvideDHTSweepEnabled) &&
+		cfg.Provide.DHT.MaxWorkers.WithDefault(config.DefaultProvideDHTMaxWorkers) == 0 {
+		return errors.New("invalid configuration: Provide.DHT.MaxWorkers cannot be 0 when Provide.DHT.SweepEnabled=true. Set Provide.DHT.MaxWorkers to a positive value (e.g., 16) to control resource usage. Documentation: https://github.com/ipfs/kubo/blob/master/docs/config.md#providedhtmaxworkers")
+	}
+	if routingOption == routingOptionDelegatedKwd && cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled) {
+		return errors.New("Routing.Type=delegated does not support content providing. Set Provide.Enabled=false in your config")
+	}
+
+	return nil
+}
+
+func validateDaemonEnvironment() error {
+	if flag := os.Getenv("IPFS_REUSEPORT"); flag != "" {
+		return errors.New("support for IPFS_REUSEPORT was removed. Use LIBP2P_TCP_REUSEPORT instead")
+	}
+	return nil
 }
 
 // printLibp2pPorts prints which ports are opened to facilitate swarm connectivity.

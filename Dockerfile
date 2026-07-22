@@ -7,7 +7,7 @@
 # The default below is what `docker build .` (without --build-arg) uses, and
 # `.github/workflows/docker-check.yml` lints that this default stays in sync
 # with go.mod. When bumping Go, update both go.mod and this default together.
-ARG GO_VERSION=1.26.4
+ARG GO_VERSION=1.26.5
 FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:${GO_VERSION} AS builder
 
 ARG TARGETOS TARGETARCH

@@ -25,97 +25,97 @@ test_ls_cmd() {
 
   test_expect_success "'ipfs add' output looks good" '
     cat <<-\EOF >expected_add &&
-added QmWUixdcx1VJtpuAgXAy4e3JPAbEoHE6VEDut5KcYcpuGN testData/d1/128
+added QmYGeKXr7Jef8FgFbrb6X2cY45od7anc2QstAJbWT2E5ak testData/d1/128
 added QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN testData/d1/a
-added QmZHVTX2epinyx5baTFV2L2ap9VtgbmfeFdhgntAypT5N3 testData/d2/1024
+added QmUc94gA5Vy3tp2gnBx4YnAQ3msnqDc4sdEUsZsrBV65Q3 testData/d2/1024
 added QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL testData/d2/a
 added QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn testData/d2/bad\x7fname.txt
 added QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH testData/f1
 added QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M testData/f2
-added QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j testData/d1
-added Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW testData/d2
-added QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc testData
+added QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH testData/d1
+added QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 testData/d2
+added QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My testData
 EOF
     test_cmp expected_add actual_add
   '
-  
+
   test_expect_success "'ipfs ls <three dir hashes>' succeeds" '
-    ipfs ls QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j >actual_ls
+    ipfs ls QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH >actual_ls
   '
 
   test_expect_success "'ipfs ls <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls &&
-QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc:
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j - d1/
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW - d2/
+QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My:
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH - d1/
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 - d2/
 QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5 f1
 QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5 f2
 
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW:
-QmZHVTX2epinyx5baTFV2L2ap9VtgbmfeFdhgntAypT5N3 1024 1024
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6:
+QmUc94gA5Vy3tp2gnBx4YnAQ3msnqDc4sdEUsZsrBV65Q3 1024 1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 6    a
 QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8    bad\x7fname.txt
 
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j:
-QmWUixdcx1VJtpuAgXAy4e3JPAbEoHE6VEDut5KcYcpuGN 128 128
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH:
+QmYGeKXr7Jef8FgFbrb6X2cY45od7anc2QstAJbWT2E5ak 128 128
 QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 6   a
 EOF
     test_cmp expected_ls actual_ls
   '
 
   test_expect_success "'ipfs ls --size=false <three dir hashes>' succeeds" '
-    ipfs ls --size=false QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j >actual_ls
+    ipfs ls --size=false QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH >actual_ls
   '
 
   test_expect_success "'ipfs ls <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls &&
-QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc:
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j d1/
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW d2/
+QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My:
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH d1/
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 d2/
 QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH f1
 QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M f2
 
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW:
-QmZHVTX2epinyx5baTFV2L2ap9VtgbmfeFdhgntAypT5N3 1024
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6:
+QmUc94gA5Vy3tp2gnBx4YnAQ3msnqDc4sdEUsZsrBV65Q3 1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL a
 QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn bad\x7fname.txt
 
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j:
-QmWUixdcx1VJtpuAgXAy4e3JPAbEoHE6VEDut5KcYcpuGN 128
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH:
+QmYGeKXr7Jef8FgFbrb6X2cY45od7anc2QstAJbWT2E5ak 128
 QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN a
 EOF
     test_cmp expected_ls actual_ls
   '
 
   test_expect_success "'ipfs ls --headers <three dir hashes>' succeeds" '
-    ipfs ls --headers QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j >actual_ls_headers
+    ipfs ls --headers QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH >actual_ls_headers
   '
 
   test_expect_success "'ipfs ls --headers  <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls_headers &&
-QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc:
+QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My:
 Hash                                           Size Name
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j -    d1/
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW -    d2/
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH -    d1/
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 -    d2/
 QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5    f1
 QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5    f2
 
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW:
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6:
 Hash                                           Size Name
-QmZHVTX2epinyx5baTFV2L2ap9VtgbmfeFdhgntAypT5N3 1024 1024
+QmUc94gA5Vy3tp2gnBx4YnAQ3msnqDc4sdEUsZsrBV65Q3 1024 1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 6    a
 QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8    bad\x7fname.txt
 
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j:
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH:
 Hash                                           Size Name
-QmWUixdcx1VJtpuAgXAy4e3JPAbEoHE6VEDut5KcYcpuGN 128  128
+QmYGeKXr7Jef8FgFbrb6X2cY45od7anc2QstAJbWT2E5ak 128  128
 QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 6    a
 EOF
     test_cmp expected_ls_headers actual_ls_headers
   '
 
   test_expect_success "'ipfs ls --size=false --cid-base=base32 <three dir hashes>' succeeds" '
-    ipfs ls --size=false --cid-base=base32 $(cid-fmt -v 1 -b base32 %s QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j) >actual_ls_base32
+    ipfs ls --size=false --cid-base=base32 $(cid-fmt -v 1 -b base32 %s QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH) >actual_ls_base32
   '
 
   test_expect_success "'ipfs ls --size=false --cid-base=base32 <three dir hashes>' output looks good" '
@@ -141,90 +141,90 @@ test_ls_cmd_streaming() {
 
   test_expect_success "'ipfs add' output looks good" '
     cat <<-\EOF >expected_add &&
-added QmWUixdcx1VJtpuAgXAy4e3JPAbEoHE6VEDut5KcYcpuGN testData/d1/128
+added QmYGeKXr7Jef8FgFbrb6X2cY45od7anc2QstAJbWT2E5ak testData/d1/128
 added QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN testData/d1/a
-added QmZHVTX2epinyx5baTFV2L2ap9VtgbmfeFdhgntAypT5N3 testData/d2/1024
+added QmUc94gA5Vy3tp2gnBx4YnAQ3msnqDc4sdEUsZsrBV65Q3 testData/d2/1024
 added QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL testData/d2/a
 added QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn testData/d2/bad\x7fname.txt
 added QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH testData/f1
 added QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M testData/f2
-added QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j testData/d1
-added Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW testData/d2
-added QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc testData
+added QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH testData/d1
+added QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 testData/d2
+added QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My testData
 EOF
     test_cmp expected_add actual_add
   '
 
   test_expect_success "'ipfs ls --stream <three dir hashes>' succeeds" '
-    ipfs ls --stream QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j >actual_ls_stream
+    ipfs ls --stream QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH >actual_ls_stream
   '
 
   test_expect_success "'ipfs ls --stream <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls_stream &&
-QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc:
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j -         d1/
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW -         d2/
+QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My:
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH -         d1/
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 -         d2/
 QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5         f1
 QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5         f2
 
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW:
-QmZHVTX2epinyx5baTFV2L2ap9VtgbmfeFdhgntAypT5N3 1024      1024
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6:
+QmUc94gA5Vy3tp2gnBx4YnAQ3msnqDc4sdEUsZsrBV65Q3 1024      1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 6         a
 QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8         bad\x7fname.txt
 
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j:
-QmWUixdcx1VJtpuAgXAy4e3JPAbEoHE6VEDut5KcYcpuGN 128       128
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH:
+QmYGeKXr7Jef8FgFbrb6X2cY45od7anc2QstAJbWT2E5ak 128       128
 QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 6         a
 EOF
     test_cmp expected_ls_stream actual_ls_stream
   '
 
   test_expect_success "'ipfs ls --size=false --stream <three dir hashes>' succeeds" '
-    ipfs ls --size=false --stream QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j >actual_ls_stream
+    ipfs ls --size=false --stream QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH >actual_ls_stream
   '
 
   test_expect_success "'ipfs ls --size=false --stream <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls_stream &&
-QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc:
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j d1/
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW d2/
+QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My:
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH d1/
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 d2/
 QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH f1
 QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M f2
 
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW:
-QmZHVTX2epinyx5baTFV2L2ap9VtgbmfeFdhgntAypT5N3 1024
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6:
+QmUc94gA5Vy3tp2gnBx4YnAQ3msnqDc4sdEUsZsrBV65Q3 1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL a
 QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn bad\x7fname.txt
 
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j:
-QmWUixdcx1VJtpuAgXAy4e3JPAbEoHE6VEDut5KcYcpuGN 128
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH:
+QmYGeKXr7Jef8FgFbrb6X2cY45od7anc2QstAJbWT2E5ak 128
 QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN a
 EOF
     test_cmp expected_ls_stream actual_ls_stream
   '
 
   test_expect_success "'ipfs ls --stream --headers <three dir hashes>' succeeds" '
-    ipfs ls --stream --headers QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j >actual_ls_stream_headers
+    ipfs ls --stream --headers QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH >actual_ls_stream_headers
   '
 
   test_expect_success "'ipfs ls --stream --headers  <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls_stream_headers &&
-QmR5UuxvF2ALd2GRGMCNg1GDiuuvcAyEkQaCV9fNkevWuc:
+QmYC14BmpHUBMttbWaqbdR81RMcZfSLau6PSazhpRWi1My:
 Hash                                           Size      Name
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j -         d1/
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW -         d2/
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH -         d1/
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6 -         d2/
 QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5         f1
 QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5         f2
 
-Qmapxr4zxxUjoUFzyggydRZDkcJknjbtahYFKokbBAVghW:
+QmZX7bVCyEuxB6Mzm33yP77PQVuSFvveugDdenzH2yHnd6:
 Hash                                           Size      Name
-QmZHVTX2epinyx5baTFV2L2ap9VtgbmfeFdhgntAypT5N3 1024      1024
+QmUc94gA5Vy3tp2gnBx4YnAQ3msnqDc4sdEUsZsrBV65Q3 1024      1024
 QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 6         a
 QmQSLRRd1Lxn6NMsWmmj2g9W3LtSRfmVAVqU3ShneLUrbn 8         bad\x7fname.txt
 
-QmWWEQhcLufF3qPmmbUjqH7WVWBT9JrGJwPiVTryCoBs2j:
+QmXQKyr8cT6erZHVqcBBASydmkSF9CnkC8AnTV8UhimExH:
 Hash                                           Size      Name
-QmWUixdcx1VJtpuAgXAy4e3JPAbEoHE6VEDut5KcYcpuGN 128       128
+QmYGeKXr7Jef8FgFbrb6X2cY45od7anc2QstAJbWT2E5ak 128       128
 QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 6         a
 EOF
     test_cmp expected_ls_stream_headers actual_ls_stream_headers
@@ -246,19 +246,19 @@ test_ls_object() {
   test_expect_success "ipfs add medium size file then 'ipfs ls --size=false' works as expected" '
     random-data -size=500000 -seed=2 > somefile &&
     HASH=$(ipfs add somefile -q) &&
-    echo "QmWJuiG6dhfwo3KXxCc9gkdizoMoXbLMCDiTTZgEhSmyyo " > ls-expect &&
-    echo "QmNPxtpjhoXMRVKm4oSwcJaS4fck5FR4LufPd5KJr4jYhm " >> ls-expect &&
-    ipfs ls --size=false $HASH > ls-actual &&
-    test_cmp ls-actual ls-expect
+    echo "QmcNiEfXLxVV1pE3CBvDq4U9Bt23etJxxkeV84ZmLgdpFM " > ls-expect &&
+    echo "QmUE5xKYYnTh5mBCu7vq53XyKMJoe5VHN3GfrQFs8NvNYV " >> ls-expect &&
+    ipfs ls --size=false $HASH > ls-actual-1 &&
+    test_cmp ls-actual-1 ls-expect
   '
 
   test_expect_success "ipfs add medium size file then 'ipfs ls' works as expected" '
     random-data -size=500000 -seed=2 > somefile &&
     HASH=$(ipfs add somefile -q) &&
-    echo "QmWJuiG6dhfwo3KXxCc9gkdizoMoXbLMCDiTTZgEhSmyyo 262144 " > ls-expect &&
-    echo "QmNPxtpjhoXMRVKm4oSwcJaS4fck5FR4LufPd5KJr4jYhm 237856 " >> ls-expect &&
-    ipfs ls $HASH > ls-actual &&
-    test_cmp ls-actual ls-expect
+    echo "QmcNiEfXLxVV1pE3CBvDq4U9Bt23etJxxkeV84ZmLgdpFM 262144 " > ls-expect &&
+    echo "QmUE5xKYYnTh5mBCu7vq53XyKMJoe5VHN3GfrQFs8NvNYV 237856 " >> ls-expect &&
+    ipfs ls $HASH > ls-actual-2 &&
+    test_cmp ls-actual-2 ls-expect
   '
 }
 

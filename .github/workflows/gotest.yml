@@ -31,7 +31,7 @@ jobs:
         shell: bash
     steps:
       - name: Check out Kubo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -43,7 +43,7 @@ jobs:
           make test_unit &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         if: failure() || success()
         with:
           name: unittests
@@ -102,7 +102,7 @@ jobs:
         shell: bash
     steps:
       - name: Check out Kubo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -171,7 +171,7 @@ jobs:
         shell: bash
     steps:
       - name: Check out Kubo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -214,7 +214,7 @@ jobs:
         shell: bash
     steps:
       - name: Check out Kubo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Set up Go
         uses: actions/setup-go@v6
         with:

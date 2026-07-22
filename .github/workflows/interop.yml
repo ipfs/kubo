@@ -46,7 +46,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
@@ -63,7 +63,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: lts/*
       - uses: actions/download-artifact@v8
@@ -80,7 +80,7 @@ jobs:
         id: helia-version
         run: echo "version=$(npm view @helia/interop version)" >> $GITHUB_OUTPUT
       - name: Cache helia-interop node_modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: helia-cache
         with:
           path: node_modules
@@ -88,22 +88,46 @@ jobs:
       - name: Install @helia/interop
         if: steps.helia-cache.outputs.cache-hit != 'true'
         run: npm install @helia/interop
-      # TODO(IPIP-499): Remove --grep --invert workaround once helia implements IPIP-499
-      # Tracking issue: https://github.com/ipfs/helia/issues/941
+      # Recurring @helia/interop regression: the published .aegir.js is unusable
+      # from inside node_modules, in one of two ways.
       #
-      # PROVISIONAL HACK: Skip '@helia/mfs - should have the same CID after
-      # creating a file' test due to IPIP-499 changes in kubo.
+      # 1. Missing: the package ships without .aegir.js in its "files", so
+      #    `aegir test` has no config and discovers no spec files. Happened around
+      #    ipfs/helia#1001 (fixed by ipfs/helia#1003), and again in ipfs/helia#1049
+      #    ("feat!: make libp2p optional"), which dropped it from 11.0.0-11.0.2.
+      # 2. Present but broken: the shipped config globs the TypeScript sources
+      #    (./src/*.spec.ts), written for running tests inside the helia monorepo.
+      #    Node refuses to type-strip .ts files under node_modules
+      #    (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING, no tsconfig is shipped),
+      #    so mocha dies on the first spec. This is what ipfs/helia#1066 restored
+      #    in 11.0.3.
       #
-      # WHY IT FAILS: The test creates a 5-byte file in MFS on both kubo and helia,
-      # then compares the root directory CID. With kubo PR #11148, `ipfs files write`
-      # now produces raw CIDs for single-block files (matching `ipfs add --raw-leaves`),
-      # while helia uses `reduceSingleLeafToSelf: false` which keeps the dag-pb wrapper.
-      # Different file CIDs lead to different directory CIDs.
-      #
-      # We run aegir directly (instead of helia-interop binary) because only aegir
-      # supports the --grep/--invert flags needed to exclude specific tests.
-      - name: Run helia-interop tests (excluding IPIP-499 incompatible test)
-        run: npx aegir test -t node --bail -- --grep 'should have the same CID after creating a file' --invert
+      # In both cases we write a minimal config pointing at the prebuilt
+      # ./dist/src, which is all a `-t node` run needs; the rest of helia's own
+      # config is browser-only setup skipped under node. A shipped config that
+      # does not glob .ts files is left untouched, so this step self-heals once
+      # helia publishes a node_modules-safe config. It writes into node_modules
+      # and is fragile if helia's dist layout shifts.
+      - name: Work around unusable @helia/interop/.aegir.js (ipfs/helia#1049, ipfs/helia#1066)
+        run: |
+          config=node_modules/@helia/interop/.aegir.js
+          if [ ! -f "$config" ]; then
+            echo "export default { test: { files: './dist/src/*.spec.js' } }" > "$config"
+            echo "injected minimal $config: file missing from published package"
+          elif grep -qE "files:.*\.spec\.ts" "$config"; then
+            echo "export default { test: { files: './dist/src/*.spec.js' } }" > "$config"
+            echo "replaced $config: shipped config globs .ts sources, which node cannot run from node_modules"
+          else
+            echo "$config is usable as shipped, no workaround needed"
+          fi
+      # We run aegir directly (instead of the helia-interop binary) because the
+      # bin spawns a bare `aegir test` with no way to pass the flags below.
+      # --exit: the node interop specs spawn kubo daemons (via ipfsd-ctl +
+      # KUBO_BINARY) whose libp2p/RPC handles keep Node's event loop alive after
+      # the run, so mocha prints its summary and then hangs until the job timeout.
+      # Force exit once the run completes.
+      - name: Run helia-interop tests
+        run: npx aegir test -t node --bail -- --exit
         env:
           KUBO_BINARY: ${{ github.workspace }}/cmd/ipfs/ipfs
         working-directory: node_modules/@helia/interop
@@ -127,11 +151,11 @@ jobs:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: ipfs/ipfs-webui
           path: ipfs-webui
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: 'ipfs-webui/.tool-versions'
       - id: webui-ref
@@ -146,7 +170,7 @@ jobs:
         run: gh api "$ENDPOINT" --jq "$SELECTOR" | xargs -I{} echo "$KEY={}" | tee -a $GITHUB_OUTPUT
       # Cache node_modules based on package-lock.json
       - name: Cache node_modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: node-modules-cache
         with:
           path: ipfs-webui/node_modules
@@ -159,7 +183,7 @@ jobs:
         working-directory: ipfs-webui
       # Cache Playwright browsers
       - name: Cache Playwright browsers
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -178,7 +202,7 @@ jobs:
         working-directory: ipfs-webui
       # Cache test build output
       - name: Cache test build
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: test-build-cache
         with:
           path: ipfs-webui/build

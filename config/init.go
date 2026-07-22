@@ -236,6 +236,10 @@ func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, 
 		return ident, err
 	}
 
+	if err := options.CheckKeySize(settings.Algorithm, settings.Size); err != nil {
+		return ident, err
+	}
+
 	var sk crypto.PrivKey
 	var pk crypto.PubKey
 
@@ -255,11 +259,17 @@ func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, 
 		sk = priv
 		pk = pub
 	case "ed25519":
-		if settings.Size != -1 {
-			return ident, fmt.Errorf("number of key bits does not apply when using ed25519 keys")
-		}
 		fmt.Fprintf(out, "generating ED25519 keypair...")
 		priv, pub, err := crypto.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			return ident, err
+		}
+
+		sk = priv
+		pk = pub
+	case "secp256k1":
+		fmt.Fprintf(out, "generating secp256k1 keypair...")
+		priv, pub, err := crypto.GenerateSecp256k1Key(rand.Reader)
 		if err != nil {
 			return ident, err
 		}

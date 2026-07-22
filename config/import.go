@@ -279,6 +279,11 @@ func (i *Import) MFSRootOptions() ([]mfs.Option, error) {
 		mfs.WithMaxHAMTFanout(int(i.UnixFSHAMTDirectoryMaxFanout.WithDefault(DefaultUnixFSHAMTDirectoryMaxFanout))),
 		mfs.WithHAMTShardingSize(int(i.UnixFSHAMTDirectorySizeThreshold.WithDefault(DefaultUnixFSHAMTDirectorySizeThreshold))),
 		mfs.WithSizeEstimationMode(sizeEstimationMode),
+		// Bound under-lock DAG reads so a locally-missing directory node fails
+		// after the timeout instead of blocking forever on the network and
+		// wedging MFS (ipfs/kubo#7008, #7844, #10842). Reads stay online, so
+		// lazily-referenced remote content is still fetched.
+		mfs.WithFetchTimeout(DefaultMFSFetchTimeout),
 	}, nil
 }
 

@@ -23,7 +23,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout Kubo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: kubo
       - name: Setup Go
@@ -32,7 +32,7 @@ jobs:
           go-version-file: 'kubo/go.mod'
       - name: Install missing tools
         run: sudo apt update && sudo apt install -y socat net-tools fish libxml2-utils
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: test/sharness/lib/dependencies
           key: ${{ runner.os }}-test-generate-junit-html-${{ hashFiles('test/sharness/lib/test-generate-junit-html.sh') }}
@@ -55,7 +55,7 @@ jobs:
           # increasing parallelism beyond 10 doesn't speed up the tests much
           PARALLEL: ${{ github.repository == 'ipfs/kubo' && 10 || 3 }}
       - name: Upload coverage report
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         if: failure() || success()
         with:
           name: sharness

@@ -6,6 +6,14 @@ const (
 	// DefaultMFSNoFlushLimit is the default limit for consecutive unflushed MFS operations
 	DefaultMFSNoFlushLimit = 256
 
+	// DefaultMFSFetchTimeout caps how long an MFS operation waits for a
+	// directory block it must fetch from the network before failing, so a
+	// block that is missing and unreachable cannot hang MFS (and graceful
+	// shutdown) forever. Passed to boxo MFS via mfs.WithFetchTimeout.
+	// Generous because MFS directory nodes are small; it only bites on an
+	// unreachable node, not on normal on-demand fetching of referenced content.
+	DefaultMFSFetchTimeout = time.Minute
+
 	// DefaultShutdownTimeout caps how long graceful shutdown is allowed to
 	// take before the daemon force-exits with status 1. Set generously so
 	// it does not change existing kubo behavior in practice but guarantees
@@ -14,6 +22,16 @@ const (
 	// so a hung daemon recovers before missing more than one cycle.
 	// Set Internal.ShutdownTimeout to 0 to opt out and wait forever.
 	DefaultShutdownTimeout = 12 * time.Hour
+
+	// DefaultCGNATCheck enables the one-time startup notice logged when
+	// the node appears to be behind carrier-grade NAT (RFC 6598) or double
+	// NAT. Set Internal.CGNATCheck to false to silence it.
+	DefaultCGNATCheck = true
+
+	// DefaultDeadListenerCheck enables the diagnostic that flags
+	// Addresses.Swarm listeners blocked by Swarm.AddrFilters or stripped by
+	// Addresses.NoAnnounce. Set Internal.DeadListenerCheck to false to disable.
+	DefaultDeadListenerCheck = true
 )
 
 type Internal struct {
@@ -34,6 +52,25 @@ type Internal struct {
 	// deadline expires the daemon logs which subsystem failed to close and
 	// exits with status 1. Set to 0 to disable the cap and wait forever.
 	ShutdownTimeout *OptionalDuration `json:",omitempty"`
+	// CGNATCheck toggles the one-time notice logged when the node appears
+	// to be behind carrier-grade NAT (RFC 6598 100.64.0.0/10) or double NAT.
+	// Defaults to DefaultCGNATCheck. Set to false to silence the notice.
+	CGNATCheck Flag `json:",omitempty"`
+	// DeadListenerCheck toggles the diagnostic that flags Addresses.Swarm
+	// listeners blocked by Swarm.AddrFilters or stripped from announcements by
+	// Addresses.NoAnnounce. Defaults to DefaultDeadListenerCheck. Set to false
+	// to disable the check entirely.
+	DeadListenerCheck Flag `json:",omitempty"`
+	// NonPublicAddrPublishing toggles whether addresses outside globally
+	// routable ranges (private, CGNAT, link-local, loopback, ULA, reserved
+	// IPv6 space, and special-use DNS names such as .local) are kept in the
+	// peerstore self-entry and the signed peer record, and so announced over
+	// identify and the DHT. Multiaddrs without an IP or DNS component, such
+	// as /p2p-circuit, are unaffected. When unset, no option is passed to
+	// go-libp2p and its default applies. Set to false to keep non-public
+	// addresses off the wire, which is useful when checking what a node
+	// advertises.
+	NonPublicAddrPublishing Flag `json:",omitempty"`
 }
 
 type InternalBitswap struct {

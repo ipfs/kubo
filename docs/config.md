@@ -105,6 +105,9 @@ config file at runtime.
         - [`Internal.Bitswap.BroadcastControl.SendToPendingPeers`](#internalbitswapbroadcastcontrolsendtopendingpeers)
     - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
     - [`Internal.ShutdownTimeout`](#internalshutdowntimeout)
+    - [`Internal.CGNATCheck`](#internalcgnatcheck)
+    - [`Internal.DeadListenerCheck`](#internaldeadlistenercheck)
+    - [`Internal.NonPublicAddrPublishing`](#internalnonpublicaddrpublishing)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
@@ -771,6 +774,7 @@ When activated, together with [`AutoTLS.AutoWSS`](#autotlsautowss) (default) or 
 **Note:**
 
 - This feature requires a publicly reachable node. If behind NAT, manual port forwarding or UPnP (`Swarm.DisableNatPortMap=false`) is required.
+- On a node without a certificate yet, broker health is confirmed before the first registration attempt (HTTP GET of `/v1/health` at [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint) must return HTTP 204). The check runs after [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay), once the node is publicly reachable. While the broker keeps failing the check, certificate setup is postponed and health is re-checked hourly; issuance starts automatically once the broker recovers.
 - The first time AutoTLS is used, it may take 5-15 minutes + [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay) before `/ws` listener is added. Be patient.
 - Avoid manual configuration. [`AutoTLS.AutoWSS=true`](#autotlsautowss) should automatically add `/ws` listener to existing, firewall-forwarded `/tcp` ports.
 - To troubleshoot, use `GOLOG_LOG_LEVEL="error,autotls=debug` for detailed logs, or `GOLOG_LOG_LEVEL="error,autotls=info` for quieter output.
@@ -1632,88 +1636,40 @@ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 
 ### `Gateway` recipes
 
-Below is a list of the most common gateway setups.
-
-> [!IMPORTANT]
-> See [Reverse Proxy Caveats](gateway.md#reverse-proxy) if running behind nginx or another reverse proxy.
-
-- Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
-
-   ```console
-   $ ipfs config --json Gateway.PublicGateways '{
-       "dweb.link": {
-         "UseSubdomains": true,
-         "Paths": ["/ipfs", "/ipns"]
-       }
-     }'
-   ```
-
-  - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. Separately, gateway operators should decide if the gateway node should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
-  - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
-
-     `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
-
-  - **X-Forwarded-Proto:** if you run Kubo behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcard TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
-
-     `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
-
-     `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`
-
-  - **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
-
-     `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
-
-- Public [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
-
-   ```console
-   $ ipfs config --json Gateway.PublicGateways '{
-       "ipfs.io": {
-         "UseSubdomains": false,
-         "Paths": ["/ipfs", "/ipns"]
-       }
-     }'
-   ```
-
-  - **Performance:** Consider enabling `Routing.AcceleratedDHTClient=true` to improve content routing lookups. When running an open, recursive gateway, decide if the gateway should also co-host and provide (announce) fetched content to the DHT. If providing content, enable `Provide.DHT.SweepEnabled=true` for efficient announcements. If announcements are still not fast enough, adjust `Provide.DHT.MaxWorkers`. For a read-only gateway that doesn't announce content, use `Provide.Enabled=false`.
-
-- Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
-
-  ```console
-  ipfs config --json Gateway.NoDNSLink false
-  ```
-
-  - Note that `NoDNSLink: false` is the default (it works out of the box unless set to `true` manually)
-
-- Hardened, site-specific [DNSLink gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#dnslink-gateway).
-
-  Disable fetching of remote data (`NoFetch: true`) and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
-  Then, enable DNSLink gateway only for the specific hostname (for which data
-  is already present on the node), without exposing any content-addressing `Paths`:
-
-   ```console
-   $ ipfs config --json Gateway.NoFetch true
-   $ ipfs config --json Gateway.NoDNSLink true
-   $ ipfs config --json Gateway.PublicGateways '{
-       "en.wikipedia-on-ipfs.org": {
-         "NoDNSLink": false,
-         "Paths": []
-       }
-     }'
-   ```
+Common gateway setups are documented in the gateway guide under
+[Gateway recipes](gateway.md#gateway-recipes): the choice between serving any
+content from the network and serving only your own content (`Gateway.NoFetch`),
+plus the subdomain, path, and DNSLink URL styles.
 
 ## `Identity`
 
 ### `Identity.PeerID`
 
-The unique PKI identity label for this configs peer. Set on init and never read,
-it's merely here for convenience. Ipfs will always generate the peerID from its
-keypair at runtime.
+The peer ID that identifies this node, derived from [`Identity.PrivKey`](#identityprivkey)
+and stored in the canonical base58 form (`12D3Koo...` or `Qm...`). Kubo checks that it
+agrees with the key at startup and refuses to start if they do not.
+
+This field cannot be changed on its own. `ipfs config` accepts only the node's own PeerID,
+in any standard representation (base58 or CIDv1, see the [libp2p spec](https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#string-representation)),
+and rewrites it to the base58 form; `ipfs config replace` re-derives it from the key. To
+change the node's identity, use `ipfs key rotate` (see [`Identity.PrivKey`](#identityprivkey)).
 
 Type: `string` (peer ID)
 
 ### `Identity.PrivKey`
 
-The base64 encoded protobuf describing (and containing) the node's private key.
+The base64 encoded protobuf describing (and containing) the node's private key. This is
+the source of truth for the node's identity; [`Identity.PeerID`](#identitypeerid) is
+derived from it.
+
+Kubo guards this key. It is scrubbed from `ipfs config show`, cannot be read or set
+through `ipfs config`, and `ipfs config replace` preserves the existing key instead of
+taking it from the replacement file. The identity is the reserved `self` key: it lives
+here in the config (not in the keystore), and `ipfs key` will not export or import it.
+
+To change a node's identity, stop the daemon and run
+[`ipfs key rotate`](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-key-rotate). It writes
+a new key and PeerID to the config and backs up the previous identity as a keystore key.
 
 Type: `string` (base64 encoded)
 
@@ -1934,12 +1890,66 @@ Default: `12h`
 
 Type: `optionalDuration` (`0` disables the cap)
 
+### `Internal.CGNATCheck`
+
+Controls the one-time notice Kubo logs to stderr when it detects it is behind
+carrier-grade NAT (CGNAT, RFC 6598 `100.64.0.0/10`) or double NAT. CGNAT is
+common on IPv4-scarce ISPs: many subscribers share one public address through a
+carrier NAT, so other peers cannot reach the node directly, and a busy node can
+fill the shared NAT session table and disrupt internet access for every device
+on the local network.
+
+Detection is best-effort and conservative. It fires only when a private or
+shared-range address appears as a NAT-mapped WAN address (discovered via NAT
+port mapping: UPnP/NAT-PMP/PCP) that is not one of this node's own interface
+addresses. Kubo ignores addresses on a local interface, so VPN and overlay tools
+that use `100.64.0.0/10` (such as Tailscale) do not trigger the notice. When the
+upstream address is hidden (for example, a router that does not answer NAT port
+mapping), Kubo shows no notice. `ipfs swarm addrs autonat` reports the current
+classification in its `nat` field.
+
+Set to `false` to silence the notice.
+
+Default: `true`
+
+Type: `flag`
+
+### `Internal.DeadListenerCheck`
+
+Controls the diagnostic that flags [`Addresses.Swarm`](#addressesswarm)
+listeners that a [`Swarm.AddrFilters`](#swarmaddrfilters) rule makes unreachable,
+or that [`Addresses.NoAnnounce`](#addressesnoannounce) strips from announcements.
+The check runs at startup and whenever listen addresses change. It logs an
+`ERROR` for an explicitly bound listener blocked by `Swarm.AddrFilters`, and
+`DEBUG` for the rest.
+
+Set to `false` to disable the check.
+
+Default: `true`
+
+Type: `flag`
+
+### `Internal.NonPublicAddrPublishing`
+
+Controls whether the node publishes addresses that are not globally reachable: private-network ranges, carrier-grade NAT (`100.64.0.0/10`), link-local, loopback, unique local addresses, reserved IPv6 space, and special-use DNS names such as `.local`. Such addresses are useless to peers on the wider internet, and they say a little about your internal network.
+
+Set to `false` to keep them out of the peerstore self-entry and the signed peer record, so they stay out of DHT records and out of the signed record peers receive over identify. Useful when you want to pin down exactly what a node publishes, for example while reproducing a routing problem. Set it to `true` to publish them, which is what a LAN-only or test node wants.
+
+A few limits worth knowing. Addresses without an IP or DNS component, such as `/p2p-circuit`, are never filtered. The setting changes only what the node publishes, never what it listens on or dials, so [`ipfs id`](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-id) and [`ipfs swarm addrs local`](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-swarm-addrs-local) still report the unfiltered set. Peers reading the signed peer record see the filtered addresses; the older unsigned address list that identify also carries is untouched.
+
+When left unset, Kubo passes no option and the go-libp2p default applies.
+
+Default: unset (go-libp2p default)
+
+Type: `flag`
+
 ## `Ipns`
 
 ### `Ipns.RepublishPeriod`
 
-A time duration specifying how frequently to republish ipns records to ensure
-they stay fresh on the network.
+A time duration specifying how frequently to republish [IPNS records](https://specs.ipfs.tech/ipns/ipns-record/) so they stay fresh on the network.
+
+Must not exceed [`Ipns.RecordLifetime`](#ipnsrecordlifetime); the daemon refuses to start otherwise, since records would expire before they are republished.
 
 Default: 4 hours.
 
@@ -1947,8 +1957,9 @@ Type: `interval` or an empty string for the default.
 
 ### `Ipns.RecordLifetime`
 
-A time duration specifying the value to set on ipns records for their validity
-lifetime.
+A time duration specifying the validity lifetime (EOL) to set on [IPNS records](https://specs.ipfs.tech/ipns/ipns-record/).
+
+Must be at least [`Ipns.RepublishPeriod`](#ipnsrepublishperiod); the daemon refuses to start otherwise, since records would expire before they are republished.
 
 Default: 48 hours.
 

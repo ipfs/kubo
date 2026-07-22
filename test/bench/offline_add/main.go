@@ -34,6 +34,7 @@ func compareResults() error {
 }
 
 func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
+	seed := random.Uint64ToSeed(1)
 	results := testing.Benchmark(func(b *testing.B) {
 		b.SetBytes(amount)
 		for i := 0; i < b.N; i++ {
@@ -51,7 +52,6 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 				b.Fatal(err)
 			}
 
-			const seed = 1
 			f, err := os.CreateTemp("", "")
 			if err != nil {
 				b.Fatal(err)
@@ -59,7 +59,7 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 			defer os.Remove(f.Name())
 
 			randReader := &io.LimitedReader{
-				R: random.NewSeededRand(seed),
+				R: random.NewSeeded(seed),
 				N: amount,
 			}
 			_, err = io.Copy(f, randReader)

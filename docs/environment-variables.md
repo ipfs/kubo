@@ -208,13 +208,13 @@ If the lock cannot be acquired because someone else has the lock, and `IPFS_WAIT
 
 ## `IPFS_TELEMETRY`
 
-Controls the behavior of the [telemetry plugin](telemetry.md). Valid values are:
+Controls the mode of the [telemetry plugin](telemetry.md), which is opt-in and disabled by default. Valid values are:
 
-- `on`: Enables telemetry.
-- `off`: Disables telemetry.
-- `auto`: Like `on`, but logs an informative message about telemetry and gives user 15 minutes to opt-out before first collection. Used automatically on first run and when `IPFS_TELEMETRY` is not set.
+- `off`: Disables telemetry (default). Nothing is sent.
+- `on`: Enables telemetry. Requires `Plugins.Plugins.telemetry.Config.Endpoint` to be set, otherwise nothing is sent.
+- `auto`: Legacy value, treated the same as `off`.
 
-The mode can also be set in the config file under `Plugins.Plugins.telemetry.Config.Mode`.
+The mode can also be set in the config file under `Plugins.Plugins.telemetry.Config.Mode`. This variable only controls the mode; the destination endpoint is configured in the config file. See [telemetry.md](telemetry.md) for details.
 
 Example:
 
