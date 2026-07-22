@@ -653,15 +653,23 @@ ipfs config --json Experimental.OnDemandPinningEnabled true
 
 See [`OnDemandPinning`](https://github.com/ipfs/kubo/blob/master/docs/config.md#ondemandpinning)
 for tunable parameters: `ReplicationTargetMin`, `ReplicationTargetMax`,
-`CheckInterval`, and `UnpinGracePeriod`.
+`CheckInterval`, `UnpinGracePeriod`, and `DryRun`.
+
+`ipfs pin ondemand ls` shows the last check time, provider count, result, and
+computed unpin time. Set `OnDemandPinning.DryRun` to observe decisions without
+changing the pinset.
 
 ### Basic usage
 
 ```bash
+# Optional: evaluate without pinning/unpinning
+ipfs config --json OnDemandPinning.DryRun true
+
 # Register a CID for on-demand monitoring
 ipfs pin ondemand add QmExample
 
-# List all registered CIDs (with live provider counts from DHT)
+# List registered CIDs (last check + unpin time; --live for a fresh DHT count)
+ipfs pin ondemand ls
 ipfs pin ondemand ls --live
 
 # Remove a CID from on-demand monitoring (also unpins if checker had pinned it)

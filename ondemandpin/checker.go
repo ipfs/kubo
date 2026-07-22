@@ -50,6 +50,7 @@ type Checker struct {
 	checkInterval    time.Duration
 	unpinGracePeriod time.Duration
 	maxBackoff       time.Duration
+	dryRun           bool
 
 	now         func() time.Time
 	graceJitter func() time.Duration
@@ -76,6 +77,7 @@ func NewChecker(
 		checkInterval:    cfg.CheckInterval.WithDefault(config.DefaultOnDemandPinCheckInterval),
 		unpinGracePeriod: cfg.UnpinGracePeriod.WithDefault(config.DefaultOnDemandPinUnpinGracePeriod),
 		maxBackoff:       config.DefaultOnDemandPinCheckBackoffMax,
+		dryRun:           cfg.DryRun.WithDefault(false),
 
 		now:        time.Now,
 		priorityCh: make(chan cid.Cid, 64),
@@ -184,12 +186,14 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) 
 	}
 	if pinned && !hasOnDemandPin {
 		log.Debugw("skipping: CID has a user-managed pin", "cid", rec.Cid)
+		rec.LastResult = "user-pin"
 		c.clearBackoff(ctx, rec)
 		return
 	}
 
 	count, ok := CountProviders(lookupCtx, c.routing, c.selfID, rec.Cid, c.replicationMin, c.replicationMax)
 	if !ok {
+		rec.LastResult = "lookup-unknown"
 		c.recordFailure(ctx, rec, fmt.Errorf("provider count unknown"))
 		return
 	}
@@ -208,7 +212,9 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) 
 		}
 	default:
 		c.clearGrace(ctx, rec)
+		rec.LastResult = "deadband"
 	}
+	rec.LastProviderCount = count
 	c.clearBackoff(ctx, rec)
 }
 
@@ -217,11 +223,13 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) 
 func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *Record, count int, hasOnDemandPin bool) error {
 	if hasOnDemandPin {
 		c.clearGrace(runCtx, rec)
+		rec.LastResult = "holding"
 		return nil
 	}
 
 	if !c.hasStorageBudget(runCtx) {
 		log.Warnw("skipping pin: repo near storage limit", "cid", rec.Cid)
+		rec.LastResult = "storage-limit"
 		return nil
 	}
 
@@ -232,6 +240,13 @@ func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *
 	}
 	if pinnedNow {
 		log.Debugw("skipping pin: CID gained a pin during provider lookup", "cid", rec.Cid)
+		rec.LastResult = "user-pin"
+		return nil
+	}
+
+	if c.dryRun {
+		log.Infow("dry-run: would pin", "cid", rec.Cid, "providers", count, "min", c.replicationMin)
+		rec.LastResult = "would-pin"
 		return nil
 	}
 
@@ -240,6 +255,7 @@ func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *
 	}
 	rec.LastAboveTarget = time.Time{}
 	rec.UnpinAt = time.Time{}
+	rec.LastResult = "pinned"
 	log.Infow("pinned", "cid", rec.Cid, "providers", count, "min", c.replicationMin)
 
 	if err := c.routing.Provide(runCtx, rec.Cid, true); err != nil {
@@ -251,6 +267,7 @@ func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *
 
 func (c *Checker) handleWellReplicated(runCtx, lookupCtx context.Context, rec *Record, count int, hasOnDemandPin bool) error {
 	if !hasOnDemandPin {
+		rec.LastResult = "above-max"
 		return nil
 	}
 
@@ -259,12 +276,14 @@ func (c *Checker) handleWellReplicated(runCtx, lookupCtx context.Context, rec *R
 		jitter := c.graceJitter()
 		rec.LastAboveTarget = now
 		rec.UnpinAt = now.Add(c.unpinGracePeriod + jitter)
+		rec.LastResult = "grace"
 		c.saveRecord(runCtx, rec)
 		log.Debugw("grace period started", "cid", rec.Cid, "providers", count, "max", c.replicationMax, "unpinAt", rec.UnpinAt, "jitter", jitter)
 		return nil
 	}
 
 	if c.now().Before(rec.UnpinAt) {
+		rec.LastResult = "grace"
 		return nil
 	}
 
@@ -274,12 +293,19 @@ func (c *Checker) handleWellReplicated(runCtx, lookupCtx context.Context, rec *R
 	}
 
 	if stillOnDemand {
+		if c.dryRun {
+			log.Infow("dry-run: would unpin", "cid", rec.Cid, "providers", count, "max", c.replicationMax)
+			rec.LastResult = "would-unpin"
+			return nil
+		}
 		if err := c.pins.Unpin(runCtx, rec.Cid); err != nil {
 			return fmt.Errorf("unpin: %w", err)
 		}
 		log.Infow("unpinned", "cid", rec.Cid, "providers", count, "max", c.replicationMax)
+		rec.LastResult = "unpinned"
 	} else {
 		log.Infow("relinquishing management: pin name changed externally", "cid", rec.Cid)
+		rec.LastResult = "released"
 	}
 
 	rec.LastAboveTarget = time.Time{}
@@ -298,15 +324,17 @@ func (c *Checker) clearGrace(ctx context.Context, rec *Record) {
 }
 
 func (c *Checker) clearBackoff(ctx context.Context, rec *Record) {
-	if rec.FailureCount == 0 && rec.NextCheckAt.IsZero() {
-		return
-	}
+	rec.LastCheckedAt = c.now()
 	rec.FailureCount = 0
 	rec.NextCheckAt = time.Time{}
 	c.saveRecord(ctx, rec)
 }
 
 func (c *Checker) recordFailure(ctx context.Context, rec *Record, cause error) {
+	rec.LastCheckedAt = c.now()
+	if rec.LastResult == "" {
+		rec.LastResult = "error"
+	}
 	rec.FailureCount++
 	delay := c.backoffDelay(rec.FailureCount)
 	rec.NextCheckAt = c.now().Add(delay)

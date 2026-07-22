@@ -175,19 +175,25 @@ Works when on-demand pinning is disabled, to clear old registrations.
 }
 
 type OnDemandLsOutput struct {
-	Cid             string `json:"Cid"`
-	PinnedByUs      bool   `json:"PinnedByUs"`
-	Providers       *int   `json:"Providers,omitempty"`
-	LastAboveTarget string `json:"LastAboveTarget,omitempty"`
-	CreatedAt       string `json:"CreatedAt"`
+	Cid               string `json:"Cid"`
+	HasOnDemandPin    bool   `json:"HasOnDemandPin"`
+	Providers         *int   `json:"Providers,omitempty"` // live lookup only
+	LastProviderCount *int   `json:"LastProviderCount,omitempty"`
+	LastCheckedAt     string `json:"LastCheckedAt,omitempty"`
+	LastResult        string `json:"LastResult,omitempty"`
+	LastAboveTarget   string `json:"LastAboveTarget,omitempty"`
+	UnpinAt           string `json:"UnpinAt,omitempty"`
+	FailureCount      int    `json:"FailureCount,omitempty"`
+	NextCheckAt       string `json:"NextCheckAt,omitempty"`
+	CreatedAt         string `json:"CreatedAt"`
 }
 
 var listOnDemandPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List on-demand pins.",
 		ShortDescription: `
-Lists CIDs registered for on-demand pinning with their current state.
-Use --live to include real-time provider counts from the DHT.
+Lists registered CIDs with last check result, provider count, and unpin time.
+Use --live for a fresh DHT provider count.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -251,12 +257,27 @@ Use --live to include real-time provider counts from the DHT.
 				return fmt.Errorf("checking pin state for %s: %w", rec.Cid, err)
 			}
 			out := OnDemandLsOutput{
-				Cid:        rec.Cid.String(),
-				PinnedByUs: hasOnDemandPin,
-				CreatedAt:  rec.CreatedAt.Format(time.RFC3339),
+				Cid:            rec.Cid.String(),
+				HasOnDemandPin: hasOnDemandPin,
+				LastResult:     rec.LastResult,
+				FailureCount:   rec.FailureCount,
+				CreatedAt:      rec.CreatedAt.Format(time.RFC3339),
+			}
+			if !rec.LastCheckedAt.IsZero() {
+				out.LastCheckedAt = rec.LastCheckedAt.Format(time.RFC3339)
+			}
+			if rec.LastResult != "" || !rec.LastCheckedAt.IsZero() {
+				count := rec.LastProviderCount
+				out.LastProviderCount = &count
 			}
 			if !rec.LastAboveTarget.IsZero() {
 				out.LastAboveTarget = rec.LastAboveTarget.Format(time.RFC3339)
+			}
+			if !rec.UnpinAt.IsZero() {
+				out.UnpinAt = rec.UnpinAt.Format(time.RFC3339)
+			}
+			if !rec.NextCheckAt.IsZero() {
+				out.NextCheckAt = rec.NextCheckAt.Format(time.RFC3339)
 			}
 
 			if live && n.Routing != nil {
@@ -275,17 +296,31 @@ Use --live to include real-time provider counts from the DHT.
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *OnDemandLsOutput) error {
 			pinState := "not-pinned"
-			if out.PinnedByUs {
+			if out.HasOnDemandPin {
 				pinState = "pinned"
 			}
-			fmt.Fprintf(w, "%s", out.Cid)
+			fmt.Fprintf(w, "%s  %s", out.Cid, pinState)
 			if out.Providers != nil {
 				fmt.Fprintf(w, "  providers=%d", *out.Providers)
+			} else if out.LastProviderCount != nil {
+				fmt.Fprintf(w, "  last-providers=%d", *out.LastProviderCount)
 			}
-			fmt.Fprintf(w, "  %s  created=%s", pinState, out.CreatedAt)
-			if out.LastAboveTarget != "" {
-				fmt.Fprintf(w, "  above-target-since=%s", out.LastAboveTarget)
+			if out.LastResult != "" {
+				fmt.Fprintf(w, "  result=%s", out.LastResult)
 			}
+			if out.LastCheckedAt != "" {
+				fmt.Fprintf(w, "  checked=%s", out.LastCheckedAt)
+			}
+			if out.UnpinAt != "" {
+				fmt.Fprintf(w, "  unpin-at=%s", out.UnpinAt)
+			}
+			if out.NextCheckAt != "" {
+				fmt.Fprintf(w, "  next-check=%s", out.NextCheckAt)
+			}
+			if out.FailureCount > 0 {
+				fmt.Fprintf(w, "  failures=%d", out.FailureCount)
+			}
+			fmt.Fprintf(w, "  created=%s", out.CreatedAt)
 			fmt.Fprintln(w)
 			return nil
 		}),

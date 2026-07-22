@@ -131,7 +131,7 @@ config file at runtime.
     - [`OnDemandPinning.ReplicationTargetMax`](#ondemandpinningreplicationtargetmax)
     - [`OnDemandPinning.CheckInterval`](#ondemandpinningcheckinterval)
     - [`OnDemandPinning.UnpinGracePeriod`](#ondemandpinningunpingraceperiod)
-
+    - [`OnDemandPinning.DryRun`](#ondemandpinningdryrun)
   - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
       - [`Pinning.RemoteServices: API`](#pinningremoteservices-api)
@@ -2292,6 +2292,17 @@ unpin while stale records still make the count look healthy.
 Default: `"72h"`
 
 Type: `optionalDuration`
+
+### `OnDemandPinning.DryRun`
+
+When `true`, the checker still evaluates registered CIDs and records
+`LastResult` / `LastProviderCount`, but it does not pin or unpin. Useful for
+watching decisions with `ipfs pin ondemand ls` before enabling real pinset
+changes.
+
+Default: `false`
+
+Type: `flag`
 
 ## `Provide`
 

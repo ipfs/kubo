@@ -60,6 +60,7 @@ Configuration at [`OnDemandPinning`](https://github.com/ipfs/kubo/blob/master/do
 | `OnDemandPinning.ReplicationTargetMax` | `7` | Start unpin grace only above this many providers |
 | `OnDemandPinning.CheckInterval` | `"10m"` | Sweep period; failed CIDs back off up to 72h |
 | `OnDemandPinning.UnpinGracePeriod` | `"72h"` | How long above max before unpinning (longer than 48h DHT record validity; plus up to `2 * CheckInterval` jitter) |
+| `OnDemandPinning.DryRun` | `false` | Log/record pin/unpin decisions without changing the pinset |
 
 See [experimental features](https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#on-demand-pinning)
 for full documentation.

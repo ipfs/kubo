@@ -137,6 +137,10 @@ func TestCheckerPinsBelowTarget(t *testing.T) {
 	checker.checkAll(ctx)
 
 	assert.True(t, p.isPinned(c))
+	rec := mustGet(t, store, c)
+	assert.Equal(t, "pinned", rec.LastResult)
+	assert.Equal(t, 2, rec.LastProviderCount)
+	assert.False(t, rec.LastCheckedAt.IsZero())
 }
 
 func TestCheckerDoesNotPinInDeadband(t *testing.T) {
@@ -326,6 +330,7 @@ func TestCheckerSkipsWhenProviderCountUnknown(t *testing.T) {
 	rec := mustGet(t, store, c)
 	assert.Equal(t, 1, rec.FailureCount)
 	assert.False(t, rec.NextCheckAt.IsZero())
+	assert.Equal(t, "lookup-unknown", rec.LastResult)
 }
 
 type failPinOnce struct {
@@ -400,6 +405,46 @@ func TestCheckerBackoffSkipsUntilDue(t *testing.T) {
 	rec = mustGet(t, store, c)
 	assert.Equal(t, 0, rec.FailureCount)
 	assert.True(t, rec.NextCheckAt.IsZero())
+	assert.Equal(t, "pinned", rec.LastResult)
+}
+
+func TestCheckerDryRunDoesNotPinOrUnpin(t *testing.T) {
+	ctx := context.Background()
+	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
+	r := newMockRouting()
+	p := newMockPins()
+	clock := newFakeClock()
+	checker := NewChecker(store, p, nil, r, peer.ID("self"), config.OnDemandPinning{
+		DryRun: config.True,
+	})
+	checker.checkInterval = time.Minute
+	checker.unpinGracePeriod = 200 * time.Millisecond
+	checker.now = clock.Now
+	checker.graceJitter = func() time.Duration { return 0 }
+
+	c := testCID(t, "dry-run")
+	require.NoError(t, store.Add(ctx, c))
+	r.setProviders(c, peer.ID("p1"), peer.ID("p2"))
+
+	checker.checkAll(ctx)
+	assert.False(t, p.isPinned(c))
+	rec := mustGet(t, store, c)
+	assert.Equal(t, "would-pin", rec.LastResult)
+	assert.Equal(t, 2, rec.LastProviderCount)
+
+	require.NoError(t, p.Pin(ctx, c, OnDemandPinName))
+	r.setProviders(c, providers(8)...)
+	checker.checkAll(ctx)
+	assert.True(t, p.isPinned(c))
+	rec = mustGet(t, store, c)
+	assert.Equal(t, "grace", rec.LastResult)
+	require.False(t, rec.UnpinAt.IsZero())
+
+	clock.Advance(250 * time.Millisecond)
+	checker.checkAll(ctx)
+	assert.True(t, p.isPinned(c), "dry-run must not unpin")
+	rec = mustGet(t, store, c)
+	assert.Equal(t, "would-unpin", rec.LastResult)
 }
 
 func mustGet(t *testing.T, store *Store, c cid.Cid) *Record {

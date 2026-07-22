@@ -32,6 +32,9 @@ type OnDemandPinning struct {
 
 	// How long replication must stay above max before unpinning; checker adds up to 2*CheckInterval of jitter.
 	UnpinGracePeriod OptionalDuration
+
+	// When true, the checker logs pin/unpin decisions but does not change the pinset.
+	DryRun Flag `json:",omitempty"`
 }
 
 // ValidateOnDemandPinningConfig rejects invalid min/max and non-positive durations.
