@@ -1,6 +1,6 @@
 module github.com/ipfs/kubo
 
-go 1.26.4
+go 1.26.5
 
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
