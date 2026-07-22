@@ -370,8 +370,8 @@ github.com/ipfs/go-ds-flatfs v0.6.1/go.mod h1:EddbXjWrzX39gCc6xn/HYGluTx3SmEy84K
 github.com/ipfs/go-ds-leveldb v0.1.0/go.mod h1:hqAW8y4bwX5LWcCtku2rFNX3vjDZCy5LZCg+cSZvYb8=
 github.com/ipfs/go-ds-leveldb v0.5.2 h1:6nmxlQ2zbp4LCNdJVsmHfs9GP0eylfBNxpmY1csp0x0=
 github.com/ipfs/go-ds-leveldb v0.5.2/go.mod h1:2fAwmcvD3WoRT72PzEekHBkQmBDhc39DJGoREiuGmYo=
-github.com/ipfs/go-ds-measure v0.2.2 h1:4kwvBGbbSXNYe4ANlg7qTIYoZU6mNlqzQHdVqICkqGI=
-github.com/ipfs/go-ds-measure v0.2.2/go.mod h1:b/87ak0jMgH9Ylt7oH0+XGy4P8jHx9KG09Qz+pOeTIs=
+github.com/ipfs/go-ds-measure v0.2.3 h1:wd1th+o8GMp2BNd5X0eRs9WEXURiPjf3DcqBrVjOBKE=
+github.com/ipfs/go-ds-measure v0.2.3/go.mod h1:s2XL7nmAl5lnEjXmt4A25NJuEVy65QdVYZzjyQt06f4=
 github.com/ipfs/go-ds-pebble v0.5.12 h1:idO/w4i3IBA6vZtVWsyG5IlPIgwd62iUaQZBl/Kv+yI=
 github.com/ipfs/go-ds-pebble v0.5.12/go.mod h1:H2zy28KMQSiAflUxpKzKHqbpSHRWPZS5/bi4ymAJOjY=
 github.com/ipfs/go-dsqueue v0.2.0 h1:MBi9w3oSiX98Xc+Y7NuJ9G8MI6mAT4IGdO9dHEMCZzU=
@@ -391,8 +391,8 @@ github.com/ipfs/go-ipfs-redirects-file v0.1.2 h1:QCK7VtL91FH17KROVVy5KrzDx2hu68Q
 github.com/ipfs/go-ipfs-redirects-file v0.1.2/go.mod h1:yIiTlLcDEM/8lS6T3FlCEXZktPPqSOyuY6dEzVqw7Fw=
 github.com/ipfs/go-ipfs-util v0.0.1/go.mod h1:spsl5z8KUnrve+73pOhSVZND1SIxPW5RyBCNzQxlJBc=
 github.com/ipfs/go-ipfs-util v0.0.2/go.mod h1:CbPtkWJzjLdEcezDns2XYaehFVNXG9zrdrtMecczcsQ=
-github.com/ipfs/go-ipld-cbor v0.2.1 h1:H05yEJbK/hxg0uf2AJhyerBDbjOuHX4yi+1U/ogRa7E=
-github.com/ipfs/go-ipld-cbor v0.2.1/go.mod h1:x9Zbeq8CoE5R2WicYgBMcr/9mnkQ0lHddYWJP2sMV3A=
+github.com/ipfs/go-ipld-cbor v0.3.0 h1:oYksX360/YPa+XfC7eciqDSLyLLrJ9MdiWiSFOE7NS8=
+github.com/ipfs/go-ipld-cbor v0.3.0/go.mod h1:wQZ/Rz7ZsxboluciiI0i8OcVYEl8cawN3wmK5EQJPIA=
 github.com/ipfs/go-ipld-format v0.6.4 h1:NikmzItTDyQO0WkJI3rC2TGv4OFKOqM/DvcOCZZXuwM=
 github.com/ipfs/go-ipld-format v0.6.4/go.mod h1:1WGiDa1Nv8dXNQBknGQYe+9OF8IoNrErvN76BYvlaIA=
 github.com/ipfs/go-ipld-git v0.1.1 h1:TWGnZjS0htmEmlMFEkA3ogrNCqWjIxwr16x1OsdhG+Y=
