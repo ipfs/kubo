@@ -58,6 +58,22 @@ var defaultServerFilters = []string{
 	"/ip6/fe80::/ipcidr/10",       // RFC 4291: link-local unicast
 }
 
+// UnixFS import profile names, defined by IPIP-499:
+// https://specs.ipfs.tech/ipips/ipip-0499/
+const (
+	// ProfileUnixFSv12025 selects the modern CIDv1 UnixFS import defaults:
+	// https://specs.ipfs.tech/ipips/ipip-0499/#the-unixfs-v1-2025-modern-profile
+	ProfileUnixFSv12025 = "unixfs-v1-2025"
+
+	// ProfileUnixFSv02015 selects the legacy CIDv0 UnixFS import defaults:
+	// https://specs.ipfs.tech/ipips/ipip-0499/#the-unixfs-v0-2015-legacy-profile
+	ProfileUnixFSv02015 = "unixfs-v0-2015"
+)
+
+// DefaultImportProfile is the UnixFS import profile that `ipfs init` applies to
+// new repositories.
+const DefaultImportProfile = ProfileUnixFSv12025
+
 // Profiles is a map holding configuration transformers. Docs are in docs/config.md.
 var Profiles = map[string]Profile{
 	"server": {
@@ -338,7 +354,7 @@ fetching may be degraded.
 			return nil
 		},
 	},
-	"unixfs-v0-2015": {
+	ProfileUnixFSv02015: {
 		Description: `Legacy UnixFS import profile for backward-compatible CID generation.
 Produces CIDv0 with no raw leaves, sha2-256, 256 KiB chunks, and
 link-based HAMT size estimation. Use only when legacy CIDs are required.
@@ -349,7 +365,7 @@ See https://specs.ipfs.tech/ipips/ipip-0499/. Alias: legacy-cid-v0`,
 		Description: `Alias for unixfs-v0-2015 profile.`,
 		Transform:   applyUnixFSv02015,
 	},
-	"unixfs-v1-2025": {
+	ProfileUnixFSv12025: {
 		Description: `Recommended UnixFS import profile for cross-implementation CID determinism.
 Uses CIDv1, raw leaves, sha2-256, 1 MiB chunks, 1024 links per file node,
 256 HAMT fanout, and block-based size estimation for HAMT threshold.

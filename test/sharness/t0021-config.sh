@@ -79,6 +79,8 @@ test_config_cmd() {
   test_config_cmd_set "--json" "Datastore.HashOnRead" "false"
   test_config_cmd_set "--json" "Experimental.FilestoreEnabled" "true"
   test_config_cmd_set "--json" "Import.BatchMaxSize" "null"
+  # CidVersion=1 keeps this a valid pairing: raw leaves require CIDv1.
+  test_config_cmd_set "--json" "Import.CidVersion" "1"
   test_config_cmd_set "--json" "Import.UnixFSRawLeaves" "true"
   test_config_cmd_set "--json" "Routing.Routers.Test" "{\\\"Parameters\\\":\\\"Test\\\",\\\"Type\\\":\\\"Test\\\"}"
   test_config_cmd_set "--json" "Experimental.OptimisticProvideJobsPoolSize" "1337"

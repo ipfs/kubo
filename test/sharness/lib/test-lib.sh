@@ -200,9 +200,15 @@ test_init_ipfs() {
   # the cli client knows to use it, so only need to set.
   # todo: in the future, use env?
 
+  # New repos default to CIDv1 (ipfs/kubo#4143). The legacy shell suite keeps
+  # the historical CIDv0 defaults so its hardcoded Qm hashes stay valid: apply
+  # the unixfs-v0-2015 profile, which reproduces those defaults. A command that
+  # opts into CIDv1 (via --cid-version=1 or a non-sha2-256 hash) still produces
+  # raw leaves, because the config's raw-leaves default no longer applies once
+  # the requested CID version differs from the config's.
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
-    ipfs init "${args[@]}" --profile=test > /dev/null
+    ipfs init "${args[@]}" --profile=test,unixfs-v0-2015 > /dev/null
   '
 
   test_expect_success "disable telemetry" '
@@ -228,7 +234,7 @@ test_init_ipfs_measure() {
 
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
-    ipfs init "${args[@]}" --profile=test,flatfs-measure > /dev/null
+    ipfs init "${args[@]}" --profile=test,flatfs-measure,unixfs-v0-2015 > /dev/null
   '
 
   test_expect_success "disable telemetry" '

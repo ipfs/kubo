@@ -49,7 +49,7 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	dopin, _ := req.Options["pin"].(bool)
 
 	if hash == "" {
-		hash = cfg.Import.HashFunction.WithDefault(config.DefaultHashFunction)
+		hash = cfg.Import.HashFunction.WithDefault(config.LegacyFallbackHashFunction)
 	}
 
 	var icodec mc.Code

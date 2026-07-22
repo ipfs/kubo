@@ -144,6 +144,13 @@ cd test/sharness && timeout 60s ./t0080-repo.sh
 
 To investigate a failing test, pass `-v` for verbose output. In this mode, daemons spawned by the test are not shut down automatically and must be killed manually afterwards.
 
+When the `sharness-test` CI job fails, open its **Summary** page. The **HTML Reports** section links two views:
+
+- **one page HTML report** (self-contained, S3-hosted): best first stop. It shows per-file pass/fail counts, so you can see which `tNNNN-*.sh` files failed and how many cases each. It does not include per-assertion output.
+- **full HTML report** (multi-page): drill into an individual case for its expected-vs-actual output.
+
+Start with the one-page report to find the failing files, then reproduce those tests locally for the exact diff.
+
 ### Cleaning Up Stale Daemons
 
 Before running `test/cli` or `test/sharness`, stop any stale `ipfs daemon` processes owned by the current user. Leftover daemons hold locks and bind ports, causing test failures:

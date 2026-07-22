@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	blockservice "github.com/ipfs/boxo/blockservice"
 	bstore "github.com/ipfs/boxo/blockstore"
@@ -27,6 +28,7 @@ import (
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/core/coreunix"
 	"github.com/ipfs/kubo/tracing"
+	mh "github.com/multiformats/go-multihash"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -35,13 +37,100 @@ var log = logging.Logger("coreapi")
 
 type UnixfsAPI CoreAPI
 
+// importDefaultOptions returns a UnixfsAddOption for each DAG-shaping Import
+// field the operator set explicitly in config: everything that determines the
+// bytes of the produced CIDs, including CID version, leaf encoding, chunker,
+// hash, DAG layout, and the per-block link and HAMT limits that shape large
+// content. Prepending them to a caller's options makes an Add honor the node's
+// import profile (for example a unixfs-v1-2025 repo emits CIDv1), while any
+// option the caller passes still wins. Fields left unset fall back to the
+// library defaults (CIDv0; see config.LegacyFallbackCidVersion).
+//
+// CidVersion and UnixFSRawLeaves are one bundle, tuned together to the config's
+// CID version. They apply only when the caller has not forced a *different*
+// effective CID version, either with --cid-version or with a non-sha2-256 hash
+// (which requires CIDv1). When the caller forces a different version, the
+// config's raw-leaves choice was meant for the other version, so leaf encoding
+// falls back to that version's natural default: CIDv1 auto-enables raw leaves
+// (in UnixfsAddOptions), CIDv0 stays dag-pb. `caller` is the caller's options
+// resolved on their own, used only to learn that effective version.
+func importDefaultOptions(imp *config.Import, caller *options.UnixfsAddSettings) ([]options.UnixfsAddOption, error) {
+	var opts []options.UnixfsAddOption
+
+	callerForcesVersion := caller.CidVersionSet || caller.MhType != mh.SHA2_256
+	configCidVer := int(imp.CidVersion.WithDefault(config.LegacyFallbackCidVersion))
+	if !callerForcesVersion || caller.CidVersion == configCidVer {
+		if !imp.CidVersion.IsDefault() {
+			opts = append(opts, options.Unixfs.CidVersion(configCidVer))
+		}
+		// nocopy stores raw leaf blocks that reference the original file, so it
+		// requires raw leaves. Skip the config's raw-leaves default when nocopy
+		// is set, so a repo that pins UnixFSRawLeaves=false does not turn it into
+		// a "nocopy requires raw-leaves" error; UnixfsAddOptions auto-enables raw
+		// leaves for nocopy instead.
+		if imp.UnixFSRawLeaves != config.Default && !caller.NoCopy {
+			opts = append(opts, options.Unixfs.RawLeaves(imp.UnixFSRawLeaves.WithDefault(config.LegacyFallbackUnixFSRawLeaves)))
+		}
+	}
+
+	if !imp.UnixFSChunker.IsDefault() {
+		opts = append(opts, options.Unixfs.Chunker(imp.UnixFSChunker.WithDefault(config.LegacyFallbackUnixFSChunker)))
+	}
+	if !imp.HashFunction.IsDefault() {
+		hashStr := imp.HashFunction.WithDefault(config.LegacyFallbackHashFunction)
+		code, ok := mh.Names[strings.ToLower(hashStr)]
+		if !ok {
+			return nil, fmt.Errorf("unrecognized Import.HashFunction: %q", hashStr)
+		}
+		opts = append(opts, options.Unixfs.Hash(code))
+	}
+	if !imp.UnixFSFileMaxLinks.IsDefault() {
+		opts = append(opts, options.Unixfs.MaxFileLinks(int(imp.UnixFSFileMaxLinks.WithDefault(config.LegacyFallbackUnixFSFileMaxLinks))))
+	}
+	if !imp.UnixFSDirectoryMaxLinks.IsDefault() {
+		opts = append(opts, options.Unixfs.MaxDirectoryLinks(int(imp.UnixFSDirectoryMaxLinks.WithDefault(config.LegacyFallbackUnixFSDirectoryMaxLinks))))
+	}
+	if !imp.UnixFSHAMTDirectoryMaxFanout.IsDefault() {
+		opts = append(opts, options.Unixfs.MaxHAMTFanout(int(imp.UnixFSHAMTDirectoryMaxFanout.WithDefault(config.LegacyFallbackUnixFSHAMTDirectoryMaxFanout))))
+	}
+	opts = append(opts, options.Unixfs.SizeEstimationMode(imp.HAMTSizeEstimationMode()))
+	if imp.UnixFSDAGLayout.WithDefault(config.LegacyFallbackUnixFSDAGLayout) == config.DAGLayoutTrickle {
+		opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
+	}
+	return opts, nil
+}
+
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
 func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (path.ImmutablePath, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.UnixfsAPI", "Add")
 	defer span.End()
 
-	settings, prefix, err := options.UnixfsAddOptions(opts...)
+	cfg, err := api.repo.Config()
+	if err != nil {
+		return path.ImmutablePath{}, err
+	}
+
+	// Resolve the caller's own options first, so importDefaultOptions can see
+	// the effective CID version they asked for (via --cid-version, or a hash
+	// that forces CIDv1) and decide whether the node's Import CID-version and
+	// raw-leaves defaults still apply.
+	callerSettings, _, err := options.UnixfsAddOptions(opts...)
+	if err != nil {
+		return path.ImmutablePath{}, err
+	}
+
+	// Apply the node's Import config as defaults for options the caller left
+	// unset, so a repo configured with unixfs-v1-2025 emits CIDv1 from every
+	// import path, not only `ipfs add`. Any option the caller passes still
+	// wins; an empty Import falls back to library defaults (CIDv0, see
+	// config.LegacyFallbackCidVersion).
+	importOpts, err := importDefaultOptions(&cfg.Import, callerSettings)
+	if err != nil {
+		return path.ImmutablePath{}, err
+	}
+
+	settings, prefix, err := options.UnixfsAddOptions(append(importOpts, opts...)...)
 	if err != nil {
 		return path.ImmutablePath{}, err
 	}
@@ -68,11 +157,6 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		attribute.Bool("silent", settings.Silent),
 		attribute.Bool("progress", settings.Progress),
 	)
-
-	cfg, err := api.repo.Config()
-	if err != nil {
-		return path.ImmutablePath{}, err
-	}
 
 	// check if repo will exceed storage limit if added
 	// TODO: this doesn't handle the case if the hashed file is already in blocks (deduplicated)

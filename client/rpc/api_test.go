@@ -16,6 +16,7 @@ import (
 	iface "github.com/ipfs/kubo/core/coreiface"
 	"github.com/ipfs/kubo/core/coreiface/tests"
 	"github.com/ipfs/kubo/test/cli/harness"
+	"github.com/ipfs/kubo/test/cli/testutils"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -41,7 +42,7 @@ func (np NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdent
 				defer wg.Done()
 				var err error
 
-				n.Init("--empty-repo")
+				n.Init("--empty-repo", "--profile=unixfs-v1-2025")
 
 				c := n.ReadConfig()
 				c.Experimental.FilestoreEnabled = true
@@ -71,12 +72,14 @@ func (np NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdent
 				}
 				apis[i] = api
 
-				// empty node is pinned even with --empty-repo, we don't want that
-				emptyNode, err := path.NewPath("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn")
+				// A fresh repo pins an empty UnixFS directory (the self/MFS
+				// root), even with --empty-repo; we don't want it in the pinset
+				// for these tests. The node uses unixfs-v1-2025, so that pin is
+				// the CIDv1 empty dir.
+				emptyNode, err := path.NewPath("/ipfs/" + testutils.CIDEmptyDirV1)
 				if err != nil {
 					return err
 				}
-
 				if err := api.Pin().Rm(ctx, emptyNode); err != nil {
 					return err
 				}

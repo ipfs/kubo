@@ -148,7 +148,9 @@ func testPinDAG(t *testing.T, args testPinsArgs) {
 		}
 		bytes := random.Bytes(1 << 20) // 1 MiB
 		tmpFile := h.WriteToTemp(string(bytes))
-		cid := node.IPFS(StrCat("add", args.pinArg, "--pin=false", "-q", tmpFile)...).Stdout.Trimmed()
+		// Force small chunks so a 1 MiB file becomes a multi-block DAG; the
+		// default 1 MiB chunker would produce a single leaf with no children.
+		cid := node.IPFS(StrCat("add", args.pinArg, "--chunker=size-262144", "--pin=false", "-q", tmpFile)...).Stdout.Trimmed()
 
 		node.IPFS("pin", "add", "--recursive=true", cid)
 		node.IPFS("pin", "rm", cid)
@@ -176,7 +178,9 @@ func testPinProgress(t *testing.T, args testPinsArgs) {
 
 		bytes := random.Bytes(1 << 20) // 1 MiB
 		tmpFile := h.WriteToTemp(string(bytes))
-		cid := node.IPFS(StrCat("add", args.pinArg, "--pin=false", "-q", tmpFile)...).Stdout.Trimmed()
+		// Force small chunks so the 1 MiB file spans multiple nodes; the default
+		// 1 MiB chunker would report a single node.
+		cid := node.IPFS(StrCat("add", args.pinArg, "--chunker=size-262144", "--pin=false", "-q", tmpFile)...).Stdout.Trimmed()
 
 		res := node.RunIPFS("pin", "add", "--progress", cid)
 		node.Runner.AssertNoError(res)

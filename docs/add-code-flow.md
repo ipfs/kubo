@@ -40,14 +40,14 @@ flowchart LR
 # Add a simple file
 echo "Hello World" > hello.txt
 ipfs add hello.txt
-# added QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u hello.txt
+# added bafkreigsvbhuxc3fbe36zd3tzwf6fr2k3vnjcg5gjxzhiwhnqiu5vackey hello.txt
 
 # See what's inside
-ipfs cat QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u
+ipfs cat bafkreigsvbhuxc3fbe36zd3tzwf6fr2k3vnjcg5gjxzhiwhnqiu5vackey
 # Hello World
 
 # View the DAG structure
-ipfs dag get QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u
+ipfs dag get bafkreigsvbhuxc3fbe36zd3tzwf6fr2k3vnjcg5gjxzhiwhnqiu5vackey
 ```
 
 ## Step by Step
@@ -128,7 +128,7 @@ Instead of pinning, you can use the [Mutable File System (MFS)](https://docs.ipf
 ipfs add --to-files=/backups/ myfile.txt
 
 # Or copy an existing CID into MFS
-ipfs files cp /ipfs/QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u /docs/hello.txt
+ipfs files cp /ipfs/bafkreigsvbhuxc3fbe36zd3tzwf6fr2k3vnjcg5gjxzhiwhnqiu5vackey /docs/hello.txt
 ```
 
 Content in MFS is implicitly pinned and stays organized across node restarts.

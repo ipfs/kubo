@@ -83,6 +83,24 @@ Then restart your IPFS node to reload your config.
 Finally, when adding files with ipfs add, pass the --nocopy flag to use the
 filestore instead of copying the files into your local IPFS repo.
 
+The filestore stores each imported leaf as a raw block that references a range
+of the original file, so `--nocopy` always uses raw leaves and ignores
+`Import.UnixFSRawLeaves`. Because raw blocks use the raw codec, those leaves are
+CIDv1 (`bafk...`) even when `Import.CidVersion` is 0. The UnixFS DAG root still
+follows `Import.CidVersion`, so on a repo whose root is CIDv0 the result is a
+mixed DAG: a `Qm...` dag-pb root over raw CIDv1 (`bafk...`) leaves.
+
+> [!IMPORTANT]
+> Prefer the filestore and urlstore on repos using the modern
+> [`unixfs-v1-2025`](config.md#unixfs-v1-2025-profile) profile, so the whole DAG
+> is CIDv1 and consistent with the raw leaves these stores write.
+>
+> On a [`unixfs-v0-2015`](config.md#unixfs-v0-2015-profile) (CIDv0) repo,
+> `ipfs add --nocopy` produces a mixed DAG: a `Qm...` dag-pb root over `bafk...`
+> raw CIDv1 leaves. That can trip up a legacy tool that inspects only the CIDv0
+> root, assumes the whole DAG is CIDv0, and then fails to read the raw CIDv1
+> leaves.
+
 ### Road to being a real feature
 
 - [ ] Needs more people to use and report on how well it works.
@@ -122,6 +140,9 @@ ipfs config --json Experimental.UrlstoreEnabled true
 ```
 
 And then add a file at a specific URL using `ipfs urlstore add <url>`
+
+Like the filestore, the urlstore references content as raw blocks, so it writes
+raw (CIDv1) leaves; the same [profile guidance](#ipfs-filestore) applies.
 
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works.

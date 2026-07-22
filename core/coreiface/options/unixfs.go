@@ -21,8 +21,9 @@ const (
 )
 
 type UnixfsAddSettings struct {
-	CidVersion int
-	MhType     uint64
+	CidVersion    int
+	CidVersionSet bool
+	MhType        uint64
 
 	Inline                bool
 	InlineLimit           int
@@ -188,6 +189,7 @@ var Unixfs unixfsOpts
 func (unixfsOpts) CidVersion(version int) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.CidVersion = version
+		settings.CidVersionSet = true
 		return nil
 	}
 }

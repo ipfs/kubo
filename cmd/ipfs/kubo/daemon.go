@@ -210,6 +210,18 @@ func defaultMux(path string) corehttp.ServeOption {
 	}
 }
 
+// importProfileNotice nudges repos that still use implicit UnixFS import
+// defaults to pin a CID profile. Printed once at daemon startup.
+var importProfileNotice = fmt.Sprintf(`
+⚠️ This repository relies on implicit UnixFS Import.* config defaults,
+⚠️ so the CIDs it produces can change between Kubo releases. Pin
+⚠️ them by applying a profile (this also silences this notice):
+⚠️   $ ipfs config profile apply %s   # recommended, modern CIDv1
+⚠️   $ ipfs config profile apply %s   # legacy, CIDv0 "Qm.." format
+⚠️ Use the legacy profile only to keep reproducing existing CIDs.
+⚠️ See IPIP-499: https://specs.ipfs.tech/ipips/ipip-0499/
+`, config.ProfileUnixFSv12025, config.ProfileUnixFSv02015)
+
 func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) (_err error) {
 	// Inject metrics before we do anything
 	err := mprome.Inject()
@@ -396,6 +408,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	cfg, err := repo.Config()
 	if err != nil {
 		return err
+	}
+
+	// Nudge repos still on implicit UnixFS import defaults to pin a CID profile,
+	// so their CIDs stay stable across Kubo releases (ipfs/kubo#4143).
+	if cfg.Import.HasImplicitCIDProfile() {
+		fmt.Fprintln(os.Stderr, importProfileNotice)
 	}
 
 	// Validate autoconf setup - check for private network conflict

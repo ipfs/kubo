@@ -4023,6 +4023,8 @@ The default CID version. Commands affected: `ipfs add`.
 
 Must be either 0 or 1. CIDv0 uses SHA2-256 only, while CIDv1 supports multiple hash functions.
 
+New repositories default to `1` (CIDv1): `ipfs init` writes it via the [`unixfs-v1-2025`](#unixfs-v1-2025-profile) profile. Run `ipfs init --profile unixfs-v0-2015` for CIDv0 instead. The `Default` below is the fallback used only when the field is absent (older repositories).
+
 Default: `0`
 
 Type: `optionalInteger`
@@ -4030,6 +4032,8 @@ Type: `optionalInteger`
 ### `Import.UnixFSRawLeaves`
 
 The default UnixFS raw leaves option. Commands affected: `ipfs add`, `ipfs files write`.
+
+Raw leaves are a CIDv1 feature: setting `UnixFSRawLeaves=true` together with `CidVersion=0` is rejected at startup, since CIDv0 requires dag-pb leaves. On `ipfs add`, `--cid-version=0` likewise forces dag-pb leaves.
 
 Default: `false` if `CidVersion=0`; `true` if `CidVersion=1`
 

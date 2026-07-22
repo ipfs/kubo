@@ -15,8 +15,10 @@ import (
 // It returns the MFS path; the daemon is running again on return.
 func lazyFileWithMissingBlocks(t *testing.T, node *harness.Node) string {
 	t.Helper()
-	content := strings.Repeat("z", 1<<20) // 1 MiB spans several blocks
-	cid := node.PipeStrToIPFS(content, "add", "-q", "--pin=false").Stdout.Trimmed()
+	content := strings.Repeat("z", 1<<20) // 1 MiB
+	// Force 256KiB chunks so the file spans several blocks; the default 1 MiB
+	// chunker would produce a single leaf with no children to remove.
+	cid := node.PipeStrToIPFS(content, "add", "-q", "--pin=false", "--chunker=size-262144").Stdout.Trimmed()
 	leaves := strings.Fields(node.IPFS("refs", cid).Stdout.String())
 	require.NotEmpty(t, leaves, "the test file must have leaf blocks to remove")
 	node.IPFS("files", "cp", "/ipfs/"+cid, "/lazy")
