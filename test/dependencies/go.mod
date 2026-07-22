@@ -1,6 +1,6 @@
 module github.com/ipfs/kubo/test/dependencies
 
-go 1.26.4
+go 1.26.5
 
 replace github.com/ipfs/kubo => ../../
 
@@ -144,7 +144,7 @@ require (
 	github.com/ipfs/go-dsqueue v0.2.0 // indirect
 	github.com/ipfs/go-ipfs-cmds v0.16.1 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
-	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
+	github.com/ipfs/go-ipld-cbor v0.3.0 // indirect
 	github.com/ipfs/go-ipld-format v0.6.4 // indirect
 	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
