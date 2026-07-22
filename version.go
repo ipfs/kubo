@@ -28,7 +28,7 @@ var buildOrigin string
 const upstreamModulePath = "github.com/ipfs/kubo"
 
 // CurrentVersionNumber is the current application's version literal.
-const CurrentVersionNumber = "0.43.0-dev"
+const CurrentVersionNumber = "0.43.0-rc1"
 
 const ApiVersion = "/kubo/" + CurrentVersionNumber + "/" //nolint
 
