@@ -1,6 +1,7 @@
 package pin
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
@@ -10,9 +11,13 @@ import (
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipfs/kubo/ondemandpin"
+	"golang.org/x/sync/errgroup"
 )
 
-const onDemandLiveOptionName = "live"
+const (
+	onDemandLiveOptionName = "live"
+	liveLookupParallelism  = 8
+)
 
 var onDemandPinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -178,6 +183,7 @@ type OnDemandLsOutput struct {
 	Cid               string `json:"Cid"`
 	HasOnDemandPin    bool   `json:"HasOnDemandPin"`
 	Providers         *int   `json:"Providers,omitempty"` // live lookup only
+	ProvidersUnknown  bool   `json:"ProvidersUnknown,omitempty"`
 	LastProviderCount *int   `json:"LastProviderCount,omitempty"`
 	LastCheckedAt     string `json:"LastCheckedAt,omitempty"`
 	LastResult        string `json:"LastResult,omitempty"`
@@ -193,7 +199,7 @@ var listOnDemandPinCmd = &cmds.Command{
 		Tagline: "List on-demand pins.",
 		ShortDescription: `
 Lists registered CIDs with last check result, provider count, and unpin time.
-Use --live for a fresh DHT provider count.
+Use --live for a fresh DHT provider count (requires content routing).
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -215,6 +221,9 @@ Use --live for a fresh DHT provider count.
 
 		var replicationMin, replicationMax int
 		if live {
+			if n.Routing == nil {
+				return fmt.Errorf("--live requires content routing; none is available")
+			}
 			cfg, err := n.Repo.Config()
 			if err != nil {
 				return err
@@ -251,7 +260,31 @@ Use --live for a fresh DHT provider count.
 			}
 		}
 
-		for _, rec := range records {
+		type liveResult struct {
+			count int
+			ok    bool
+		}
+		liveResults := make([]liveResult, len(records))
+		if live && len(records) > 0 {
+			g, gctx := errgroup.WithContext(req.Context)
+			g.SetLimit(liveLookupParallelism)
+			for i := range records {
+				i := i
+				c := records[i].Cid
+				g.Go(func() error {
+					lookupCtx, cancel := context.WithTimeout(gctx, ondemandpin.CheckTimeout)
+					defer cancel()
+					count, ok := ondemandpin.CountProviders(lookupCtx, n.Routing, n.Identity, c, replicationMin, replicationMax)
+					liveResults[i] = liveResult{count: count, ok: ok}
+					return nil
+				})
+			}
+			if err := g.Wait(); err != nil {
+				return err
+			}
+		}
+
+		for i, rec := range records {
 			hasOnDemandPin, err := ondemandpin.PinHasName(req.Context, n.Pinning, rec.Cid, ondemandpin.OnDemandPinName)
 			if err != nil {
 				return fmt.Errorf("checking pin state for %s: %w", rec.Cid, err)
@@ -279,11 +312,12 @@ Use --live for a fresh DHT provider count.
 			if !rec.NextCheckAt.IsZero() {
 				out.NextCheckAt = rec.NextCheckAt.Format(time.RFC3339)
 			}
-
-			if live && n.Routing != nil {
-				count, ok := ondemandpin.CountProviders(req.Context, n.Routing, n.Identity, rec.Cid, replicationMin, replicationMax)
-				if ok {
+			if live {
+				if liveResults[i].ok {
+					count := liveResults[i].count
 					out.Providers = &count
+				} else {
+					out.ProvidersUnknown = true
 				}
 			}
 
@@ -302,6 +336,8 @@ Use --live for a fresh DHT provider count.
 			fmt.Fprintf(w, "%s  %s", out.Cid, pinState)
 			if out.Providers != nil {
 				fmt.Fprintf(w, "  providers=%d", *out.Providers)
+			} else if out.ProvidersUnknown {
+				fmt.Fprintf(w, "  providers=unknown")
 			} else if out.LastProviderCount != nil {
 				fmt.Fprintf(w, "  last-providers=%d", *out.LastProviderCount)
 			}

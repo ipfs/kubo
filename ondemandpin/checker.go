@@ -24,8 +24,8 @@ var log = logging.Logger("ondemandpin")
 // names, so only Kubo-internal code can create pins with this name.
 const OnDemandPinName = "kubo:on-demand"
 
-// checkTimeout prevents hung DHT query or pin/unpin operation from blocking the checker indefinitely.
-const checkTimeout = 5 * time.Minute
+// CheckTimeout bounds a single provider/pin-state lookup (checker and ls --live).
+const CheckTimeout = 5 * time.Minute
 
 type PinService interface {
 	Pin(ctx context.Context, c cid.Cid, name string) error
@@ -162,7 +162,7 @@ func (c *Checker) checkOne(ctx context.Context, ci cid.Cid) {
 
 // checkRecord pins below min, starts grace above max, clears grace in the deadband.
 // immediate=true clears FailureCount/NextCheckAt before running.
-// checkTimeout covers DHT/pin-state lookup only; Pin uses ctx (daemon lifecycle).
+// CheckTimeout covers DHT/pin-state lookup only; Pin uses ctx (daemon lifecycle).
 func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) {
 	if immediate {
 		rec.FailureCount = 0
@@ -171,7 +171,7 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) 
 		return
 	}
 
-	lookupCtx, cancel := context.WithTimeout(ctx, checkTimeout)
+	lookupCtx, cancel := context.WithTimeout(ctx, CheckTimeout)
 	defer cancel()
 
 	pinned, err := c.pins.IsPinned(lookupCtx, rec.Cid)
@@ -219,7 +219,7 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) 
 }
 
 // handleUnderReplicated pins the CID if it does not already have OnDemandPinName.
-// lookupCtx is for quick pin-state checks; runCtx is for Pin/Provide/store (may outlast checkTimeout).
+// lookupCtx is for quick pin-state checks; runCtx is for Pin/Provide/store (may outlast CheckTimeout).
 func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *Record, count int, hasOnDemandPin bool) error {
 	if hasOnDemandPin {
 		c.clearGrace(runCtx, rec)

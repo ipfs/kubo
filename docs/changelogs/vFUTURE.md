@@ -36,7 +36,7 @@ New CLI commands under `ipfs pin ondemand`:
 
 - `add` register CIDs for on-demand pinning
 - `rm` deregister and unpin
-- `ls` list registered CIDs (use `--live` for real-time DHT provider counts)
+- `ls` list registered CIDs (use `--live` for DHT provider counts; errors if routing is unavailable; timed-out lookups show as unknown)
 
 Design highlights:
 

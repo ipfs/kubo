@@ -668,7 +668,7 @@ ipfs config --json OnDemandPinning.DryRun true
 # Register a CID for on-demand monitoring
 ipfs pin ondemand add QmExample
 
-# List registered CIDs (last check + unpin time; --live for a fresh DHT count)
+# List registered CIDs (last check + unpin time; --live needs content routing)
 ipfs pin ondemand ls
 ipfs pin ondemand ls --live
 
