@@ -195,10 +195,14 @@ github.com/fsnotify/fsnotify v1.10.1 h1:b0/UzAf9yR5rhf3RPm9gf3ehBPpf0oZKIjtpKrx5
 github.com/fsnotify/fsnotify v1.10.1/go.mod h1:TLheqan6HD6GBK6PrDWyDPBaEV8LspOxvPSjC+bVfgo=
 github.com/gabriel-vasile/mimetype v1.4.13 h1:46nXokslUBsAJE/wMsp5gtO500a4F3Nkz9Ufpk2AcUM=
 github.com/gabriel-vasile/mimetype v1.4.13/go.mod h1:d+9Oxyo1wTzWdyVUPMmXFvp4F9tea18J8ufA774AB3s=
+github.com/gammazero/cascadeq v0.2.0 h1:LHq6hWLQvQCHVtCl5hDWYSavqXRFCKZ8upCdRtsPpfo=
+github.com/gammazero/cascadeq v0.2.0/go.mod h1:aEkjsO3wVhT09lheCjiKbEmT7GtGa03WXGmclOZp5wY=
 github.com/gammazero/chanqueue v1.1.2 h1:dZEsxlyANZMyeTRemABqZF8QM9BnE4NBI43Oh3y5fIU=
 github.com/gammazero/chanqueue v1.1.2/go.mod h1:XDN1X/jjAbmSceNFOQbtKToeSkxtdVdpKu90LiEdBEE=
 github.com/gammazero/deque v1.2.1 h1:9fnQVFCCZ9/NOc7ccTNqzoKd1tCWOqeI05/lPqFPMGQ=
 github.com/gammazero/deque v1.2.1/go.mod h1:5nSFkzVm+afG9+gy0VIowlqVAW4N8zNcMne+CMQVD2g=
+github.com/gammazero/fsutil v0.2.0 h1:/MqQHCBoT07KGY75avKqG/SI0zS693zr1Ljx8cwKWhs=
+github.com/gammazero/fsutil v0.2.0/go.mod h1:UhNgS1Hr75DBX6zqBEOB4AAZQiNytnr3Mc0ZpiLKPz4=
 github.com/getsentry/sentry-go v0.27.0 h1:Pv98CIbtB3LkMWmXi4Joa5OOcwbmnX88sF5qbK3r3Ps=
 github.com/getsentry/sentry-go v0.27.0/go.mod h1:lc76E2QywIyW8WuBnwl8Lc4bkmQH4+w1gwTf25trprY=
 github.com/ghemawat/stream v0.0.0-20171120220530-696b145b53b9 h1:r5GgOLGbza2wVHRzK7aAj6lWZjfbAwiu/RDCVOKjRyM=
@@ -342,8 +346,8 @@ github.com/ipfs-shipyard/nopfs/ipfs v0.25.0 h1:OqNqsGZPX8zh3eFMO8Lf8EHRRnSGBMqcd
 github.com/ipfs-shipyard/nopfs/ipfs v0.25.0/go.mod h1:BxhUdtBgOXg1B+gAPEplkg/GpyTZY+kCMSfsJvvydqU=
 github.com/ipfs/bbloom v0.1.0 h1:nIWwfIE3AaG7RCDQIsrUonGCOTp7qSXzxH7ab/ss964=
 github.com/ipfs/bbloom v0.1.0/go.mod h1:lDy3A3i6ndgEW2z1CaRFvDi5/ZTzgM1IxA/pkL7Wgts=
-github.com/ipfs/boxo v0.42.0 h1:081LA7V9orgvGsCHMpxAjPz51JSDZtUaptZ9FwMcqP4=
-github.com/ipfs/boxo v0.42.0/go.mod h1:YoQNNShPIELwAGxmxemjZ/g7gqPUT8WDVO4ehPJU4Zg=
+github.com/ipfs/boxo v0.42.1-0.20260723183215-6427b703859e h1:2+uTYtWNSR2HSxZrig2Y1gARhqQqKS8JrRO94YmvLAg=
+github.com/ipfs/boxo v0.42.1-0.20260723183215-6427b703859e/go.mod h1:D9tCMyuckMqoP8UIAW89jbf/QizWfazF00V8lHYKWTg=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-block-format v0.0.3/go.mod h1:4LmD4ZUw0mhO+JSKdpWwrzATiEfM7WWgQ8H5l6P8MVk=
@@ -374,8 +378,6 @@ github.com/ipfs/go-ds-measure v0.2.3 h1:wd1th+o8GMp2BNd5X0eRs9WEXURiPjf3DcqBrVjO
 github.com/ipfs/go-ds-measure v0.2.3/go.mod h1:s2XL7nmAl5lnEjXmt4A25NJuEVy65QdVYZzjyQt06f4=
 github.com/ipfs/go-ds-pebble v0.5.12 h1:idO/w4i3IBA6vZtVWsyG5IlPIgwd62iUaQZBl/Kv+yI=
 github.com/ipfs/go-ds-pebble v0.5.12/go.mod h1:H2zy28KMQSiAflUxpKzKHqbpSHRWPZS5/bi4ymAJOjY=
-github.com/ipfs/go-dsqueue v0.2.0 h1:MBi9w3oSiX98Xc+Y7NuJ9G8MI6mAT4IGdO9dHEMCZzU=
-github.com/ipfs/go-dsqueue v0.2.0/go.mod h1:8FfNQC4DMF/KkzBXRNB9Rb3MKDW0Sh98HMtXYl1mLQE=
 github.com/ipfs/go-fs-lock v0.1.1 h1:TecsP/Uc7WqYYatasreZQiP9EGRy4ZnKoG4yXxR33nw=
 github.com/ipfs/go-fs-lock v0.1.1/go.mod h1:2goSXMCw7QfscHmSe09oXiR34DQeUdm+ei+dhonqly0=
 github.com/ipfs/go-ipfs-cmds v0.16.1 h1:O3xV6v2LN52wL0odvXX6jqlt7G2scuHzQYl80OJ+TOA=
@@ -502,8 +504,8 @@ github.com/libp2p/go-libp2p-gostream v0.6.0 h1:QfAiWeQRce6pqnYfmIVWJFXNdDyfiR/qk
 github.com/libp2p/go-libp2p-gostream v0.6.0/go.mod h1:Nywu0gYZwfj7Jc91PQvbGU8dIpqbQQkjWgDuOrFaRdA=
 github.com/libp2p/go-libp2p-http v0.5.0 h1:+x0AbLaUuLBArHubbbNRTsgWz0RjNTy6DJLOxQ3/QBc=
 github.com/libp2p/go-libp2p-http v0.5.0/go.mod h1:glh87nZ35XCQyFsdzZps6+F4HYI6DctVFY5u1fehwSg=
-github.com/libp2p/go-libp2p-kad-dht v0.42.1 h1:b560sbk3L2WIgkY08VgQQSqXJfHgBTr6tmymfW+GaZY=
-github.com/libp2p/go-libp2p-kad-dht v0.42.1/go.mod h1:WgImeG7wsNVtUkHVBQSSVaQ4IJR2NUVlSdn5scSI49Y=
+github.com/libp2p/go-libp2p-kad-dht v0.42.2-0.20260723025726-a5d383cdd31c h1:+v1jL0V24v0c94YsIx3eirwGLQ48PCMRL6At5Y5yVwQ=
+github.com/libp2p/go-libp2p-kad-dht v0.42.2-0.20260723025726-a5d383cdd31c/go.mod h1:BqZcsXAPlzB13xVU1K+OIZRNcLnNXiYhZe0RZ8PJ75Q=
 github.com/libp2p/go-libp2p-kbucket v0.3.1/go.mod h1:oyjT5O7tS9CQurok++ERgc46YLwEpuGoFq9ubvoUOio=
 github.com/libp2p/go-libp2p-kbucket v0.9.0 h1:9kTf74R8CHGIk3QK+gwEOnJ/t+JzuxqQSfAAASl1VhM=
 github.com/libp2p/go-libp2p-kbucket v0.9.0/go.mod h1:lKhHVjRq1z/Cl/bFzB2vPzYY0KCdmON6HlBwEAanqjk=
