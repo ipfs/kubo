@@ -28,6 +28,7 @@ the above issue.
 - [Noise](#noise)
 - [Optimistic Provide](#optimistic-provide)
 - [HTTP Gateway over Libp2p](#http-gateway-over-libp2p)
+- [On-Demand Pinning](#on-demand-pinning)
 
 ---
 
@@ -608,6 +609,83 @@ ipfs config --json Experimental.GatewayOverLibp2p true
 - [ ] Needs UX work for exposing non-recursive "HTTP transport" (NoFetch) over both libp2p and plain TCP (and sharing the configuration)
 - [ ] Needs a mechanism for HTTP handler to signal supported features ([IPIP-425](https://github.com/ipfs/specs/pull/425))
 - [ ] Needs an option for Kubo to detect peers that have it enabled and prefer HTTP transport before falling back to bitswap (and use CAR if peer supports dag-scope=entity from [IPIP-402](https://specs.ipfs.tech/ipips/ipip-0402/))
+
+## On-Demand Pinning
+
+### State
+
+Experimental, disabled by default.
+
+On-demand pinning lets a node pin content when DHT provider counts fall below
+a minimum, and unpin after they stay above a maximum for a grace period
+(plus a short random delay). Values between min and max are left alone.
+Provider counts come from `FindProviders`, not from the peer routing table.
+
+[ipfs-cluster replication factors](https://ipfscluster.io/documentation/guides/pinning/#replication-factors)
+assign pins among known peers; this feature only watches the DHT and decides
+locally.
+
+The feature consists of:
+
+- A **registry** of CIDs to monitor, managed via `ipfs pin ondemand add|rm|ls`.
+- A **background checker** that periodically queries the DHT for each
+  registered CID and pins or unpins accordingly. Failed CIDs are retried
+  with exponential backoff (max 72h).
+- **Pin partitioning**: the checker marks its pins with the name
+  `"kubo:on-demand"`, so the checker can tell its
+  pins apart from user pins and will never remove a pin it did not create.
+
+When the checker pins a CID it publishes a DHT provider record (via
+`StartProviding`) so other peers can discover the content on this node.
+Requires `Provide.Enabled`.
+
+**Security consideration**: DHT provider counts can be gamed via Sybil
+attacks. An attacker could inflate provider counts to trick nodes into
+unpinning content that is not actually well-replicated. The grace period
+provides partial mitigation by requiring fake provider records to be
+sustained for its full duration (default 72 hours, chosen to outlast the
+48h DHT provider record validity so records of dead peers expire before
+the unpin decision).
+
+### How to enable
+
+```
+ipfs config --json Experimental.OnDemandPinningEnabled true
+```
+
+### Configuring
+
+See [`OnDemandPinning`](https://github.com/ipfs/kubo/blob/master/docs/config.md#ondemandpinning)
+for tunable parameters: `ReplicationTargetMin`, `ReplicationTargetMax`,
+`CheckInterval`, `UnpinGracePeriod`, and `DryRun`.
+
+`ipfs pin ondemand ls` shows the last check time, provider count, result, and
+computed unpin time. Set `OnDemandPinning.DryRun` to observe decisions without
+changing the pinset.
+
+### Basic usage
+
+```bash
+# Optional: evaluate without pinning/unpinning
+ipfs config --json OnDemandPinning.DryRun true
+
+# Register a CID for on-demand monitoring
+ipfs pin ondemand add QmExample
+
+# List registered CIDs (last check + unpin time; --live needs content routing)
+ipfs pin ondemand ls
+ipfs pin ondemand ls --live
+
+# Remove a CID from on-demand monitoring (also unpins if checker had pinned it)
+ipfs pin ondemand rm QmExample
+```
+
+### Road to being a real feature
+
+- [ ] Needs more people to use and report on how well it works
+- [ ] Needs integration tests in `test/cli/`
+- [ ] Needs UI support in ipfs-webui / IPFS Desktop
+- [ ] Evaluate Sybil resilience and whether additional mitigations are needed
 
 ## Accelerated DHT Client
 

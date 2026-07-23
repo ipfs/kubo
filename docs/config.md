@@ -60,6 +60,7 @@ config file at runtime.
       - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
   - [`Experimental`](#experimental)
     - [`Experimental.Libp2pStreamMounting`](#experimentallibp2pstreammounting)
+    - [`Experimental.OnDemandPinningEnabled`](#experimentalondemandpinningenabled)
   - [`Gateway`](#gateway)
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
@@ -125,6 +126,12 @@ config file at runtime.
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
     - [`Mounts.StoreMtime`](#mountsstoremtime)
     - [`Mounts.StoreMode`](#mountsstoremode)
+  - [`OnDemandPinning`](#ondemandpinning)
+    - [`OnDemandPinning.ReplicationTargetMin`](#ondemandpinningreplicationtargetmin)
+    - [`OnDemandPinning.ReplicationTargetMax`](#ondemandpinningreplicationtargetmax)
+    - [`OnDemandPinning.CheckInterval`](#ondemandpinningcheckinterval)
+    - [`OnDemandPinning.UnpinGracePeriod`](#ondemandpinningunpingraceperiod)
+    - [`OnDemandPinning.DryRun`](#ondemandpinningdryrun)
   - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
       - [`Pinning.RemoteServices: API`](#pinningremoteservices-api)
@@ -1234,6 +1241,21 @@ in the [new mDNS implementation](https://github.com/libp2p/zeroconf#readme).
 
 Toggle and configure experimental features of Kubo. Experimental features are listed [here](./experimental-features.md).
 
+### `Experimental.OnDemandPinningEnabled`
+
+Enables on-demand pinning. When enabled, the node runs a background checker
+that periodically evaluates DHT provider counts for CIDs registered via
+`ipfs pin ondemand add`. CIDs with fewer providers than the replication target
+are pinned; pins are removed after replication stays above target for a grace
+period (default 24h). Requires usable content routing and
+[`Provide.Enabled`](#provideenabled).
+
+See [`OnDemandPinning`](#ondemandpinning) for configuration.
+
+Default: `false`
+
+Type: `bool`
+
 ### `Experimental.Libp2pStreamMounting`
 
 Enables the `ipfs p2p` commands for tunneling TCP connections through libp2p
@@ -2223,6 +2245,67 @@ If left empty, the default interval will be used. Values lower than `1m` will be
 Default: `"5m"`
 
 Type: `duration`
+
+## `OnDemandPinning`
+
+Configures the on-demand pinning system. Requires
+[`Experimental.OnDemandPinningEnabled`](#experimentalondemandpinningenabled).
+See [experimental features](./experimental-features.md#on-demand-pinning) for how
+this differs from ipfs-cluster replication.
+
+### `OnDemandPinning.ReplicationTargetMin`
+
+Pin when fewer than this many providers are found in the DHT (excluding the
+local node).
+
+Default: `5`
+
+Type: `optionalInteger`
+
+### `OnDemandPinning.ReplicationTargetMax`
+
+Start the unpin grace period only when more than this many providers are found
+(excluding the local node). Between min and max (inclusive) the checker does
+nothing. Must be >= `ReplicationTargetMin`.
+
+Default: `7`
+
+Type: `optionalInteger`
+
+### `OnDemandPinning.CheckInterval`
+
+How often the checker starts a sweep of registered CIDs. If a sweep overruns
+this duration, the next sweep starts when the previous one finishes. After a
+failed check, that CID is skipped until `NextCheckAt`
+(`CheckInterval * 2^(failures-1)`, max 72h).
+
+Default: `"10m"`
+
+Type: `optionalDuration`
+
+### `OnDemandPinning.UnpinGracePeriod`
+
+How long the provider count must stay above max before the local pin is removed.
+The checker also adds a random delay of up to `2 * CheckInterval` when grace
+starts, so nodes that entered grace together do not all unpin at once.
+
+Should be longer than DHT provider-record validity (48h). A shorter value can
+unpin while stale records still make the count look healthy.
+
+Default: `"72h"`
+
+Type: `optionalDuration`
+
+### `OnDemandPinning.DryRun`
+
+When `true`, the checker still evaluates registered CIDs and records
+`LastResult` / `LastProviderCount`, but it does not pin or unpin. Useful for
+watching decisions with `ipfs pin ondemand ls` before enabling real pinset
+changes.
+
+Default: `false`
+
+Type: `flag`
 
 ## `Provide`
 
