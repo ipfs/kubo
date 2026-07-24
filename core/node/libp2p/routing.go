@@ -219,7 +219,7 @@ func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 func OfflineRouting(dstore ds.Datastore, validator record.Validator) p2pRouterOut {
 	return p2pRouterOut{
 		Router: Router{
-			Routing:  offroute.NewOfflineRouter(dstore, validator),
+			Routing:  offroute.NewOfflineRouter(irouting.DHTValueDatastore(dstore), validator),
 			Priority: 10000,
 		},
 	}

@@ -489,7 +489,7 @@ test_add_cat_5MB() {
   '
 
   test_expect_success "sha1 of the file looks ok" '
-    echo "11145b8c4bc8f87ea2fcfc3d55708b8cac2aadf12862" >sha1_expected &&
+    echo "11141d13cfb2c207591376e06bc2360741c2009b2898" >sha1_expected &&
     multihash -a=sha1 -e=hex mountdir/bigfile >sha1_actual &&
     test_cmp sha1_expected sha1_actual
   '
@@ -599,7 +599,7 @@ test_add_cat_expensive() {
   '
 
   test_expect_success EXPENSIVE "sha1 of the file looks ok" '
-    echo "11141e8c04d7cd019cc0acf0311a8ca6cf2c18413c96" >sha1_expected &&
+    echo "1114acba57d18295a18b428faf88960fa47a71eb22cc" >sha1_expected &&
     multihash -a=sha1 -e=hex mountdir/bigfile >sha1_actual &&
     test_cmp sha1_expected sha1_actual
   '
@@ -623,16 +623,16 @@ test_add_cat_expensive() {
   '
 
   test_expect_success EXPENSIVE "ipfs cat output hashed looks good" '
-    echo "11141e8c04d7cd019cc0acf0311a8ca6cf2c18413c96" >sha1_expected &&
+    echo "1114acba57d18295a18b428faf88960fa47a71eb22cc" >sha1_expected &&
     test_cmp sha1_expected sha1_actual
   '
 
   test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile succeeds" '
-    cat "ipfs/$HASH" | multihash -a=sha1 -e=hex >sha1_actual
+    cat "ipfs/$HASH" | multihash -a=sha1 -e=hex >sha1_actual-Y
   '
 
   test_expect_success FUSE,EXPENSIVE "cat ipfs/bigfile looks good" '
-    test_cmp sha1_expected sha1_actual
+    test_cmp sha1_expected sha1_actual-Y
   '
 }
 
@@ -906,38 +906,38 @@ test_expect_success "random-data is installed" '
   type random-data
 '
 
-test_add_cat_5MB "" "QmapAfmzmeWYTNztMQEhUXFcSGrsax22WRG7YN9xLdMeQq"
+test_add_cat_5MB "" "QmbW8FAUE5nJ2EccaFGLQtubacZr9VP1m6KLBniL7yzXpF"
 
-test_add_cat_5MB --raw-leaves "QmabWSFaPusmiZaaVZLhEUtHcj8CCvVeUfkBpKqAkKVMiS"
+test_add_cat_5MB --raw-leaves "Qmf6a54RFHB3sAH5Beh5pha6Y8UZz22pfDKZAgmQ2UvLJH"
 
 # note: the specified hash implies that internal nodes are stored
 # using CidV1 and leaves are stored using raw blocks
-test_add_cat_5MB --cid-version=1 "bafybeifwdkm32fmukqwh3jofm6ma76bcqvn6opxstsnzmya7utboi4cb2m"
+test_add_cat_5MB --cid-version=1 "bafybeihy7ngsovmm2dqanlpjeddvs7kshb4bdwrue3pe5nsf6rkn3hg45y"
 
 # note: the specified hash implies that internal nodes are stored
 # using CidV1 and leaves are stored using CidV1 but using the legacy
 # format (i.e. not raw)
-test_add_cat_5MB '--cid-version=1 --raw-leaves=false' "bafybeifq4unep5w4agr3nlynxidj2rymf6dzu6bf4ieqqildkboe5mdmne"
+test_add_cat_5MB '--cid-version=1 --raw-leaves=false' "bafybeie4nox52gy5qpv5bhbrzrfgpwwdfpk257v2ixy66whvqdjd67r3fq"
 
 # note: --hash=blake2b-256 implies --cid-version=1 which implies --raw-leaves=true
 # the specified hash represents the leaf nodes stored as raw leaves and
 # encoded with the blake2b-256 hash function
-test_add_cat_5MB '--hash=blake2b-256' "bafykbzacebxcnlql4oc3mtscqn32aumqkqxxv3wt7dkyrphgh6lc2gckiq6bw"
+test_add_cat_5MB '--hash=blake2b-256' "bafykbzacebiss6bbf5ynrrcsweg66zau5p6w2a52scmpgcxaaeqremw5vpy22"
 
 # the specified hash represents the leaf nodes stored as protoful nodes and
 # encoded with the blake2b-256 hash function
-test_add_cat_5MB '--hash=blake2b-256 --raw-leaves=false' "bafykbzacearibnoamkfmcagpfgk2sbgx65qftnsrh4ttd3g7ghooasfnyavme"
+test_add_cat_5MB '--hash=blake2b-256 --raw-leaves=false' "bafykbzacecn3yylzcrinh2mf3kcwxrql4haddl6pb4wmnkc6wurtfqi2mghhy"
 
-test_add_cat_expensive "" "Qma1WZKC3jad7e3F7GEDvkFdhPLyMEhKszBF4nBUCBGh6c"
+test_add_cat_expensive "" "QmPYo95xiEmcqiqWpqg9iwHgcbWi7n4fQuP27xCNQLmytG"
 
 # note: the specified hash implies that internal nodes are stored
 # using CidV1 and leaves are stored using raw blocks
-test_add_cat_expensive "--cid-version=1" "bafybeibdfw7nsmb3erhej2k6v4eopaswsf5yfv2ikweqa3qsc5no4jywqu"
+test_add_cat_expensive "--cid-version=1" "bafybeidwwhjvrpu2j34ppvr2swm2u55ljcuhqzm7s5xd7rlsvlu7ny2rry"
 
 # note: --hash=blake2b-256 implies --cid-version=1 which implies --raw-leaves=true
 # the specified hash represents the leaf nodes stored as raw leaves and
 # encoded with the blake2b-256 hash function
-test_add_cat_expensive '--hash=blake2b-256' "bafykbzaceduy3thhmcf6ptfqzxberlvj7sgo4uokrvd6qwrhim6r3rgcb26qi"
+test_add_cat_expensive '--hash=blake2b-256' "bafykbzacebosow2qjoynvjq2qmjuhh6qgkxqwjpqqreucu5idbq3n75wobtxa"
 
 test_add_named_pipe
 

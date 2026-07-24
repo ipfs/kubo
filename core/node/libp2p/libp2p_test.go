@@ -5,11 +5,36 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p"
 	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestNonPublicAddrPublishing(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		flag         config.Flag
+		wantOptCount int
+		wantDisabled bool
+	}{
+		{"unset defers to go-libp2p", config.Default, 0, false},
+		{"true announces private addrs, as a LAN-only node needs", config.True, 1, false},
+		{"false keeps private addrs off identify and the DHT", config.False, 1, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := NonPublicAddrPublishing(tc.flag)()
+			require.Len(t, opts.Opts, tc.wantOptCount)
+
+			var cfg libp2p.Config
+			for _, opt := range opts.Opts {
+				require.NoError(t, opt(&cfg))
+			}
+			require.Equal(t, tc.wantDisabled, cfg.DisableNonPublicAddrPublishing)
+		})
+	}
+}
 
 func TestPrioritize(t *testing.T) {
 	// The option is encoded into the port number of a TCP multiaddr.
