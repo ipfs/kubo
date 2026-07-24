@@ -40,7 +40,7 @@ Type=notify
 User=ipfs
 Group=ipfs
 StateDirectory=ipfs
-Environment=IPFS_PATH="${HOME}"
+Environment=IPFS_PATH="%S"
 ExecStart=/usr/local/bin/ipfs daemon --init --migrate
 Restart=on-failure
 KillSignal=SIGINT
