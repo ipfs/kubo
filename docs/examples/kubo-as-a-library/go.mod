@@ -81,7 +81,7 @@ require (
 	github.com/ipfs/go-datastore v0.9.2 // indirect
 	github.com/ipfs/go-ds-badger v0.3.4 // indirect
 	github.com/ipfs/go-ds-flatfs v0.6.1 // indirect
-	github.com/ipfs/go-ds-leveldb v0.5.2 // indirect
+	github.com/ipfs/go-ds-leveldb v0.5.3 // indirect
 	github.com/ipfs/go-ds-measure v0.2.3 // indirect
 	github.com/ipfs/go-ds-pebble v0.5.12 // indirect
 	github.com/ipfs/go-dsqueue v0.2.0 // indirect

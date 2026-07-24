@@ -313,8 +313,8 @@ github.com/ipfs/go-datastore v0.9.2 h1:HJOgAmvWPRMHiwD8JHBzGZQNTKhuFGYfp8bNPwye2
 github.com/ipfs/go-datastore v0.9.2/go.mod h1:VIjDxnINIcCqBMaB8LGggHfYY7PalKWfPtRMFeOU4q4=
 github.com/ipfs/go-detect-race v0.0.1 h1:qX/xay2W3E4Q1U7d9lNs1sU9nvguX0a7319XbyQ6cOk=
 github.com/ipfs/go-detect-race v0.0.1/go.mod h1:8BNT7shDZPo99Q74BpGMK+4D8Mn4j46UU0LZ723meps=
-github.com/ipfs/go-ds-leveldb v0.5.2 h1:6nmxlQ2zbp4LCNdJVsmHfs9GP0eylfBNxpmY1csp0x0=
-github.com/ipfs/go-ds-leveldb v0.5.2/go.mod h1:2fAwmcvD3WoRT72PzEekHBkQmBDhc39DJGoREiuGmYo=
+github.com/ipfs/go-ds-leveldb v0.5.3 h1:O7uc9v6h2m3mJ6dM5vYFcXjUVr8slFwH66DyV+5WXtE=
+github.com/ipfs/go-ds-leveldb v0.5.3/go.mod h1:toMahoADur/3y6vdbFoLvES0g3Xzp1TGbIsGhIxLTIE=
 github.com/ipfs/go-dsqueue v0.2.0 h1:MBi9w3oSiX98Xc+Y7NuJ9G8MI6mAT4IGdO9dHEMCZzU=
 github.com/ipfs/go-dsqueue v0.2.0/go.mod h1:8FfNQC4DMF/KkzBXRNB9Rb3MKDW0Sh98HMtXYl1mLQE=
 github.com/ipfs/go-ipfs-cmds v0.16.1 h1:O3xV6v2LN52wL0odvXX6jqlt7G2scuHzQYl80OJ+TOA=
