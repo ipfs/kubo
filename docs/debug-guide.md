@@ -29,6 +29,8 @@ If you feel intrepid, you can dump this information and investigate it yourself:
 
 - goroutine dump
   - `curl localhost:5001/debug/pprof/goroutine\?debug=2 > ipfs.stacks`
+- goroutine leak profile (only when kubo was built with `GOEXPERIMENT=goroutineleakprofile`)
+  - `curl localhost:5001/debug/pprof/goroutineleak > ipfs.goroutineleak`
 - 30 second cpu profile
   - `curl localhost:5001/debug/pprof/profile > ipfs.cpuprof`
 - heap trace dump
