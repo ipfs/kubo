@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -21,6 +22,7 @@ import (
 const (
 	CollectorGoroutinesStack = "goroutines-stack"
 	CollectorGoroutinesPprof = "goroutines-pprof"
+	CollectorGoroutineLeak   = "goroutine-leak"
 	CollectorVersion         = "version"
 	CollectorHeap            = "heap"
 	CollectorAllocs          = "allocs"
@@ -41,6 +43,11 @@ type collector struct {
 	isExecutable bool
 	collectFunc  func(ctx context.Context, opts Options, writer io.Writer) error
 	enabledFunc  func(opts Options) bool
+	// availableFunc, when set, reports whether this collector can run in the
+	// current build. It is checked synchronously before any collector starts,
+	// so an unavailable collector fails the whole request up front instead of
+	// aborting mid-run with a partially written archive.
+	availableFunc func() error
 }
 
 func (p *collector) outputFileName() string {
@@ -63,6 +70,17 @@ var collectors = map[string]collector{
 		outputFile:  "goroutines.pprof",
 		collectFunc: goroutineStacksProto,
 		enabledFunc: func(opts Options) bool { return true },
+	},
+	CollectorGoroutineLeak: {
+		// Deliberately not part of the CLI default collector set: collecting
+		// this profile forces a goroutine-leak-detection GC cycle, and the
+		// profile only exists when the binary was built with
+		// GOEXPERIMENT=goroutineleakprofile. Requesting it on a build without
+		// the experiment returns an error instead of silently skipping.
+		outputFile:    "goroutineleak.pprof",
+		collectFunc:   goroutineLeakProfile,
+		enabledFunc:   func(opts Options) bool { return true },
+		availableFunc: goroutineLeakAvailable,
 	},
 	CollectorVersion: {
 		outputFile:  "version.json",
@@ -147,6 +165,17 @@ func (p *profiler) runProfile(ctx context.Context) error {
 		collectorsToRun[i] = c
 	}
 
+	// All names are valid; now confirm every requested collector can run in
+	// this build, before any collection starts. Keeping this a separate pass
+	// makes validation errors deterministic across build variants.
+	for _, c := range collectorsToRun {
+		if c.availableFunc != nil {
+			if err := c.availableFunc(); err != nil {
+				return err
+			}
+		}
+	}
+
 	results := make(chan profileResult, len(p.opts.Collectors))
 	wg := sync.WaitGroup{}
 	for _, c := range collectorsToRun {
@@ -204,6 +233,26 @@ func goroutineStacksText(ctx context.Context, _ Options, w io.Writer) error {
 
 func goroutineStacksProto(ctx context.Context, _ Options, w io.Writer) error {
 	return pprof.Lookup("goroutine").WriteTo(w, 0)
+}
+
+// goroutineLeakAvailable reports whether the runtime registered the
+// goroutineleak profile. The profile is only present when the binary was
+// built with GOEXPERIMENT=goroutineleakprofile (a Go 1.26 experiment,
+// expected to be enabled by default in Go 1.27).
+func goroutineLeakAvailable() error {
+	if pprof.Lookup("goroutineleak") == nil {
+		return errors.New("goroutineleak profile is not available in this build (requires GOEXPERIMENT=goroutineleakprofile)")
+	}
+	return nil
+}
+
+// goroutineLeakProfile writes the goroutineleak profile registered by the
+// runtime. Collecting it triggers a goroutine-leak-detection GC cycle.
+func goroutineLeakProfile(ctx context.Context, _ Options, w io.Writer) error {
+	if err := goroutineLeakAvailable(); err != nil {
+		return err
+	}
+	return pprof.Lookup("goroutineleak").WriteTo(w, 0)
 }
 
 func heapProfile(ctx context.Context, _ Options, w io.Writer) error {

@@ -48,6 +48,8 @@ Privacy Notice:
 The output file includes:
 
 - A list of running goroutines.
+- Stack traces of leaked goroutines, if the goroutine-leak collector is
+  requested (requires a build with GOEXPERIMENT=goroutineleakprofile).
 - A CPU profile.
 - A heap inuse profile.
 - A heap allocation profile.
