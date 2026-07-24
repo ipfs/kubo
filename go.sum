@@ -368,8 +368,8 @@ github.com/ipfs/go-ds-badger v0.3.4/go.mod h1:HfqsKJcNnIr9ZhZ+rkwS1J5PpaWjJjg6Ip
 github.com/ipfs/go-ds-flatfs v0.6.1 h1:oiC+iZPwlnsyNXHZuAZ/Ka2btw00s43pk80gIDWEcJM=
 github.com/ipfs/go-ds-flatfs v0.6.1/go.mod h1:EddbXjWrzX39gCc6xn/HYGluTx3SmEy84KuWIVdApIs=
 github.com/ipfs/go-ds-leveldb v0.1.0/go.mod h1:hqAW8y4bwX5LWcCtku2rFNX3vjDZCy5LZCg+cSZvYb8=
-github.com/ipfs/go-ds-leveldb v0.5.2 h1:6nmxlQ2zbp4LCNdJVsmHfs9GP0eylfBNxpmY1csp0x0=
-github.com/ipfs/go-ds-leveldb v0.5.2/go.mod h1:2fAwmcvD3WoRT72PzEekHBkQmBDhc39DJGoREiuGmYo=
+github.com/ipfs/go-ds-leveldb v0.5.3 h1:O7uc9v6h2m3mJ6dM5vYFcXjUVr8slFwH66DyV+5WXtE=
+github.com/ipfs/go-ds-leveldb v0.5.3/go.mod h1:toMahoADur/3y6vdbFoLvES0g3Xzp1TGbIsGhIxLTIE=
 github.com/ipfs/go-ds-measure v0.2.3 h1:wd1th+o8GMp2BNd5X0eRs9WEXURiPjf3DcqBrVjOBKE=
 github.com/ipfs/go-ds-measure v0.2.3/go.mod h1:s2XL7nmAl5lnEjXmt4A25NJuEVy65QdVYZzjyQt06f4=
 github.com/ipfs/go-ds-pebble v0.5.12 h1:idO/w4i3IBA6vZtVWsyG5IlPIgwd62iUaQZBl/Kv+yI=
