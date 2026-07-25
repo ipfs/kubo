@@ -2,9 +2,12 @@ package commands
 
 import (
 	"os"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
+	unixfs_pb "github.com/ipfs/boxo/ipld/unixfs/pb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -186,4 +189,123 @@ func TestFormatModTime(t *testing.T) {
 		recentResult := formatModTime(recentTime)
 		assert.Len(t, recentResult, 12, "recent time format should be 12 chars")
 	})
+}
+
+func TestFormatSize(t *testing.T) {
+	tests := []struct {
+		size   uint64
+		human  bool
+		expect string
+	}{
+		{0, false, "0"},
+		{0, true, "0 B"},
+		{1, false, "1"},
+		{1, true, "1 B"},
+		{999, true, "999 B"},
+		{1000, true, "1.0 kB"},
+		{1500, true, "1.5 kB"},
+		{1000000, true, "1.0 MB"},
+		{1234567, true, "1.2 MB"},
+		{1000000000, true, "1.0 GB"},
+		{1234567890, true, "1.2 GB"},
+		{1000000000000, true, "1.0 TB"},
+	}
+
+	for _, tt := range tests {
+		got := formatSize(tt.size, tt.human)
+		if got != tt.expect {
+			t.Errorf("formatSize(%d, %v) = %q; want %q", tt.size, tt.human, got, tt.expect)
+		}
+	}
+}
+
+func TestSortSizeByName(t *testing.T) {
+	links := []LsLink{
+		{Name: "z.txt", Size: 100},
+		{Name: "a.txt", Size: 100},
+		{Name: "m.txt", Size: 100},
+	}
+	slices.SortFunc(links, func(a, b LsLink) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	if links[0].Name != "a.txt" || links[1].Name != "m.txt" || links[2].Name != "z.txt" {
+		t.Errorf("expected sort by name, got %v", links)
+	}
+}
+
+func TestSortSizeDescending(t *testing.T) {
+	links := []LsLink{
+		{Name: "small.bin", Size: 100},
+		{Name: "large.bin", Size: 100000},
+		{Name: "medium.bin", Size: 500},
+	}
+	slices.SortFunc(links, func(a, b LsLink) int {
+		if b.Size != a.Size {
+			if b.Size > a.Size {
+				return 1
+			}
+			return -1
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+	if links[0].Name != "large.bin" || links[1].Name != "medium.bin" || links[2].Name != "small.bin" {
+		t.Errorf("expected sort by size desc, got: %v", links)
+	}
+}
+
+func TestSortSizeDescendingTieBreaker(t *testing.T) {
+	links := []LsLink{
+		{Name: "b.bin", Size: 100},
+		{Name: "a.bin", Size: 100},
+	}
+	slices.SortFunc(links, func(a, b LsLink) int {
+		if b.Size != a.Size {
+			if b.Size > a.Size {
+				return 1
+			}
+			return -1
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+	if links[0].Name != "a.bin" || links[1].Name != "b.bin" {
+		t.Errorf("expected tie-breaker by name, got: %v", links)
+	}
+}
+
+func TestSortSizeDirectoriesLast(t *testing.T) {
+	links := []LsLink{
+		{Name: "file.bin", Size: 100, Type: unixfs_pb.Data_File},
+		{Name: "subdir", Size: 0, Type: unixfs_pb.Data_Directory},
+	}
+	slices.SortFunc(links, func(a, b LsLink) int {
+		if b.Size != a.Size {
+			if b.Size > a.Size {
+				return 1
+			}
+			return -1
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+	if links[0].Name != "file.bin" || links[1].Name != "subdir" {
+		t.Errorf("expected file before dir, got: %v", links)
+	}
+}
+
+func TestDefaultSortByName(t *testing.T) {
+	links := []LsLink{
+		{Name: "z.bin", Size: 100},
+		{Name: "a.bin", Size: 200},
+	}
+	slices.SortFunc(links, func(a, b LsLink) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	if links[0].Name != "a.bin" || links[1].Name != "z.bin" {
+		t.Errorf("expected sort by name, got: %v", links)
+	}
+}
+
+func TestFormatSizeNonHuman(t *testing.T) {
+	if got := formatSize(1234567890, false); got != "1234567890" {
+		t.Errorf("expected '1234567890', got %q", got)
+	}
 }
