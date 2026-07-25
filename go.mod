@@ -37,7 +37,7 @@ require (
 	github.com/ipfs/go-ipfs-cmds v0.16.1
 	github.com/ipfs/go-ipld-cbor v0.3.0
 	github.com/ipfs/go-ipld-format v0.6.4
-	github.com/ipfs/go-ipld-git v0.1.1
+	github.com/ipfs/go-ipld-git v0.1.2
 	github.com/ipfs/go-ipld-legacy v0.3.0
 	github.com/ipfs/go-log/v2 v2.9.2
 	github.com/ipfs/go-metrics-interface v0.3.0
