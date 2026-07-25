@@ -92,7 +92,7 @@ require (
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.3.0 // indirect
 	github.com/ipfs/go-ipld-format v0.6.4 // indirect
-	github.com/ipfs/go-ipld-git v0.1.2-0.20260725004804-fb8ddd741109 // indirect
+	github.com/ipfs/go-ipld-git v0.1.2 // indirect
 	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
 	github.com/ipfs/go-libdht v0.5.0 // indirect
 	github.com/ipfs/go-log/v2 v2.9.2 // indirect
