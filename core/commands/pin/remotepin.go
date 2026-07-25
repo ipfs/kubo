@@ -348,7 +348,7 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client, out c
 		cidsRawArr := cidsRaw.([]string)
 		var parsedCIDs []cid.Cid
 		for _, rawCID := range cidsRawArr {
-			parsedCID, err := cid.Decode(rawCID)
+			parsedCID, err := cmdutils.CidFromArg(rawCID)
 			if err != nil {
 				close(out)
 				return fmt.Errorf("CID %q cannot be parsed: %v", rawCID, err)

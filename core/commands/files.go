@@ -20,6 +20,7 @@ import (
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	"github.com/ipfs/kubo/core/node"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
@@ -77,6 +78,16 @@ func updateNoFlushCounter(nd *core.IpfsNode, flush bool) error {
 
 	noFlushOperationCounter.Add(1)
 	return nil
+}
+
+// mfsPinLock takes the pin lock, a shared read-lock on the blockstore GC
+// locker. A concurrent "ipfs repo gc" holds the exclusive GC lock, so while
+// this lock is held GC cannot run, and GC waits for it to be released. Hold it
+// across a whole MFS mutation (including its flush) so GC cannot collect blocks
+// the mutation has written to the blockstore before they are linked into the
+// persisted MFS root. This mirrors how "ipfs add" guards its writes.
+func mfsPinLock(nd *core.IpfsNode, ctx context.Context) bstore.Unlocker {
+	return nd.Blockstore.PinLock(ctx)
 }
 
 // FilesCmd is the 'ipfs files' command
@@ -247,7 +258,7 @@ var filesStatCmd = &cmds.Command{
 			return err
 		}
 
-		path, err := checkPath(req.Arguments[0])
+		path, err := checkContentOrMfsPath(req.Arguments[0])
 		if err != nil {
 			return err
 		}
@@ -498,6 +509,7 @@ being GC'ed.
 		if err != nil {
 			return err
 		}
+		defer mfsPinLock(nd, req.Context).Unlock(req.Context)
 
 		cfg, err := nd.Repo.Config()
 		if err != nil {
@@ -514,7 +526,7 @@ being GC'ed.
 			return err
 		}
 
-		src, err := checkPath(req.Arguments[0])
+		src, err := checkContentOrMfsPath(req.Arguments[0])
 		if err != nil {
 			return err
 		}
@@ -600,22 +612,28 @@ being GC'ed.
 }
 
 func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI, p string) (ipld.Node, error) {
-	switch {
-	case strings.HasPrefix(p, "/ipfs/"):
-		pth, err := path.NewPath(p)
-		if err != nil {
-			return nil, err
-		}
-
+	// A content path or native IPFS URI (/ipfs/cid, ipfs://cid, /ipns/name, ...)
+	// is resolved through the DAG. Anything else is treated as an MFS path.
+	if pth, err := path.NewPathFromURI(p); err == nil {
 		return api.ResolveNode(ctx, pth)
-	default:
-		fsn, err := mfs.Lookup(node.FilesRoot, p)
-		if err != nil {
-			return nil, err
-		}
-
-		return fsn.GetNode()
 	}
+
+	fsn, err := mfs.Lookup(node.FilesRoot, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return fsn.GetNode()
+}
+
+// checkContentOrMfsPath validates an argument that may be an MFS path, a content
+// path (/ipfs/cid), or a native IPFS URI (ipfs://cid). A URI is rewritten to its
+// canonical content-path form; anything else is validated as an MFS path.
+func checkContentOrMfsPath(arg string) (string, error) {
+	if p, err := path.NewPathFromURI(arg); err == nil {
+		return p.String(), nil
+	}
+	return checkPath(arg)
 }
 
 func unlinkNodeIfExists(node *core.IpfsNode, path string) error {
@@ -833,7 +851,7 @@ Examples:
 			return fmt.Errorf("%s was not a file", path)
 		}
 
-		rfd, err := fi.Open(mfs.Flags{Read: true})
+		rfd, err := fi.Open(req.Context, mfs.Flags{Read: true})
 		if err != nil {
 			return err
 		}
@@ -906,6 +924,7 @@ Example:
 		if err != nil {
 			return err
 		}
+		defer mfsPinLock(nd, req.Context).Unlock(req.Context)
 
 		flush, _ := req.Options[filesFlushOptionName].(bool)
 
@@ -1042,6 +1061,7 @@ See '--to-files' in 'ipfs add --help' for more information.
 		if err != nil {
 			return err
 		}
+		defer mfsPinLock(nd, req.Context).Unlock(req.Context)
 
 		cfg, err := nd.Repo.Config()
 		if err != nil {
@@ -1094,7 +1114,7 @@ See '--to-files' in 'ipfs add --help' for more information.
 			fi.RawLeaves = rawLeaves
 		}
 
-		wfd, err := fi.Open(mfs.Flags{Write: true, Sync: flush})
+		wfd, err := fi.Open(req.Context, mfs.Flags{Write: true, Sync: flush})
 		if err != nil {
 			return err
 		}
@@ -1183,6 +1203,7 @@ Examples:
 		if err != nil {
 			return err
 		}
+		defer mfsPinLock(n, req.Context).Unlock(req.Context)
 
 		cfg, err := n.Repo.Config()
 		if err != nil {
@@ -1240,6 +1261,7 @@ are run with the '--flush=false'.
 		if err != nil {
 			return err
 		}
+		defer mfsPinLock(nd, req.Context).Unlock(req.Context)
 
 		enc, err := cmdenv.GetCidEncoder(req)
 		if err != nil {
@@ -1288,6 +1310,7 @@ on subdirectories of the MFS root.
 		if err != nil {
 			return err
 		}
+		defer mfsPinLock(nd, req.Context).Unlock(req.Context)
 
 		path := req.Arguments[0]
 		if path == "/" {
@@ -1375,6 +1398,7 @@ Remove files or directories.
 		if err != nil {
 			return err
 		}
+		defer mfsPinLock(nd, req.Context).Unlock(req.Context)
 		// if '--force' specified, it will remove anything else,
 		// including file, directory, corrupted node, etc
 		force, _ := req.Options[forceOptionName].(bool)
@@ -1606,6 +1630,7 @@ The mode argument must be specified in Unix numeric notation.
 		if err != nil {
 			return err
 		}
+		defer mfsPinLock(nd, req.Context).Unlock(req.Context)
 
 		path, err := checkPath(req.Arguments[1])
 		if err != nil {
@@ -1645,6 +1670,7 @@ Examples:
 		if err != nil {
 			return err
 		}
+		defer mfsPinLock(nd, req.Context).Unlock(req.Context)
 
 		path, err := checkPath(req.Arguments[0])
 		if err != nil {
@@ -1715,7 +1741,7 @@ Examples:
 		var newRootCid cid.Cid
 		if len(req.Arguments) > 0 {
 			var err error
-			newRootCid, err = cid.Decode(req.Arguments[0])
+			newRootCid, err = cmdutils.CidFromArg(req.Arguments[0])
 			if err != nil {
 				return fmt.Errorf("invalid CID %q: %w", req.Arguments[0], err)
 			}

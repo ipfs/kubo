@@ -1,7 +1,6 @@
 package libp2p
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"slices"
@@ -24,7 +23,6 @@ import (
 )
 
 type RoutingOptionArgs struct {
-	Ctx                           context.Context
 	Host                          host.Host
 	Datastore                     datastore.Batching
 	Validator                     record.Validator
@@ -249,6 +247,7 @@ func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
 			dht.Concurrency(10),
 			dht.Mode(mode),
 			dht.Datastore(args.Datastore),
+			dht.ValueDatastore(irouting.DHTValueDatastore(args.Datastore)),
 			dht.Validator(args.Validator),
 		}
 		if args.OptimisticProvide {
@@ -275,7 +274,7 @@ func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
 			lanOptions = append(lanOptions, dht.AddressFilter(nil))
 		}
 		d, err := dual.New(
-			args.Ctx, args.Host,
+			args.Host,
 			dual.DHTOption(dhtOpts...),
 			dual.WanDHTOption(wanOptions...),
 			dual.LanDHTOption(lanOptions...),
@@ -297,7 +296,6 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, p
 				Host:           args.Host,
 				Validator:      args.Validator,
 				Datastore:      args.Datastore,
-				Context:        args.Ctx,
 			},
 			&irouting.ExtraHTTPParams{
 				PeerID:        peerID,

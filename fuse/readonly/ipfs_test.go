@@ -57,7 +57,7 @@ func testMount(t *testing.T, root fs.InodeEmbedder) string {
 
 func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	buf := make([]byte, size)
-	_, err := io.ReadFull(random.NewRand(), buf)
+	_, err := io.ReadFull(random.New(), buf)
 	if err != nil {
 		t.Fatal(err)
 	}

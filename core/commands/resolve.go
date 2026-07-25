@@ -81,6 +81,12 @@ Resolve the value of an IPFS DAG path:
 		name := req.Arguments[0]
 		recursive, _ := req.Options[resolveRecursiveOptionName].(bool)
 
+		// Accept native IPFS URIs (ipfs://cid, ipns://name) by rewriting them to
+		// their canonical content-path form before the namespace checks below.
+		if p, err := path.NewPathFromURI(name); err == nil {
+			name = p.String()
+		}
+
 		// the case when ipns is resolved step by step
 		if strings.HasPrefix(name, "/ipns/") && !recursive {
 			rc, rcok := req.Options[resolveDhtRecordCountOptionName].(uint)

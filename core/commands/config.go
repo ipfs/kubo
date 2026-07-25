@@ -18,6 +18,7 @@ import (
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -115,6 +116,35 @@ Set multiple values in the 'Addresses.AppendAnnounce' array:
 			}
 
 			value := args[1]
+
+			// Identity.PeerID is derived from Identity.PrivKey; the node
+			// refuses to start when they disagree. Accept only the node's own
+			// PeerID in any standard form (base58 or CIDv1), compare decoded
+			// IDs rather than strings, store the canonical base58 string kubo
+			// writes elsewhere, and point a mismatched value at the supported
+			// way to change the identity.
+			if strings.EqualFold(key, "identity.peerid") {
+				candidate := value
+				if parseJSON, _ := req.Options[configJSONOptionName].(bool); parseJSON {
+					var s string
+					if err := json.Unmarshal([]byte(value), &s); err == nil {
+						candidate = s
+					}
+				}
+				id, err := nodePeerID(r)
+				if err != nil {
+					return err
+				}
+				got, err := peer.Decode(candidate)
+				if err != nil || got != id {
+					return errors.New("cannot set Identity.PeerID to a value that does not match the node's private key; use 'ipfs key rotate' to change the node identity")
+				}
+				output, err = setConfig(r, key, id.String())
+				if err != nil {
+					return err
+				}
+				return cmds.EmitOnce(res, output)
+			}
 
 			if parseJSON, _ := req.Options[configJSONOptionName].(bool); parseJSON {
 				var jsonVal any
@@ -350,6 +380,13 @@ var configReplaceCmd = &cmds.Command{
 		ShortDescription: `
 Make sure to back up the config file first if necessary, as this operation
 can't be undone.
+
+The private key cannot be set over the Kubo RPC API. 'ipfs config replace'
+keeps the existing Identity.PrivKey and ignores that field in <file>. It
+then re-derives Identity.PeerID from the stored key, so a different PeerID
+in <file> is overwritten with the one derived from the key on disk.
+
+To change the node's identity, stop the daemon and run 'ipfs key rotate'.
 `,
 	},
 
@@ -584,6 +621,30 @@ func editConfig(filename string) error {
 	return cmd.Run()
 }
 
+// nodePeerID derives the PeerID implied by the private key stored in the repo
+// config. Identity.PeerID must equal this value; the node refuses to start
+// when the two disagree.
+func nodePeerID(r repo.Repo) (peer.ID, error) {
+	keyF, err := getConfig(r, config.PrivKeySelector)
+	if err != nil {
+		return "", errors.New("failed to get PrivKey")
+	}
+	pkstr, ok := keyF.Value.(string)
+	if !ok {
+		return "", errors.New("private key in config was not a string")
+	}
+	ident := config.Identity{PrivKey: pkstr}
+	pk, err := ident.DecodePrivateKey("")
+	if err != nil {
+		return "", fmt.Errorf("failed to decode PrivKey: %w", err)
+	}
+	id, err := peer.IDFromPrivateKey(pk)
+	if err != nil {
+		return "", fmt.Errorf("failed to derive PeerID from PrivKey: %w", err)
+	}
+	return id, nil
+}
+
 func replaceConfig(r repo.Repo, file io.Reader) error {
 	var newCfg config.Config
 	if err := json.NewDecoder(file).Decode(&newCfg); err != nil {
@@ -607,6 +668,11 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 	}
 
 	newCfg.Identity.PrivKey = pkstr
+	id, err := nodePeerID(r)
+	if err != nil {
+		return err
+	}
+	newCfg.Identity.PeerID = id.String()
 
 	// Handle Pinning.RemoteServices (API.Key of each service is a secret)
 
