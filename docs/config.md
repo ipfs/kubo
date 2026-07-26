@@ -30,6 +30,8 @@ config file at runtime.
   - [`AutoTLS`](#autotls)
     - [`AutoTLS.Enabled`](#autotlsenabled)
     - [`AutoTLS.AutoWSS`](#autotlsautowss)
+    - [`AutoTLS.IPCerts`](#autotlsipcerts)
+    - [`AutoTLS.IPCertsPort`](#autotlsipcertsport)
     - [`AutoTLS.ShortAddrs`](#autotlsshortaddrs)
     - [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)
     - [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint)
@@ -797,6 +799,38 @@ Optional. Controls if Kubo should add `/tls/sni/*.libp2p.direct/ws` listener to 
 Default: `true` (if `AutoTLS.Enabled`)
 
 Type: `flag`
+
+### `AutoTLS.IPCerts`
+
+Optional. Lets a node get its TLS certificate for its own IP address, straight from the certificate authority, instead of registering a name with the `libp2p.direct` broker.
+
+The only thing this needs is a `/tcp/443` listener in [`Addresses.Swarm`](#addressesswarm) that the internet can reach, for example `/ip4/0.0.0.0/tcp/443`. The authority checks the address by connecting back to it on port 443 and speaking TLS, which the node answers on the very listener it serves peers on. Nothing else is exposed, and no extra port is opened.
+
+A node that gets such a certificate announces `/ip4/<your-ip>/tcp/443/tls/ws` (and, with [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs), the matching `/tls/http`) and stops announcing its `libp2p.direct` name. Browsers and other peers connect to the IP directly, so no DNS lookup and no third-party service sit between a client and the node.
+
+A node without a reachable port 443 keeps using the broker, as does one whose certificate request fails, so turning this off is only needed to force the broker path.
+
+**Note:**
+
+- Certificates for IP addresses are short-lived, currently valid for about six days, and are renewed a few days ahead of expiry. A node that stays offline past expiry falls back to the broker until it has renewed.
+- Binding port 443 needs root or `CAP_NET_BIND_SERVICE` on Linux. Kubo has to listen on 443 itself, including behind a router: forward the router's port 443 to port 443 on this node, not to some other port.
+- Address changes are handled: a certificate is requested per reachable address, and an address that goes away stops being renewed and announced. A node whose public address is not on any of its own interfaces, which is the normal case behind a router, waits a few minutes for other peers to tell it that address before deciding it needs the broker.
+- Requests are paced to stay inside the authority's [rate limits](https://letsencrypt.org/docs/rate-limits/): a failure is retried after an hour, doubling to at most a day, and the wait is written to disk before each attempt, so a node that keeps crashing cannot spend its budget one restart at a time.
+- Let's Encrypt issues IP certificates only under its short-lived [profile](https://letsencrypt.org/docs/profiles/), and only for `http-01` or `tls-alpn-01` validation. Kubo uses `tls-alpn-01`, which is why port 443 is the only port that works.
+
+Default: `true` (if `AutoTLS.Enabled` and a reachable `/tcp/443` listener exists)
+
+Type: `flag`
+
+### `AutoTLS.IPCertsPort`
+
+Optional. Overrides the TCP port the certificate authority is expected to connect to when it checks an IP address for [`AutoTLS.IPCerts`](#autotlsipcerts).
+
+Advanced, meant for testing against a local ACME server. Public authorities always connect to port 443 and ignore anything else, so changing this on a production node only stops certificates from being issued.
+
+Default: `443`
+
+Type: `optionalInteger`
 
 ### `AutoTLS.ShortAddrs`
 

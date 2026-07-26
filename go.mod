@@ -23,7 +23,7 @@ require (
 	github.com/hashicorp/go-version v1.9.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.42.0
+	github.com/ipfs/boxo v0.42.1-0.20260725202316-54899a7b7f82
 	github.com/ipfs/go-block-format v0.2.4
 	github.com/ipfs/go-cid v0.6.2
 	github.com/ipfs/go-cidutil v0.1.2
@@ -48,7 +48,7 @@ require (
 	github.com/ipld/go-car/v2 v2.17.0
 	github.com/ipld/go-codec-dagpb v1.7.0
 	github.com/ipld/go-ipld-prime v0.24.0
-	github.com/ipshipyard/p2p-forge v0.10.0
+	github.com/ipshipyard/p2p-forge v0.10.1-0.20260726184807-aaab2247e49a
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/libp2p/go-doh-resolver v0.6.0

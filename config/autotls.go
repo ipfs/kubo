@@ -16,6 +16,23 @@ type AutoTLS struct {
 	// Optional, controls if Kubo should add /tls/sni/.../ws listener to every /tcp port if no explicit /ws is defined in Addresses.Swarm
 	AutoWSS Flag `json:",omitempty"`
 
+	// IPCerts lets a node that is publicly reachable on TCP port 443 get a
+	// TLS certificate for its own IP address straight from the certificate
+	// authority, instead of registering a domain name with the p2p-forge
+	// broker. The authority checks the address by connecting to it, which
+	// only works on port 443, so this applies to a node with a
+	// /ip4/../tcp/443 or /ip6/../tcp/443 listener in Addresses.Swarm and to
+	// nothing else. Nodes without one keep using the broker, as does a node
+	// whose port 443 turns out to be unreachable.
+	IPCerts Flag `json:",omitempty"`
+
+	// IPCertsPort overrides the TCP port the certificate authority is
+	// expected to connect to when it checks an IP address. Advanced,
+	// test-only: public authorities always use 443 and ignore anything else,
+	// so changing this only makes sense against a local ACME server such as
+	// the one in test/autotls.
+	IPCertsPort *OptionalInteger `json:",omitempty"`
+
 	// Optional, controls whether to skip network DNS lookups for p2p-forge domains.
 	// Applies to resolution via DNS.Resolvers, including /dns* multiaddrs in go-libp2p.
 	// When enabled (default), A/AAAA queries for *.libp2p.direct are resolved
@@ -76,6 +93,8 @@ const (
 	DefaultRegistrationEndpoint      = p2pforge.DefaultForgeEndpoint
 	DefaultCAEndpoint                = p2pforge.DefaultCAEndpoint
 	DefaultAutoWSS                   = true // requires AutoTLS.Enabled
+	DefaultAutoTLSIPCerts            = true // requires AutoTLS.Enabled and a /tcp/443 listener
+	DefaultAutoTLSIPCertsPort        = p2pforge.DefaultIPCertPort
 	DefaultAutoTLSShortAddrs         = true // requires AutoTLS.Enabled
 	DefaultAutoTLSSkipDNSLookup      = true // skip network DNS for p2p-forge domains
 	DefaultAutoTLSRegistrationDelay  = 1 * time.Hour

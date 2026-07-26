@@ -136,7 +136,7 @@ require (
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/bbloom v0.1.0 // indirect
-	github.com/ipfs/boxo v0.42.0 // indirect
+	github.com/ipfs/boxo v0.42.1-0.20260725202316-54899a7b7f82 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.4 // indirect
 	github.com/ipfs/go-cid v0.6.2 // indirect
@@ -153,7 +153,7 @@ require (
 	github.com/ipld/go-car/v2 v2.17.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.24.0 // indirect
-	github.com/ipshipyard/p2p-forge v0.10.0 // indirect
+	github.com/ipshipyard/p2p-forge v0.10.1-0.20260726184807-aaab2247e49a // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jgautheron/goconst v1.7.1 // indirect

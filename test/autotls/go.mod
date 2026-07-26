@@ -10,7 +10,7 @@ require (
 	github.com/coredns/coredns v1.14.3
 	github.com/ipfs/go-cid v0.6.2
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
-	github.com/ipshipyard/p2p-forge v0.10.0
+	github.com/ipshipyard/p2p-forge v0.10.1-0.20260726184807-aaab2247e49a
 	github.com/letsencrypt/pebble/v2 v2.10.1
 	github.com/multiformats/go-multiaddr v0.16.1
 	github.com/stretchr/testify v1.11.1
@@ -91,7 +91,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/ipfs/bbloom v0.1.0 // indirect
-	github.com/ipfs/boxo v0.42.0 // indirect
+	github.com/ipfs/boxo v0.42.1-0.20260725202316-54899a7b7f82 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.4 // indirect
 	github.com/ipfs/go-cidutil v0.1.2 // indirect

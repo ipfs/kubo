@@ -1,9 +1,5 @@
 # Kubo changelog vTBD
 
-<a href="https://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
-
-This release was brought to you by the [Shipyard](https://ipshipyard.com/) team.
-
 - [vTBD](#vtbd)
 
 ## vTBD
@@ -11,6 +7,7 @@ This release was brought to you by the [Shipyard](https://ipshipyard.com/) team.
 - [Overview](#overview)
 - [🔦 Highlights](#-highlights)
   - [🌐 Experimental `HTTPProvider`: serve local data over plain HTTP/2](#-experimental-httpprovider-serve-local-data-over-plain-http2)
+  - [🔒 AutoTLS without a broker: certificates for your own IP](#-autotls-without-a-broker-certificates-for-your-own-ip)
 - [📝 Changelog](#-changelog)
 - [👨‍👩‍👧‍👦 Contributors](#-contributors)
 
@@ -27,6 +24,16 @@ Kubo now ships an experimental, opt-in `HTTPProvider`: the **server** side of HT
 This is a meaningful step toward broader IPFS interoperability: a stock HTTP client, a browser, `curl`, or any HTTP library can fetch verifiable blocks from a Kubo node without a libp2p stack. It pairs with the existing [`HTTPRetrieval`](https://github.com/ipfs/kubo/blob/master/docs/config.md#httpretrieval) (the client side).
 
 Off by default. See [`HTTPProvider`](https://github.com/ipfs/kubo/blob/master/docs/config.md#httpprovider) for the available settings and how to turn it on.
+
+#### 🔒 AutoTLS without a broker: certificates for your own IP
+
+If your node is reachable on TCP port 443, AutoTLS now gets its TLS certificate for your node's own IP address, directly from Let's Encrypt. No name is registered with the `libp2p.direct` broker, and no DNS lookup sits between a browser and your node.
+
+The only change needed is a port 443 listener in [`Addresses.Swarm`](https://github.com/ipfs/kubo/blob/master/docs/config.md#addressesswarm), such as `/ip4/0.0.0.0/tcp/443`. Let's Encrypt checks the address by connecting back to it and speaking TLS, which your node answers on the same listener it already serves peers on, so nothing extra is exposed. Such a node announces `/ip4/<your-ip>/tcp/443/tls/ws` (and the matching `/tls/http` when [`HTTPProvider.AnnounceMultiaddrs`](https://github.com/ipfs/kubo/blob/master/docs/config.md#httpproviderannouncemultiaddrs) is on) in place of its `libp2p.direct` address.
+
+Nodes on any other port, or whose port 443 turns out to be unreachable, keep using the broker exactly as before.
+
+Certificates covering an IP address are short-lived by policy, valid for about six days, so a node has to stay online to keep renewing. Requests are paced to stay well inside Let's Encrypt's rate limits, and the pacing survives daemon restarts. See [`AutoTLS.IPCerts`](https://github.com/ipfs/kubo/blob/master/docs/config.md#autotlsipcerts).
 
 ### 📝 Changelog
 

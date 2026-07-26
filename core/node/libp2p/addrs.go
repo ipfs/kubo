@@ -466,6 +466,16 @@ func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEv
 			p2pforge.WithCertificateStorage(certStorage),
 			p2pforge.WithShortForgeAddrs(cfg.ShortAddrs.WithDefault(config.DefaultAutoTLSShortAddrs)),
 		}
+		// AutoTLS.IPCerts: ask the CA for a certificate covering this node's
+		// own public IP address, which it validates by connecting to that
+		// address on AutoTLS.IPCertsPort. A node reachable there never talks
+		// to the p2p-forge broker; one that is not falls back to it.
+		if cfg.IPCerts.WithDefault(config.DefaultAutoTLSIPCerts) {
+			opts = append(opts,
+				p2pforge.WithIPCerts(),
+				p2pforge.WithIPCertPort(int(cfg.IPCertsPort.WithDefault(config.DefaultAutoTLSIPCertsPort))),
+			)
+		}
 		// AutoTLS.TrustedCARootsPEM: optional CA bundle for private or
 		// self-hosted ACME deployments (including the in-process Pebble
 		// used by the AutoTLS E2E test).
