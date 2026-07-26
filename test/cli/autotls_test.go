@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -39,6 +40,23 @@ func countingBroker(t *testing.T, status int) (*httptest.Server, *atomic.Int32) 
 	}))
 	t.Cleanup(srv.Close)
 	return srv, &probes
+}
+
+// countingCA is a fake ACME server that records requests for its directory,
+// the first thing any ACME client asks for. It answers with an error, so
+// nothing is ever issued; the count is only evidence that the daemon went to a
+// CA on its own.
+func countingCA(t *testing.T) (*httptest.Server, *atomic.Int32) {
+	t.Helper()
+	var directoryFetches atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/dir" {
+			directoryFetches.Add(1)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(srv.Close)
+	return srv, &directoryFetches
 }
 
 // autotlsNode inits a node with AutoTLS explicitly enabled against the given
@@ -118,6 +136,45 @@ func TestAutoTLSBrokerHealthCheck(t *testing.T) {
 		// AutoTLS machinery is wired up: AutoWSS added the wildcard listener
 		listenAddrs := node.IPFS("swarm", "addrs", "listen").Stdout.String()
 		require.Contains(t, listenAddrs, wssWildcardFragment)
+	})
+
+	t.Run("goes to the CA for its own address instead of the broker", func(t *testing.T) {
+		t.Parallel()
+		broker, probes := countingBroker(t, http.StatusNoContent)
+		ca, directoryFetches := countingCA(t)
+
+		// A node that listens on the port the certificate authority validates
+		// on, and has a public address there, asks the authority to certify
+		// that address and has no reason to register a name with anyone.
+		//
+		// Port 443 needs privileges no test has, so the node listens on a free
+		// port and AutoTLS.IPCertsPort points the flow at it. The registration
+		// delay is pinned to zero: it gates first-time issuance on both paths,
+		// so leaving it at the default would make "no broker traffic" true for
+		// an hour no matter what this code does.
+		port := harness.NewRandPort()
+		node := autotlsNode(t, broker.URL)
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)}
+			cfg.Addresses.Announce = []string{fmt.Sprintf("/ip4/1.2.3.4/tcp/%d", port)}
+			cfg.AutoTLS.IPCertsPort = config.NewOptionalInteger(int64(port))
+			cfg.AutoTLS.CAEndpoint = config.NewOptionalString(ca.URL + "/dir")
+			cfg.AutoTLS.RegistrationDelay = config.NewOptionalDuration(0)
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Reaching the CA is what says the node tried to certify its own
+		// address. The broker path would reach the CA too, but only after the
+		// health check below, which never happens here.
+		require.Eventually(t, func() bool { return directoryFetches.Load() > 0 }, 30*time.Second, 100*time.Millisecond,
+			"daemon should ask the CA to certify its own address")
+		require.Zero(t, probes.Load(),
+			"daemon registered with the broker even though it could certify its own address")
+
+		// And it stays that way while issuance runs.
+		require.Never(t, func() bool { return probes.Load() > 0 }, 3*time.Second, 100*time.Millisecond,
+			"daemon fell back to the broker while its own certificate was still in flight")
 	})
 
 	t.Run("explicit enable goes through the same health check", func(t *testing.T) {

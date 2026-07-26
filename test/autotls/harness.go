@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -78,13 +79,37 @@ func (s *Stack) Close() {
 	}
 }
 
+// setDNSDirectives guards the one-time write of CoreDNS's package-level
+// directive list. See NewStack.
+var setDNSDirectives sync.Once
+
+// StackOption adjusts how NewStack builds the stack.
+type StackOption func(*stackConfig)
+
+type stackConfig struct {
+	vaTLSPort int
+}
+
+// WithVATLSPort tells Pebble's validation authority which TCP port to connect
+// to when it checks a TLS-ALPN-01 challenge. A real certificate authority
+// always uses 443, which a test cannot bind, so the IP-certificate test points
+// Pebble at the port its kubo node listens on instead.
+func WithVATLSPort(port int) StackOption {
+	return func(c *stackConfig) { c.vaTLSPort = port }
+}
+
 // NewStack stands up Pebble and p2p-forge on free local ports. Returns a
 // Stack populated with the endpoint URLs and trust material the kubo
 // daemon needs to talk to them. The setup mirrors the canonical pattern
 // used in p2p-forge's own end-to-end test (e2e_test.go in that repo) so a
 // regression in either layer surfaces here.
-func NewStack(t *testing.T) *Stack {
+func NewStack(t *testing.T, opts ...StackOption) *Stack {
 	t.Helper()
+
+	var sc stackConfig
+	for _, opt := range opts {
+		opt(&sc)
+	}
 
 	const (
 		forgeDomain    = "libp2p.test"
@@ -115,7 +140,11 @@ func NewStack(t *testing.T) *Stack {
 	// endpoint. `.:0` lets CoreDNS pick free UDP and TCP ports; the
 	// running instance reports both via Servers()[0] below.
 	tmpDir := t.TempDir()
-	dnsserver.Directives = []string{"log", "whoami", "startup", "shutdown", "ipparser", "acme"}
+	// dnsserver.Directives is package state that every CoreDNS instance in
+	// this process reads, so parallel tests must not each assign it.
+	setDNSDirectives.Do(func() {
+		dnsserver.Directives = []string{"log", "whoami", "startup", "shutdown", "ipparser", "acme"}
+	})
 	corefile := fmt.Sprintf(`.:0 {
 		log
 		ipparser %[1]s
@@ -152,7 +181,7 @@ func NewStack(t *testing.T) *Stack {
 		},
 	}
 	ca := pebbleCA.New(pebbleLogger, db, "", "rsa", 1, 1, profiles)
-	va := pebbleVA.New(pebbleLogger, 0, 0, false, dnsTCPAddr, db)
+	va := pebbleVA.New(pebbleLogger, 0, sc.vaTLSPort, false, dnsTCPAddr, db)
 	// nil caaIdentities skips CAA checks (we have no DNS CAA records for
 	// libp2p.test anyway). strict=false, requireEAB=false, retryAfter
 	// values match Pebble's defaults.
