@@ -277,7 +277,7 @@ Use --live for a fresh DHT provider count (requires content routing).
 				g.Go(func() error {
 					lookupCtx, cancel := context.WithTimeout(gctx, ondemandpin.CheckTimeout)
 					defer cancel()
-					count, ok := ondemandpin.CountProviders(lookupCtx, n.Routing, n.Identity, c, replicationMin, replicationMax)
+					count, ok := ondemandpin.CountProvidersLive(lookupCtx, n.Routing, n.Identity, c, replicationMin, replicationMax)
 					liveResults[i] = liveResult{count: count, ok: ok}
 					return nil
 				})

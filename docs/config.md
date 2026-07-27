@@ -2274,10 +2274,11 @@ Type: `optionalInteger`
 
 ### `OnDemandPinning.CheckInterval`
 
-How often the checker starts a sweep of registered CIDs. If a sweep overruns
-this duration, the next sweep starts when the previous one finishes. After a
-failed check, that CID is skipped until `NextCheckAt`
-(`CheckInterval * 2^(failures-1)`, max 72h).
+How often the checker starts a sweep of registered CIDs. CIDs with a future
+`NextCheckAt` are skipped (failed checks back off with
+`CheckInterval * 2^(failures-1)`, max 72h; deadband/holding wait
+`2 * CheckInterval`). Due lookups run concurrently so a slow pin does not
+stall the rest of the sweep.
 
 Default: `"10m"`
 

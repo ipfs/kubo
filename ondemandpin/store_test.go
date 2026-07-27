@@ -80,3 +80,18 @@ func TestStoreUpdateDoesNotResurrect(t *testing.T) {
 	_, err = s.Get(ctx, c)
 	assert.ErrorIs(t, err, ErrNotRegistered)
 }
+
+func TestUpdateIfChangedSkipsIdenticalWrites(t *testing.T) {
+	ctx := context.Background()
+	s := newTestStore(t)
+	c := testCID(t, "stable")
+
+	require.NoError(t, s.Add(ctx, c))
+	rec := mustGet(t, s, c)
+	rec.LastResult = "deadband"
+	require.NoError(t, s.UpdateIfChanged(ctx, rec))
+	require.NoError(t, s.UpdateIfChanged(ctx, rec))
+
+	got := mustGet(t, s, c)
+	assert.Equal(t, "deadband", got.LastResult)
+}

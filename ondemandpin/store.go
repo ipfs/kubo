@@ -1,6 +1,7 @@
 package ondemandpin
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -133,6 +134,32 @@ func (s *Store) Update(ctx context.Context, rec *Record) error {
 		return fmt.Errorf("%s: %w", rec.Cid, ErrNotRegistered)
 	}
 	return s.put(ctx, key, rec)
+}
+
+// UpdateIfChanged is like Update but skips the write when the record is unchanged.
+func (s *Store) UpdateIfChanged(ctx context.Context, rec *Record) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	key := dsKey(rec.Cid)
+	old, err := s.ds.Get(ctx, key)
+	if errors.Is(err, datastore.ErrNotFound) {
+		return fmt.Errorf("%s: %w", rec.Cid, ErrNotRegistered)
+	}
+	if err != nil {
+		return fmt.Errorf("getting record: %w", err)
+	}
+	val, err := json.Marshal(rec)
+	if err != nil {
+		return fmt.Errorf("marshaling record: %w", err)
+	}
+	if bytes.Equal(old, val) {
+		return nil
+	}
+	if err := s.ds.Put(ctx, key, val); err != nil {
+		return fmt.Errorf("storing record: %w", err)
+	}
+	return s.ds.Sync(ctx, key)
 }
 
 func (s *Store) get(ctx context.Context, key datastore.Key) (*Record, error) {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"sync"
 	"time"
 
 	pin "github.com/ipfs/boxo/pinning/pinner"
@@ -15,6 +16,7 @@ import (
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	routing "github.com/libp2p/go-libp2p/core/routing"
 	mh "github.com/multiformats/go-multihash"
+	"golang.org/x/sync/errgroup"
 )
 
 var log = logging.Logger("ondemandpin")
@@ -28,11 +30,20 @@ const OnDemandPinName = "kubo:on-demand"
 // CheckTimeout bounds a single provider/pin-state lookup (checker and ls --live).
 const CheckTimeout = 5 * time.Minute
 
+const (
+	checkParallelism      = 8
+	stableCheckMultiplier = 2
+)
+
+type PinOwnership struct {
+	Pinned         bool
+	HasOnDemandPin bool
+}
+
 type PinService interface {
 	Pin(ctx context.Context, c cid.Cid, name string) error
 	Unpin(ctx context.Context, c cid.Cid) error
-	IsPinned(ctx context.Context, c cid.Cid) (bool, error)
-	HasPinWithName(ctx context.Context, c cid.Cid, name string) (bool, error)
+	PinOwnership(ctx context.Context, c cid.Cid, onDemandName string) (PinOwnership, error)
 }
 
 type StorageChecker interface {
@@ -61,7 +72,10 @@ type Checker struct {
 
 	now         func() time.Time
 	graceJitter func() time.Duration
-	priorityCh  chan cid.Cid
+
+	urgentMu sync.Mutex
+	urgent   []cid.Cid
+	wakeCh   chan struct{}
 }
 
 func NewChecker(
@@ -88,8 +102,8 @@ func NewChecker(
 		maxBackoff:       config.DefaultOnDemandPinCheckBackoffMax,
 		dryRun:           cfg.DryRun.WithDefault(false),
 
-		now:        time.Now,
-		priorityCh: make(chan cid.Cid, 64),
+		now:    time.Now,
+		wakeCh: make(chan struct{}, 1),
 	}
 	c.graceJitter = c.defaultGraceJitter
 	return c
@@ -103,11 +117,14 @@ func (c *Checker) defaultGraceJitter() time.Duration {
 	return time.Duration(rand.Int64N(int64(maxJitter)))
 }
 
+// Enqueue schedules an immediate check.
 func (c *Checker) Enqueue(ci cid.Cid) {
+	c.urgentMu.Lock()
+	c.urgent = append(c.urgent, ci)
+	c.urgentMu.Unlock()
 	select {
-	case c.priorityCh <- ci:
+	case c.wakeCh <- struct{}{}:
 	default:
-		log.Warnw("priority queue full, CID will be checked in next regular cycle", "cid", ci)
 	}
 }
 
@@ -116,7 +133,6 @@ func (c *Checker) Run(ctx context.Context) {
 	log.Info("on-demand pin checker started")
 	defer log.Info("on-demand pin checker stopped")
 
-	// Warn when grace period is shorter than record validity (allowed for tests; risky on public DHT).
 	if c.unpinGracePeriod < amino.DefaultProvideValidity {
 		log.Warnw("UnpinGracePeriod is shorter than the DHT provider record validity; provider counts may include dead peers and this node may unpin the last live copy",
 			"gracePeriod", c.unpinGracePeriod, "recordValidity", amino.DefaultProvideValidity)
@@ -129,11 +145,31 @@ func (c *Checker) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case ci := <-c.priorityCh:
-			c.checkOne(ctx, ci)
+		case <-c.wakeCh:
+			c.drainUrgent(ctx)
 		case <-ticker.C:
+			c.drainUrgent(ctx)
 			c.checkAll(ctx)
 		}
+	}
+}
+
+func (c *Checker) drainUrgent(ctx context.Context) {
+	c.urgentMu.Lock()
+	batch := c.urgent
+	c.urgent = nil
+	c.urgentMu.Unlock()
+
+	for _, ci := range batch {
+		if ctx.Err() != nil {
+			return
+		}
+		rec, err := c.store.Get(ctx, ci)
+		if err != nil {
+			log.Debugw("CID not in store, skipping", "cid", ci, "error", err)
+			continue
+		}
+		c.checkRecord(ctx, rec, true)
 	}
 }
 
@@ -145,28 +181,19 @@ func (c *Checker) checkAll(ctx context.Context) {
 	}
 
 	log.Infow("starting check cycle", "records", len(records))
-	for _, rec := range records {
-		// Drain priority checks between records so Enqueue'd CIDs don't wait for a full sweep to complete.
-		select {
-		case ci := <-c.priorityCh:
-			c.checkOne(ctx, ci)
-		default:
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(checkParallelism)
+	for i := range records {
+		if !records[i].NextCheckAt.IsZero() && c.now().Before(records[i].NextCheckAt) {
+			continue
 		}
-		if ctx.Err() != nil {
-			return
-		}
-		c.checkRecord(ctx, &rec, false)
+		rec := records[i]
+		g.Go(func() error {
+			c.checkRecord(gctx, &rec, false)
+			return nil
+		})
 	}
-}
-
-func (c *Checker) checkOne(ctx context.Context, ci cid.Cid) {
-	rec, err := c.store.Get(ctx, ci)
-	if err != nil {
-		log.Debugw("CID not in store, skipping", "cid", ci, "error", err)
-		return
-	}
-	// Ignore NextCheckAt so pin ondemand add is not delayed by a prior failure.
-	c.checkRecord(ctx, rec, true)
+	_ = g.Wait()
 }
 
 // checkRecord pins below min, starts grace above max, clears grace in the deadband.
@@ -183,55 +210,51 @@ func (c *Checker) checkRecord(ctx context.Context, rec *Record, immediate bool) 
 	lookupCtx, cancel := context.WithTimeout(ctx, CheckTimeout)
 	defer cancel()
 
-	pinned, err := c.pins.IsPinned(lookupCtx, rec.Cid)
+	own, err := c.pins.PinOwnership(lookupCtx, rec.Cid, OnDemandPinName)
 	if err != nil {
-		c.recordFailure(ctx, rec, fmt.Errorf("check pin state: %w", err))
+		c.recordFailure(ctx, rec, fmt.Errorf("check pin ownership: %w", err))
 		return
 	}
-	hasOnDemandPin, err := c.pins.HasPinWithName(lookupCtx, rec.Cid, OnDemandPinName)
-	if err != nil {
-		c.recordFailure(ctx, rec, fmt.Errorf("check pin name: %w", err))
-		return
-	}
-	if pinned && !hasOnDemandPin {
+	if own.Pinned && !own.HasOnDemandPin {
 		log.Debugw("skipping: CID has a user-managed pin", "cid", rec.Cid)
 		rec.LastResult = "user-pin"
-		c.clearBackoff(ctx, rec)
+		c.finishOK(ctx, rec, "user-pin")
 		return
 	}
 
-	count, ok := CountProviders(lookupCtx, c.routing, c.selfID, rec.Cid, c.replicationMin, c.replicationMax)
+	needOverMax := own.HasOnDemandPin || !rec.LastAboveTarget.IsZero() || !rec.UnpinAt.IsZero()
+	count, ok := CountProviders(lookupCtx, c.routing, c.selfID, rec.Cid, c.replicationMin, c.replicationMax, needOverMax)
 	if !ok {
 		rec.LastResult = "lookup-unknown"
 		c.recordFailure(ctx, rec, fmt.Errorf("provider count unknown"))
 		return
 	}
-	log.Debugw("provider count", "cid", rec.Cid, "count", count, "min", c.replicationMin, "max", c.replicationMax, "hasOnDemandPin", hasOnDemandPin)
+	log.Debugw("provider count", "cid", rec.Cid, "count", count, "min", c.replicationMin, "max", c.replicationMax, "hasOnDemandPin", own.HasOnDemandPin)
 
 	switch {
 	case count < c.replicationMin:
-		if err := c.handleUnderReplicated(ctx, lookupCtx, rec, count, hasOnDemandPin); err != nil {
+		if err := c.handleUnderReplicated(ctx, lookupCtx, rec, count, own); err != nil {
 			c.recordFailure(ctx, rec, err)
 			return
 		}
 	case count > c.replicationMax:
-		if err := c.handleWellReplicated(ctx, lookupCtx, rec, count, hasOnDemandPin); err != nil {
+		if err := c.handleWellReplicated(ctx, lookupCtx, rec, count, own); err != nil {
 			c.recordFailure(ctx, rec, err)
 			return
 		}
 	default:
-		c.clearGrace(ctx, rec)
+		rec.LastAboveTarget = time.Time{}
+		rec.UnpinAt = time.Time{}
 		rec.LastResult = "deadband"
 	}
 	rec.LastProviderCount = count
-	c.clearBackoff(ctx, rec)
+	c.finishOK(ctx, rec, rec.LastResult)
 }
 
-// handleUnderReplicated pins the CID if it does not already have OnDemandPinName.
-// lookupCtx is for quick pin-state checks; runCtx is for Pin/Provide/store (may outlast CheckTimeout).
-func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *Record, count int, hasOnDemandPin bool) error {
-	if hasOnDemandPin {
-		c.clearGrace(runCtx, rec)
+func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *Record, count int, own PinOwnership) error {
+	if own.HasOnDemandPin {
+		rec.LastAboveTarget = time.Time{}
+		rec.UnpinAt = time.Time{}
 		rec.LastResult = "holding"
 		return nil
 	}
@@ -243,11 +266,11 @@ func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *
 	}
 
 	// Re-check: a user pin may have appeared during the provider lookup.
-	pinnedNow, err := c.pins.IsPinned(lookupCtx, rec.Cid)
+	ownNow, err := c.pins.PinOwnership(lookupCtx, rec.Cid, OnDemandPinName)
 	if err != nil {
-		return fmt.Errorf("re-check pin state: %w", err)
+		return fmt.Errorf("re-check pin ownership: %w", err)
 	}
-	if pinnedNow {
+	if ownNow.Pinned {
 		log.Debugw("skipping pin: CID gained a pin during provider lookup", "cid", rec.Cid)
 		rec.LastResult = "user-pin"
 		return nil
@@ -270,12 +293,11 @@ func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *
 	if err := c.provider.StartProviding(true, rec.Cid.Hash()); err != nil {
 		log.Warnw("failed to provide after pin", "cid", rec.Cid, "error", err)
 	}
-	c.saveRecord(runCtx, rec)
 	return nil
 }
 
-func (c *Checker) handleWellReplicated(runCtx, lookupCtx context.Context, rec *Record, count int, hasOnDemandPin bool) error {
-	if !hasOnDemandPin {
+func (c *Checker) handleWellReplicated(runCtx, lookupCtx context.Context, rec *Record, count int, own PinOwnership) error {
+	if !own.HasOnDemandPin {
 		rec.LastResult = "above-max"
 		return nil
 	}
@@ -286,7 +308,6 @@ func (c *Checker) handleWellReplicated(runCtx, lookupCtx context.Context, rec *R
 		rec.LastAboveTarget = now
 		rec.UnpinAt = now.Add(c.unpinGracePeriod + jitter)
 		rec.LastResult = "grace"
-		c.saveRecord(runCtx, rec)
 		log.Debugw("grace period started", "cid", rec.Cid, "providers", count, "max", c.replicationMax, "unpinAt", rec.UnpinAt, "jitter", jitter)
 		return nil
 	}
@@ -296,12 +317,12 @@ func (c *Checker) handleWellReplicated(runCtx, lookupCtx context.Context, rec *R
 		return nil
 	}
 
-	stillOnDemand, err := c.pins.HasPinWithName(lookupCtx, rec.Cid, OnDemandPinName)
+	ownNow, err := c.pins.PinOwnership(lookupCtx, rec.Cid, OnDemandPinName)
 	if err != nil {
-		return fmt.Errorf("check pin name before unpin: %w", err)
+		return fmt.Errorf("check pin ownership before unpin: %w", err)
 	}
 
-	if stillOnDemand {
+	if ownNow.HasOnDemandPin {
 		if c.dryRun {
 			log.Infow("dry-run: would unpin", "cid", rec.Cid, "providers", count, "max", c.replicationMax)
 			rec.LastResult = "would-unpin"
@@ -319,23 +340,25 @@ func (c *Checker) handleWellReplicated(runCtx, lookupCtx context.Context, rec *R
 
 	rec.LastAboveTarget = time.Time{}
 	rec.UnpinAt = time.Time{}
-	c.saveRecord(runCtx, rec)
 	return nil
 }
 
-func (c *Checker) clearGrace(ctx context.Context, rec *Record) {
-	if rec.LastAboveTarget.IsZero() && rec.UnpinAt.IsZero() {
-		return
+func (c *Checker) scheduleNext(rec *Record, outcome string) {
+	now := c.now()
+	switch outcome {
+	case "grace":
+		rec.NextCheckAt = rec.UnpinAt
+	case "pinned", "would-pin":
+		rec.NextCheckAt = now.Add(c.checkInterval)
+	default:
+		rec.NextCheckAt = now.Add(stableCheckMultiplier * c.checkInterval)
 	}
-	rec.LastAboveTarget = time.Time{}
-	rec.UnpinAt = time.Time{}
-	c.saveRecord(ctx, rec)
 }
 
-func (c *Checker) clearBackoff(ctx context.Context, rec *Record) {
+func (c *Checker) finishOK(ctx context.Context, rec *Record, outcome string) {
 	rec.LastCheckedAt = c.now()
 	rec.FailureCount = 0
-	rec.NextCheckAt = time.Time{}
+	c.scheduleNext(rec, outcome)
 	c.saveRecord(ctx, rec)
 }
 
@@ -369,7 +392,7 @@ func (c *Checker) backoffDelay(failures int) time.Duration {
 }
 
 func (c *Checker) saveRecord(ctx context.Context, rec *Record) {
-	if err := c.store.Update(ctx, rec); err != nil {
+	if err := c.store.UpdateIfChanged(ctx, rec); err != nil {
 		if errors.Is(err, ErrNotRegistered) {
 			log.Debugw("record gone during check, not recreating", "cid", rec.Cid)
 			return
@@ -393,12 +416,69 @@ func (c *Checker) hasStorageBudget(ctx context.Context) bool {
 	return used < limit
 }
 
+func PinOwnershipFromPinner(ctx context.Context, p pin.Pinner, c cid.Cid, onDemandName string) (PinOwnership, error) {
+	results, err := p.CheckIfPinnedWithType(ctx, pin.Any, true, c)
+	if err != nil {
+		return PinOwnership{}, err
+	}
+	var own PinOwnership
+	for _, r := range results {
+		if !r.Pinned() {
+			continue
+		}
+		own.Pinned = true
+		if r.Mode == pin.Recursive && r.Name == onDemandName {
+			own.HasOnDemandPin = true
+		}
+	}
+	return own, nil
+}
+
+// PinHasName is used by the rm command to identify pins managed by on-demand pinning.
+func PinHasName(ctx context.Context, p pin.Pinner, c cid.Cid, name string) (bool, error) {
+	own, err := PinOwnershipFromPinner(ctx, p, c, name)
+	if err != nil {
+		return false, err
+	}
+	return own.HasOnDemandPin, nil
+}
+
 // CountProviders counts providers excluding self. Asks for max+2 results so
 // self can take a slot and we can still see max+1 others.
+// When needOverMax is false, cancels once count >= min; otherwise only once count > max.
 // ok is false if the lookup was cancelled before reaching min providers.
-func CountProviders(ctx context.Context, cr routing.ContentRouting, selfID peer.ID, c cid.Cid, min, max int) (count int, ok bool) {
-	ch := cr.FindProvidersAsync(ctx, c, max+2)
+func CountProviders(ctx context.Context, cr routing.ContentRouting, selfID peer.ID, c cid.Cid, min, max int, needOverMax bool) (count int, ok bool) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
+	ch := cr.FindProvidersAsync(ctx, c, max+2)
+	seen := make(map[peer.ID]struct{})
+	done := false
+	for pi := range ch {
+		if done {
+			continue
+		}
+		if pi.ID == selfID {
+			continue
+		}
+		seen[pi.ID] = struct{}{}
+		count = len(seen)
+		if count > max || (!needOverMax && count >= min) {
+			done = true
+			cancel()
+		}
+	}
+	count = len(seen)
+	if ctx.Err() != nil && count < min {
+		return count, false
+	}
+	return count, true
+}
+
+// CountProvidersLive is like CountProviders but does not cancel early.
+// Used by `ipfs pin ondemand ls --live`.
+func CountProvidersLive(ctx context.Context, cr routing.ContentRouting, selfID peer.ID, c cid.Cid, min, max int) (count int, ok bool) {
+	ch := cr.FindProvidersAsync(ctx, c, max+2)
 	seen := make(map[peer.ID]struct{})
 	for pi := range ch {
 		if pi.ID == selfID {
@@ -411,18 +491,4 @@ func CountProviders(ctx context.Context, cr routing.ContentRouting, selfID peer.
 		return count, false
 	}
 	return count, true
-}
-
-// PinHasName is used by checker (via PinService.HasPinWithName) and the rm command to identify pins managed by on-demand pinning.
-func PinHasName(ctx context.Context, p pin.Pinner, c cid.Cid, name string) (bool, error) {
-	results, err := p.CheckIfPinnedWithType(ctx, pin.Recursive, true, c)
-	if err != nil {
-		return false, err
-	}
-	for _, r := range results {
-		if r.Pinned() && r.Name == name {
-			return true, nil
-		}
-	}
-	return false, nil
 }

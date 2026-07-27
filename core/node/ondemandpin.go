@@ -90,13 +90,8 @@ func (s *kuboPinService) Unpin(ctx context.Context, c cid.Cid) error {
 	return s.pinner.Flush(ctx)
 }
 
-func (s *kuboPinService) IsPinned(ctx context.Context, c cid.Cid) (bool, error) {
-	_, pinned, err := s.pinner.IsPinned(ctx, c)
-	return pinned, err
-}
-
-func (s *kuboPinService) HasPinWithName(ctx context.Context, c cid.Cid, name string) (bool, error) {
-	return ondemandpin.PinHasName(ctx, s.pinner, c, name)
+func (s *kuboPinService) PinOwnership(ctx context.Context, c cid.Cid, onDemandName string) (ondemandpin.PinOwnership, error) {
+	return ondemandpin.PinOwnershipFromPinner(ctx, s.pinner, c, onDemandName)
 }
 
 type kuboStorageChecker struct {

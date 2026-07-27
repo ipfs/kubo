@@ -81,32 +81,39 @@ func (m *mockProvider) StartProviding(_ bool, keys ...mh.Multihash) error {
 }
 
 type mockPins struct {
+	mu     sync.Mutex
 	pinned map[cid.Cid]string
 }
 
 func newMockPins() *mockPins { return &mockPins{pinned: make(map[cid.Cid]string)} }
 
 func (m *mockPins) Pin(_ context.Context, c cid.Cid, name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.pinned[c] = name
 	return nil
 }
 
 func (m *mockPins) Unpin(_ context.Context, c cid.Cid) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	delete(m.pinned, c)
 	return nil
 }
 
-func (m *mockPins) IsPinned(_ context.Context, c cid.Cid) (bool, error) {
-	_, ok := m.pinned[c]
-	return ok, nil
-}
-
-func (m *mockPins) HasPinWithName(_ context.Context, c cid.Cid, name string) (bool, error) {
+func (m *mockPins) PinOwnership(_ context.Context, c cid.Cid, onDemandName string) (PinOwnership, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	n, ok := m.pinned[c]
-	return ok && n == name, nil
+	if !ok {
+		return PinOwnership{}, nil
+	}
+	return PinOwnership{Pinned: true, HasOnDemandPin: n == onDemandName}, nil
 }
 
 func (m *mockPins) isPinned(c cid.Cid) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	_, ok := m.pinned[c]
 	return ok
 }
@@ -139,7 +146,7 @@ func providers(n int) []peer.ID {
 // Under-replicated content gets pinned.
 func TestCheckerPinsBelowTarget(t *testing.T) {
 	ctx := context.Background()
-	checker, store, r, p, _, prov := newTestChecker(t)
+	checker, store, r, p, clock, prov := newTestChecker(t)
 	c := testCID(t, "under-replicated")
 
 	require.NoError(t, store.Add(ctx, c))
@@ -152,12 +159,13 @@ func TestCheckerPinsBelowTarget(t *testing.T) {
 	assert.Equal(t, "pinned", rec.LastResult)
 	assert.Equal(t, 2, rec.LastProviderCount)
 	assert.False(t, rec.LastCheckedAt.IsZero())
+	assert.Equal(t, clock.Now().Add(time.Minute), rec.NextCheckAt)
 	require.Equal(t, []mh.Multihash{c.Hash()}, prov.keys)
 }
 
 func TestCheckerDoesNotPinInDeadband(t *testing.T) {
 	ctx := context.Background()
-	checker, store, r, p, _, _ := newTestChecker(t)
+	checker, store, r, p, clock, _ := newTestChecker(t)
 	c := testCID(t, "deadband")
 
 	require.NoError(t, store.Add(ctx, c))
@@ -166,6 +174,9 @@ func TestCheckerDoesNotPinInDeadband(t *testing.T) {
 	checker.checkAll(ctx)
 
 	assert.False(t, p.isPinned(c))
+	rec := mustGet(t, store, c)
+	assert.Equal(t, "deadband", rec.LastResult)
+	assert.Equal(t, clock.Now().Add(2*time.Minute), rec.NextCheckAt)
 }
 
 func TestCheckerUnpinsAfterGracePeriod(t *testing.T) {
@@ -179,6 +190,7 @@ func TestCheckerUnpinsAfterGracePeriod(t *testing.T) {
 	require.True(t, p.isPinned(c))
 
 	// Providers recover above max (default 7).
+	clock.Advance(time.Minute)
 	r.setProviders(c, providers(8)...)
 	checker.checkAll(ctx)
 	assert.True(t, p.isPinned(c), "not yet past grace period")
@@ -274,16 +286,17 @@ func TestCountProvidersUnknownOnCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	count, ok := CountProviders(ctx, blockingRouting{}, peer.ID("self"), testCID(t, "unknown"), 5, 7)
+	count, ok := CountProviders(ctx, blockingRouting{}, peer.ID("self"), testCID(t, "unknown"), 5, 7, false)
 	assert.False(t, ok)
 	assert.Equal(t, 0, count)
 }
 
 type emitThenBlockRouting struct {
 	providers []peer.ID
+	emitted   atomic.Int32
 }
 
-func (r emitThenBlockRouting) FindProvidersAsync(ctx context.Context, _ cid.Cid, limit int) <-chan peer.AddrInfo {
+func (r *emitThenBlockRouting) FindProvidersAsync(ctx context.Context, _ cid.Cid, limit int) <-chan peer.AddrInfo {
 	ch := make(chan peer.AddrInfo)
 	go func() {
 		defer close(ch)
@@ -293,6 +306,7 @@ func (r emitThenBlockRouting) FindProvidersAsync(ctx context.Context, _ cid.Cid,
 			}
 			select {
 			case ch <- peer.AddrInfo{ID: id}:
+				r.emitted.Add(1)
 			case <-ctx.Done():
 				return
 			}
@@ -302,18 +316,18 @@ func (r emitThenBlockRouting) FindProvidersAsync(ctx context.Context, _ cid.Cid,
 	return ch
 }
 
-func (emitThenBlockRouting) Provide(context.Context, cid.Cid, bool) error { return nil }
+func (r *emitThenBlockRouting) Provide(context.Context, cid.Cid, bool) error { return nil }
 
 func TestCountProvidersOkWhenEnoughFoundDespiteCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	r := emitThenBlockRouting{providers: []peer.ID{"p1", "p2", "p3", "p4", "p5"}}
+	r := &emitThenBlockRouting{providers: []peer.ID{"p1", "p2", "p3", "p4", "p5"}}
 
 	done := make(chan struct{})
 	var count int
 	var ok bool
 	go func() {
 		defer close(done)
-		count, ok = CountProviders(ctx, r, peer.ID("self"), testCID(t, "enough"), 5, 7)
+		count, ok = CountProviders(ctx, r, peer.ID("self"), testCID(t, "enough"), 5, 7, false)
 	}()
 
 	time.Sleep(20 * time.Millisecond) // let providers flush
@@ -322,6 +336,23 @@ func TestCountProvidersOkWhenEnoughFoundDespiteCancel(t *testing.T) {
 
 	require.True(t, ok)
 	assert.Equal(t, 5, count)
+}
+
+func TestCountProvidersEarlyExit(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	rMin := &emitThenBlockRouting{providers: providers(20)}
+	count, ok := CountProviders(ctx, rMin, peer.ID("self"), testCID(t, "early-min"), 5, 7, false)
+	require.True(t, ok)
+	assert.Equal(t, 5, count)
+	assert.Less(t, int(rMin.emitted.Load()), 20)
+
+	rMax := &emitThenBlockRouting{providers: providers(20)}
+	count, ok = CountProviders(ctx, rMax, peer.ID("self"), testCID(t, "early-max"), 5, 7, true)
+	require.True(t, ok)
+	assert.Equal(t, 8, count)
+	assert.Less(t, int(rMax.emitted.Load()), 20)
 }
 
 func TestCheckerSkipsWhenProviderCountUnknown(t *testing.T) {
@@ -416,7 +447,7 @@ func TestCheckerBackoffSkipsUntilDue(t *testing.T) {
 	assert.True(t, pins.isPinned(c))
 	rec = mustGet(t, store, c)
 	assert.Equal(t, 0, rec.FailureCount)
-	assert.True(t, rec.NextCheckAt.IsZero())
+	assert.Equal(t, clock.Now().Add(time.Minute), rec.NextCheckAt)
 	assert.Equal(t, "pinned", rec.LastResult)
 }
 
@@ -444,6 +475,7 @@ func TestCheckerDryRunDoesNotPinOrUnpin(t *testing.T) {
 	assert.Equal(t, "would-pin", rec.LastResult)
 	assert.Equal(t, 2, rec.LastProviderCount)
 
+	clock.Advance(time.Minute)
 	require.NoError(t, p.Pin(ctx, c, OnDemandPinName))
 	r.setProviders(c, providers(8)...)
 	checker.checkAll(ctx)
@@ -451,12 +483,45 @@ func TestCheckerDryRunDoesNotPinOrUnpin(t *testing.T) {
 	rec = mustGet(t, store, c)
 	assert.Equal(t, "grace", rec.LastResult)
 	require.False(t, rec.UnpinAt.IsZero())
+	assert.Equal(t, rec.UnpinAt, rec.NextCheckAt)
 
 	clock.Advance(250 * time.Millisecond)
 	checker.checkAll(ctx)
 	assert.True(t, p.isPinned(c), "dry-run must not unpin")
 	rec = mustGet(t, store, c)
 	assert.Equal(t, "would-unpin", rec.LastResult)
+}
+
+func TestEnqueueIsReliable(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	checker, store, r, p, clock, _ := newTestChecker(t)
+	checker.checkInterval = time.Hour
+	checker.now = clock.Now
+
+	c := testCID(t, "enqueue-me")
+	require.NoError(t, store.Add(ctx, c))
+	r.setProviders(c, peer.ID("p1"))
+
+	rec := mustGet(t, store, c)
+	rec.NextCheckAt = clock.Now().Add(24 * time.Hour)
+	require.NoError(t, store.Update(ctx, rec))
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		checker.Run(ctx)
+	}()
+
+	checker.Enqueue(c)
+
+	require.Eventually(t, func() bool {
+		return p.isPinned(c)
+	}, 2*time.Second, 10*time.Millisecond)
+
+	cancel()
+	<-done
 }
 
 func mustGet(t *testing.T, store *Store, c cid.Cid) *Record {
