@@ -144,18 +144,22 @@ func TestAutoTLSBrokerHealthCheck(t *testing.T) {
 		ca, directoryFetches := countingCA(t)
 
 		// A node that listens on the port the certificate authority validates
-		// on, and has a public address there, asks the authority to certify
-		// that address and has no reason to register a name with anyone.
+		// on asks the authority to certify its address, and registers no name
+		// with anyone. It stays that way even when issuance fails, which it
+		// does here: the authority is a stub that answers every request with an
+		// error.
 		//
 		// Port 443 needs privileges no test has, so the node listens on a free
 		// port and AutoTLS.IPCertsPort points the flow at it. The registration
-		// delay is pinned to zero: it gates first-time issuance on both paths,
-		// so leaving it at the default would make "no broker traffic" true for
-		// an hour no matter what this code does.
+		// delay is pinned to zero: it gates first-time issuance, so leaving it
+		// at the default would make "no broker traffic" true for an hour no
+		// matter what this code does.
 		port := harness.NewRandPort()
 		node := autotlsNode(t, broker.URL)
 		node.UpdateConfig(func(cfg *config.Config) {
-			cfg.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)}
+			// A wildcard bind, like a real node on 443: a listener on loopback
+			// is not somewhere a certificate authority can reach.
+			cfg.Addresses.Swarm = []string{fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port)}
 			cfg.Addresses.Announce = []string{fmt.Sprintf("/ip4/1.2.3.4/tcp/%d", port)}
 			cfg.AutoTLS.IPCertsPort = config.NewOptionalInteger(int64(port))
 			cfg.AutoTLS.CAEndpoint = config.NewOptionalString(ca.URL + "/dir")
@@ -172,9 +176,37 @@ func TestAutoTLSBrokerHealthCheck(t *testing.T) {
 		require.Zero(t, probes.Load(),
 			"daemon registered with the broker even though it could certify its own address")
 
-		// And it stays that way while issuance runs.
+		// And it stays that way. The certificate authority here never issues
+		// anything, and that is not a reason to go and register a name.
 		require.Never(t, func() bool { return probes.Load() > 0 }, 3*time.Second, 100*time.Millisecond,
-			"daemon fell back to the broker while its own certificate was still in flight")
+			"daemon registered with the broker after its own certificate failed")
+	})
+
+	t.Run("IPCerts off sends a node on port 443 to the broker", func(t *testing.T) {
+		t.Parallel()
+		broker, probes := countingBroker(t, http.StatusNoContent)
+		ca, _ := countingCA(t)
+
+		// The listener alone decides the path, so turning the option off is
+		// the only way a node on that port uses the broker.
+		port := harness.NewRandPort()
+		node := autotlsNode(t, broker.URL)
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Addresses.Swarm = []string{fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port)}
+			cfg.Addresses.Announce = []string{fmt.Sprintf("/ip4/1.2.3.4/tcp/%d", port)}
+			cfg.AutoTLS.IPCerts = config.False
+			cfg.AutoTLS.IPCertsPort = config.NewOptionalInteger(int64(port))
+			cfg.AutoTLS.CAEndpoint = config.NewOptionalString(ca.URL + "/dir")
+			cfg.AutoTLS.RegistrationDelay = config.NewOptionalDuration(0)
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// Reaching the broker is the signal: a node certifying its own address
+		// never does. Both paths talk to a certificate authority eventually,
+		// so the CA stub here only keeps the test off the real one.
+		require.Eventually(t, func() bool { return probes.Load() > 0 }, 15*time.Second, 100*time.Millisecond,
+			"daemon should register with the broker when IP certificates are off")
 	})
 
 	t.Run("explicit enable goes through the same health check", func(t *testing.T) {

@@ -16,14 +16,16 @@ type AutoTLS struct {
 	// Optional, controls if Kubo should add /tls/sni/.../ws listener to every /tcp port if no explicit /ws is defined in Addresses.Swarm
 	AutoWSS Flag `json:",omitempty"`
 
-	// IPCerts lets a node that is publicly reachable on TCP port 443 get a
-	// TLS certificate for its own IP address straight from the certificate
-	// authority, instead of registering a domain name with the p2p-forge
-	// broker. The authority checks the address by connecting to it, which
-	// only works on port 443, so this applies to a node with a
-	// /ip4/../tcp/443 or /ip6/../tcp/443 listener in Addresses.Swarm and to
-	// nothing else. Nodes without one keep using the broker, as does a node
-	// whose port 443 turns out to be unreachable.
+	// IPCerts lets a node that listens on TCP port 443 get a TLS certificate
+	// for its own IP address straight from the certificate authority, instead
+	// of registering a domain name with the p2p-forge broker. The authority
+	// checks the address by connecting to it, which only works on port 443.
+	//
+	// The listener decides which of the two a node uses. With a
+	// /ip4/../tcp/443 or /ip6/../tcp/443 listener in Addresses.Swarm, a node
+	// asks only for a certificate for its own address, and if that cannot be
+	// had it says so in the log and keeps trying rather than registering a
+	// name instead. Without such a listener, a node uses the broker.
 	IPCerts Flag `json:",omitempty"`
 
 	// IPCertsPort overrides the TCP port the certificate authority is

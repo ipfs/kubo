@@ -468,8 +468,9 @@ func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEv
 		}
 		// AutoTLS.IPCerts: ask the CA for a certificate covering this node's
 		// own public IP address, which it validates by connecting to that
-		// address on AutoTLS.IPCertsPort. A node reachable there never talks
-		// to the p2p-forge broker; one that is not falls back to it.
+		// address on AutoTLS.IPCertsPort. A node with a listener on that port
+		// never talks to the p2p-forge broker, whether or not the certificate
+		// works out; one without a listener there uses the broker.
 		if cfg.IPCerts.WithDefault(config.DefaultAutoTLSIPCerts) {
 			opts = append(opts,
 				p2pforge.WithIPCerts(),

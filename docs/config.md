@@ -806,19 +806,20 @@ Optional. Lets a node get its TLS certificate for its own IP address, straight f
 
 The only thing this needs is a `/tcp/443` listener in [`Addresses.Swarm`](#addressesswarm) that the internet can reach, for example `/ip4/0.0.0.0/tcp/443`. The authority checks the address by connecting back to it on port 443 and speaking TLS, which the node answers on the very listener it serves peers on. Nothing else is exposed, and no extra port is opened.
 
-A node that gets such a certificate announces `/ip4/<your-ip>/tcp/443/tls/ws` (and, with [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs), the matching `/tls/http`) and stops announcing its `libp2p.direct` name. Browsers and other peers connect to the IP directly, so no DNS lookup and no third-party service sit between a client and the node.
+A node that gets such a certificate announces `/ip4/<your-ip>/tcp/443/tls/ws` (and, with [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs), the matching `/tls/http`). Browsers and other peers connect to the IP directly, so no DNS lookup and no third-party service sit between a client and the node.
 
-A node without a reachable port 443 keeps using the broker, as does one whose certificate request fails, so turning this off is only needed to force the broker path.
+The listener also decides which of the two paths a node takes, and it is one or the other. With a port 443 listener, a node asks only for a certificate for its own address; if it cannot get one, it logs an error and keeps trying, and never registers a name instead. Without a port 443 listener, a node uses the broker. Set this to `false` to use the broker on a node that does listen on 443.
 
 **Note:**
 
-- Certificates for IP addresses are short-lived, currently valid for about six days, and are renewed a few days ahead of expiry. A node that stays offline past expiry falls back to the broker until it has renewed.
+- Certificates for IP addresses are short-lived, currently valid for about six days, and are renewed a few days ahead of expiry. A node that stays offline past expiry stops announcing its `/tls/ws` address until it has renewed.
 - Binding port 443 needs root or `CAP_NET_BIND_SERVICE` on Linux. Kubo has to listen on 443 itself, including behind a router: forward the router's port 443 to port 443 on this node, not to some other port.
-- Address changes are handled: a certificate is requested per reachable address, and an address that goes away stops being renewed and announced. A node whose public address is not on any of its own interfaces, which is the normal case behind a router, waits a few minutes for other peers to tell it that address before deciding it needs the broker.
+- Address changes are handled: a certificate is requested per reachable address, and an address that goes away stops being renewed and announced. A node whose public address is not on any of its own interfaces, which is the normal case behind a router, waits for other peers to tell it that address, and says so in the log meanwhile.
 - Requests are paced to stay inside the authority's [rate limits](https://letsencrypt.org/docs/rate-limits/): a failure is retried after an hour, doubling to at most a day, and the wait is written to disk before each attempt, so a node that keeps crashing cannot spend its budget one restart at a time.
-- Let's Encrypt issues IP certificates only under its short-lived [profile](https://letsencrypt.org/docs/profiles/), and only for `http-01` or `tls-alpn-01` validation. Kubo uses `tls-alpn-01`, which is why port 443 is the only port that works.
+- Let's Encrypt issues IP certificates only under its short-lived [profile](https://letsencrypt.org/docs/profiles/), and only for `http-01` or `tls-alpn-01` validation. Kubo uses `tls-alpn-01`, which is why port 443 is the only port that works. Kubo always asks for that profile, so a private authority set through [`AutoTLS.CAEndpoint`](#autotlscaendpoint) has to offer a profile by that name, or issue no certificate at all. Such a deployment wants this set to `false`.
+- On upgrade, a node that already has a `libp2p.direct` certificate and listens on 443 switches to the direct path: it stops announcing the brokered name and leaves that certificate to expire.
 
-Default: `true` (if `AutoTLS.Enabled` and a reachable `/tcp/443` listener exists)
+Default: `true` (applies when `AutoTLS.Enabled` and `Addresses.Swarm` has a `/tcp/443` listener)
 
 Type: `flag`
 
@@ -826,7 +827,7 @@ Type: `flag`
 
 Optional. Overrides the TCP port the certificate authority is expected to connect to when it checks an IP address for [`AutoTLS.IPCerts`](#autotlsipcerts).
 
-Advanced, meant for testing against a local ACME server. Public authorities always connect to port 443 and ignore anything else, so changing this on a production node only stops certificates from being issued.
+Advanced, meant for testing against a local ACME server. Public authorities always connect to port 443 and ignore anything else, so changing this on a production node leaves it with no certificate at all: there is no broker behind this path to catch the failure.
 
 Default: `443`
 
