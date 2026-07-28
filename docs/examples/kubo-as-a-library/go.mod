@@ -102,7 +102,7 @@ require (
 	github.com/ipld/go-car/v2 v2.17.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.24.0 // indirect
-	github.com/ipshipyard/p2p-forge v0.10.1-0.20260728214128-d6c50e0a88a0 // indirect
+	github.com/ipshipyard/p2p-forge v0.10.2-0.20260728234256-75444c9947c3 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/klauspost/compress v1.19.1 // indirect

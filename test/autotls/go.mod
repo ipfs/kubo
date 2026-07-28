@@ -10,7 +10,7 @@ require (
 	github.com/coredns/coredns v1.14.3
 	github.com/ipfs/go-cid v0.6.2
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
-	github.com/ipshipyard/p2p-forge v0.10.1-0.20260728214128-d6c50e0a88a0
+	github.com/ipshipyard/p2p-forge v0.10.2-0.20260728234256-75444c9947c3
 	github.com/letsencrypt/pebble/v2 v2.10.1
 	github.com/multiformats/go-multiaddr v0.16.1
 	github.com/stretchr/testify v1.11.1
