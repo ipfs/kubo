@@ -1,6 +1,6 @@
 module github.com/ipfs/kubo/test/dependencies
 
-go 1.26.4
+go 1.26.5
 
 replace github.com/ipfs/kubo => ../../
 
@@ -136,7 +136,7 @@ require (
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/bbloom v0.1.0 // indirect
-	github.com/ipfs/boxo v0.41.1-0.20260721214550-4794174d3bbc // indirect
+	github.com/ipfs/boxo v0.42.1-0.20260727115347-1c8cf646367f // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.4 // indirect
 	github.com/ipfs/go-cid v0.6.2 // indirect
@@ -144,11 +144,11 @@ require (
 	github.com/ipfs/go-dsqueue v0.2.0 // indirect
 	github.com/ipfs/go-ipfs-cmds v0.16.1 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
-	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
+	github.com/ipfs/go-ipld-cbor v0.3.0 // indirect
 	github.com/ipfs/go-ipld-format v0.6.4 // indirect
 	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
-	github.com/ipfs/go-unixfsnode v1.10.5 // indirect
+	github.com/ipfs/go-unixfsnode v1.10.6 // indirect
 	github.com/ipfs/kubo v0.31.0 // indirect
 	github.com/ipld/go-car/v2 v2.17.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
@@ -299,7 +299,6 @@ require (
 	github.com/urfave/cli v1.22.17 // indirect
 	github.com/uudashr/gocognit v1.2.0 // indirect
 	github.com/uudashr/iface v1.3.1 // indirect
-	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	github.com/whyrusleeping/cbor v0.0.0-20171005072247-63513f603b11 // indirect
 	github.com/whyrusleeping/cbor-gen v0.3.1 // indirect
 	github.com/whyrusleeping/chunker v0.0.0-20181014151217-fe64bd25879f // indirect

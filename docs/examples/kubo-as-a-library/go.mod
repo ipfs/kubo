@@ -1,13 +1,13 @@
 module github.com/ipfs/kubo/examples/kubo-as-a-library
 
-go 1.26.4
+go 1.26.5
 
 // Used to keep this in sync with the current version of kubo. You should remove
 // this if you copy this example.
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.41.1-0.20260721214550-4794174d3bbc
+	github.com/ipfs/boxo v0.42.1-0.20260727115347-1c8cf646367f
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.48.1-0.20260709142922-ec408fcc60c9
 	github.com/multiformats/go-multiaddr v0.16.1
@@ -81,8 +81,8 @@ require (
 	github.com/ipfs/go-datastore v0.9.2 // indirect
 	github.com/ipfs/go-ds-badger v0.3.4 // indirect
 	github.com/ipfs/go-ds-flatfs v0.6.1 // indirect
-	github.com/ipfs/go-ds-leveldb v0.5.2 // indirect
-	github.com/ipfs/go-ds-measure v0.2.2 // indirect
+	github.com/ipfs/go-ds-leveldb v0.5.3 // indirect
+	github.com/ipfs/go-ds-measure v0.2.3 // indirect
 	github.com/ipfs/go-ds-pebble v0.5.12 // indirect
 	github.com/ipfs/go-dsqueue v0.2.0 // indirect
 	github.com/ipfs/go-fs-lock v0.1.1 // indirect
@@ -90,15 +90,15 @@ require (
 	github.com/ipfs/go-ipfs-ds-help v1.1.1 // indirect
 	github.com/ipfs/go-ipfs-pq v0.0.4 // indirect
 	github.com/ipfs/go-ipfs-redirects-file v0.1.2 // indirect
-	github.com/ipfs/go-ipld-cbor v0.2.1 // indirect
+	github.com/ipfs/go-ipld-cbor v0.3.0 // indirect
 	github.com/ipfs/go-ipld-format v0.6.4 // indirect
-	github.com/ipfs/go-ipld-git v0.1.1 // indirect
+	github.com/ipfs/go-ipld-git v0.1.3 // indirect
 	github.com/ipfs/go-ipld-legacy v0.3.0 // indirect
 	github.com/ipfs/go-libdht v0.5.0 // indirect
 	github.com/ipfs/go-log/v2 v2.9.2 // indirect
 	github.com/ipfs/go-metrics-interface v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.3 // indirect
-	github.com/ipfs/go-unixfsnode v1.10.5 // indirect
+	github.com/ipfs/go-unixfsnode v1.10.6 // indirect
 	github.com/ipld/go-car/v2 v2.17.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.7.0 // indirect
 	github.com/ipld/go-ipld-prime v0.24.0 // indirect
@@ -180,7 +180,6 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb // indirect
-	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	github.com/whyrusleeping/cbor v0.0.0-20171005072247-63513f603b11 // indirect
 	github.com/whyrusleeping/cbor-gen v0.3.1 // indirect
 	github.com/whyrusleeping/chunker v0.0.0-20181014151217-fe64bd25879f // indirect

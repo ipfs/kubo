@@ -1,6 +1,6 @@
 module github.com/ipfs/kubo
 
-go 1.26.4
+go 1.26.5
 
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
@@ -22,7 +22,7 @@ require (
 	github.com/hashicorp/go-version v1.9.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.41.1-0.20260721214550-4794174d3bbc
+	github.com/ipfs/boxo v0.42.1-0.20260727115347-1c8cf646367f
 	github.com/ipfs/go-block-format v0.2.4
 	github.com/ipfs/go-cid v0.6.2
 	github.com/ipfs/go-cidutil v0.1.2
@@ -30,20 +30,20 @@ require (
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.3.4
 	github.com/ipfs/go-ds-flatfs v0.6.1
-	github.com/ipfs/go-ds-leveldb v0.5.2
-	github.com/ipfs/go-ds-measure v0.2.2
+	github.com/ipfs/go-ds-leveldb v0.5.3
+	github.com/ipfs/go-ds-measure v0.2.3
 	github.com/ipfs/go-ds-pebble v0.5.12
 	github.com/ipfs/go-fs-lock v0.1.1
 	github.com/ipfs/go-ipfs-cmds v0.16.1
-	github.com/ipfs/go-ipld-cbor v0.2.1
+	github.com/ipfs/go-ipld-cbor v0.3.0
 	github.com/ipfs/go-ipld-format v0.6.4
-	github.com/ipfs/go-ipld-git v0.1.1
+	github.com/ipfs/go-ipld-git v0.1.3
 	github.com/ipfs/go-ipld-legacy v0.3.0
 	github.com/ipfs/go-log/v2 v2.9.2
 	github.com/ipfs/go-metrics-interface v0.3.0
 	github.com/ipfs/go-metrics-prometheus v0.1.0
 	github.com/ipfs/go-test v0.4.1
-	github.com/ipfs/go-unixfsnode v1.10.5
+	github.com/ipfs/go-unixfsnode v1.10.6
 	github.com/ipld/go-car/v2 v2.17.0
 	github.com/ipld/go-codec-dagpb v1.7.0
 	github.com/ipld/go-ipld-prime v0.24.0
@@ -233,7 +233,6 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb // indirect
-	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	github.com/whyrusleeping/cbor v0.0.0-20171005072247-63513f603b11 // indirect
 	github.com/whyrusleeping/cbor-gen v0.3.1 // indirect
 	github.com/whyrusleeping/chunker v0.0.0-20181014151217-fe64bd25879f // indirect
