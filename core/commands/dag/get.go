@@ -1,8 +1,10 @@
 package dagcmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"runtime/debug"
 
 	"github.com/ipfs/boxo/path"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
@@ -68,6 +70,15 @@ func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	r, w := io.Pipe()
 	go func() {
 		defer w.Close()
+		// Encoding runs the codec named by the node's CID, so it runs
+		// third-party code. This goroutine is detached from the request, and a
+		// panic on it would end the daemon rather than the command.
+		defer func() {
+			if rec := recover(); rec != nil {
+				log.Errorf("recovered from panic encoding %s as %s: %v\n%s", p, codec, rec, debug.Stack())
+				_ = w.CloseWithError(errors.New("internal error encoding node"))
+			}
+		}()
 		if err := encoder(finalNode, w); err != nil {
 			_ = w.CloseWithError(err)
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"text/tabwriter"
@@ -208,6 +209,16 @@ The JSON output contains type information.
 			results := make(chan iface.DirEntry)
 			lsErr := make(chan error, 1)
 			go func() {
+				// Listing decodes blocks with whatever codec their CID names.
+				// This goroutine is detached from the request, and a panic on it
+				// would end the daemon rather than the command. Ls closes
+				// results on its way out, so the reader below still terminates.
+				defer func() {
+					if rec := recover(); rec != nil {
+						log.Errorf("recovered from panic listing %s: %v\n%s", pth, rec, debug.Stack())
+						lsErr <- fmt.Errorf("internal error listing %s", pth)
+					}
+				}()
 				lsErr <- api.Unixfs().Ls(lsCtx, pth, results,
 					options.Unixfs.ResolveChildren(resolveSize || resolveType))
 			}()
