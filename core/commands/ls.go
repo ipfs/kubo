@@ -1,12 +1,14 @@
 package commands
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"runtime/debug"
 	"slices"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -14,6 +16,7 @@ import (
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/commands/cmdutils"
 
+	humanize "github.com/dustin/go-humanize"
 	unixfs "github.com/ipfs/boxo/ipld/unixfs"
 	unixfs_pb "github.com/ipfs/boxo/ipld/unixfs/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -50,6 +53,8 @@ const (
 	lsSizeOptionName        = "size"
 	lsStreamOptionName      = "stream"
 	lsLongOptionName        = "long"
+	lsHumanOptionName       = "human"
+	lsSortSizeOptionName    = "sort-size"
 )
 
 var LsCmd = &cmds.Command{
@@ -80,6 +85,19 @@ Example with --long without preserved metadata:
 
   -          QmZULkCELmmk5XNf... 1234 -            document.txt
 
+With the --human (-H) option, print file sizes in human-readable SI units
+(e.g., 100 B, 3.0 kB, 2.0 MB) rather than exact byte counts. This affects
+text output only. The JSON response from /api/v0/ls stays in bytes.
+
+With the --sort-size (-S) option, sort directory entries by size, largest
+first. Directories are treated as having size 0. This is incompatible with
+--stream and requires --size to be enabled (the default).
+
+Examples:
+
+  ipfs ls --human <CID>
+  ipfs ls --sort-size <CID>
+
 The JSON output contains type information.
 `,
 	},
@@ -93,6 +111,8 @@ The JSON output contains type information.
 		cmds.BoolOption(lsSizeOptionName, "Resolve linked objects to find out their file size.").WithDefault(true),
 		cmds.BoolOption(lsStreamOptionName, "s", "Enable experimental streaming of directory entries as they are traversed."),
 		cmds.BoolOption(lsLongOptionName, "l", "Use a long listing format, showing file mode and modification time."),
+		cmds.BoolOption(lsHumanOptionName, "H", "Print sizes in human readable format (e.g., 1.2 kB, 234 MB, 2.0 GB)."),
+		cmds.BoolOption(lsSortSizeOptionName, "S", "Sort entries by size, largest first (directories treated as size 0)."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -103,6 +123,16 @@ The JSON output contains type information.
 		resolveType, _ := req.Options[lsResolveTypeOptionName].(bool)
 		resolveSize, _ := req.Options[lsSizeOptionName].(bool)
 		stream, _ := req.Options[lsStreamOptionName].(bool)
+		sortSize, _ := req.Options[lsSortSizeOptionName].(bool)
+
+		// ErrClient so /api/v0/ls answers 400 rather than 500: a bad flag
+		// combination is the caller's mistake, not a server fault.
+		if sortSize && stream {
+			return cmds.Errorf(cmds.ErrClient, "cannot use --sort-size with --stream")
+		}
+		if sortSize && !resolveSize {
+			return cmds.Errorf(cmds.ErrClient, "cannot use --sort-size with --size=false")
+		}
 
 		err = req.ParseBodyArgs()
 		if err != nil {
@@ -132,6 +162,11 @@ The JSON output contains type information.
 		if !stream {
 			output := make([]LsObject, len(req.Arguments))
 
+			cmpLinks := lsLinkByName
+			if sortSize {
+				cmpLinks = lsLinkBySize
+			}
+
 			processDir = func() (func(path string, link LsLink) error, func(i int)) {
 				// for each dir
 				outputLinks := make([]LsLink, 0)
@@ -141,9 +176,7 @@ The JSON output contains type information.
 						return nil
 					}, func(i int) {
 						// after each dir
-						slices.SortFunc(outputLinks, func(a, b LsLink) int {
-							return strings.Compare(a.Name, b.Name)
-						})
+						slices.SortFunc(outputLinks, cmpLinks)
 
 						output[i] = LsObject{
 							Hash:  paths[i],
@@ -361,6 +394,7 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 	stream, _ := req.Options[lsStreamOptionName].(bool)
 	size, _ := req.Options[lsSizeOptionName].(bool)
 	long, _ := req.Options[lsLongOptionName].(bool)
+	human, _ := req.Options[lsHumanOptionName].(bool)
 
 	// in streaming mode we can't automatically align the tabs
 	// so we take a best guess
@@ -431,8 +465,9 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 					fmt.Fprintf(tw, s, mode, link.Hash, modTime, cmdenv.EscNonPrint(link.Name))
 				} else {
 					if size {
-						s = "%s\t%s\t%v\t%s\t%s\n"
-						fmt.Fprintf(tw, s, mode, link.Hash, link.Size, modTime, cmdenv.EscNonPrint(link.Name))
+						sizeStr := formatSize(link.Size, human)
+						s = "%s\t%s\t%s\t%s\t%s\n"
+						fmt.Fprintf(tw, s, mode, link.Hash, sizeStr, modTime, cmdenv.EscNonPrint(link.Name))
 					} else {
 						s = "%s\t%s\t%s\t%s\n"
 						fmt.Fprintf(tw, s, mode, link.Hash, modTime, cmdenv.EscNonPrint(link.Name))
@@ -443,21 +478,52 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 				switch {
 				case isDir:
 					if size {
-						s = "%[1]s\t-\t%[3]s/\n"
+						s = "%[1]s\t-\t%[2]s/\n"
+						fmt.Fprintf(tw, s, link.Hash, cmdenv.EscNonPrint(link.Name))
 					} else {
-						s = "%[1]s\t%[3]s/\n"
+						s = "%[1]s\t%[2]s/\n"
+						fmt.Fprintf(tw, s, link.Hash, cmdenv.EscNonPrint(link.Name))
 					}
 				default:
 					if size {
-						s = "%s\t%v\t%s\n"
+						sizeStr := formatSize(link.Size, human)
+						s = "%s\t%s\t%s\n"
+						fmt.Fprintf(tw, s, link.Hash, sizeStr, cmdenv.EscNonPrint(link.Name))
 					} else {
-						s = "%[1]s\t%[3]s\n"
+						s = "%[1]s\t%[2]s\n"
+						fmt.Fprintf(tw, s, link.Hash, cmdenv.EscNonPrint(link.Name))
 					}
 				}
-				fmt.Fprintf(tw, s, link.Hash, link.Size, cmdenv.EscNonPrint(link.Name))
 			}
 		}
 	}
 	tw.Flush()
 	return lastObjectHash
+}
+
+// lsLinkByName orders entries alphabetically, the default for 'ipfs ls'.
+func lsLinkByName(a, b LsLink) int {
+	return strings.Compare(a.Name, b.Name)
+}
+
+// lsLinkBySize orders entries largest first, used by --sort-size. Equal sizes
+// fall back to name so the order stays deterministic. UnixFS directories carry
+// no Filesize, so they sort as 0 however much content they hold, which puts
+// them among the empty entries rather than strictly last.
+func lsLinkBySize(a, b LsLink) int {
+	if c := cmp.Compare(b.Size, a.Size); c != 0 {
+		return c
+	}
+	return strings.Compare(a.Name, b.Name)
+}
+
+// formatSize formats a file size for display. When human is true, it uses
+// SI units (e.g., "1.2 MB"). Otherwise it returns the numeric byte string.
+// Directories and similar entries that don't have a meaningful size should
+// be displayed as "-" by the caller and should not pass through this function.
+func formatSize(size uint64, human bool) string {
+	if human {
+		return humanize.Bytes(size)
+	}
+	return strconv.FormatUint(size, 10)
 }
