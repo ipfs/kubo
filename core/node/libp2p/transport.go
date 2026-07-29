@@ -47,6 +47,9 @@ const (
 	// HTTP/2 WriteByteTimeout and SendPingTimeout, keeping both guards above
 	// the gateway's own timeout so the gateway returns a clean 504 (with
 	// diagnostics and a recorded metric) before the connection drops.
+	// When Gateway.RetrievalTimeout is 0 (timeout disabled), both guards
+	// stay disabled too, so the transport never becomes a hidden, stricter
+	// limit than the one the operator turned off.
 	httpProviderConnGuardMargin = 30 * time.Second
 )
 
@@ -95,15 +98,18 @@ func Transports(tptConfig config.Transports, gatewayRetrievalTimeout time.Durati
 				// connection budget. WriteTimeout and ReadTimeout stay unset:
 				// they cap the whole request and would truncate a large
 				// download. See the const block above for the rest.
-				connGuard := gatewayRetrievalTimeout + httpProviderConnGuardMargin
+				h2 := &http.HTTP2Config{
+					MaxConcurrentStreams: httpProviderMaxConcurrentStreams,
+				}
+				if gatewayRetrievalTimeout > 0 {
+					connGuard := gatewayRetrievalTimeout + httpProviderConnGuardMargin
+					h2.WriteByteTimeout = connGuard
+					h2.SendPingTimeout = connGuard
+				}
 				wsOpts = append(wsOpts, websocket.WithHTTPServerConfig(func(s *http.Server) {
 					s.ReadHeaderTimeout = httpProviderReadHeaderTimeout
 					s.IdleTimeout = httpProviderIdleTimeout
-					s.HTTP2 = &http.HTTP2Config{
-						MaxConcurrentStreams: httpProviderMaxConcurrentStreams,
-						WriteByteTimeout:     connGuard,
-						SendPingTimeout:      connGuard,
-					}
+					s.HTTP2 = h2
 				}))
 			}
 			opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New, wsOpts...))
