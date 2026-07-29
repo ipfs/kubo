@@ -33,7 +33,7 @@ jobs:
       - name: Check out Kubo
         uses: actions/checkout@v7
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
       - name: Install missing tools
@@ -104,7 +104,7 @@ jobs:
       - name: Check out Kubo
         uses: actions/checkout@v7
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
       - name: Install missing tools
@@ -173,7 +173,7 @@ jobs:
       - name: Check out Kubo
         uses: actions/checkout@v7
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
       - name: Install FUSE
@@ -216,7 +216,7 @@ jobs:
       - name: Check out Kubo
         uses: actions/checkout@v7
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
       - name: Run example tests
