@@ -490,7 +490,7 @@ func P2PForgeCertMgr(repoPath string, cfg config.AutoTLS, atlsLog *logging.ZapEv
 		// AutoTLS.AllowPrivateForgeAddrs: lift the "must be publicly
 		// reachable" gate on cert requests, for private/intranet
 		// deployments and the AutoTLS E2E test (loopback only).
-		if cfg.AllowPrivateForgeAddrs.WithDefault(false) {
+		if cfg.AllowPrivateForgeAddrs.WithDefault(config.DefaultAutoTLSAllowPrivateForgeAddrs) {
 			opts = append(opts, p2pforge.WithAllowPrivateForgeAddrs())
 		}
 		if overrides.dial != "" {

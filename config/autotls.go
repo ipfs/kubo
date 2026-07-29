@@ -73,11 +73,13 @@ type AutoTLS struct {
 	SelfSignedForTests Flag `json:",omitempty"`
 
 	// TrustedCARootsPEM is an optional PEM-encoded bundle of CA
-	// certificates that the ACME client trusts in addition to the system
-	// trust store. Set this when AutoTLS.CAEndpoint points at a CA whose
-	// root is not in the system store: private or self-hosted ACME
-	// deployments, and the in-process Pebble used by the AutoTLS E2E test
-	// in test/autotls/.
+	// certificates for connections to the ACME endpoint. When set, the
+	// bundle becomes the only trust anchor for those connections: the
+	// system trust store is not consulted, so a bundle that does not
+	// include the CA behind AutoTLS.CAEndpoint breaks issuance. Set this
+	// when that endpoint is a CA whose root is not in the system store:
+	// private or self-hosted ACME deployments, and the in-process Pebble
+	// used by the AutoTLS E2E test in test/autotls/.
 	TrustedCARootsPEM *OptionalString `json:",omitempty"`
 
 	// AllowPrivateForgeAddrs lifts the p2p-forge client's requirement that
@@ -103,4 +105,7 @@ const (
 	DefaultAutoTLSSkipDNSLookup      = true // skip network DNS for p2p-forge domains
 	DefaultAutoTLSRegistrationDelay  = 1 * time.Hour
 	DefaultAutoTLSSelfSignedForTests = false
+	// DefaultAutoTLSAllowPrivateForgeAddrs stays off so public nodes do not
+	// waste ACME issuance on addresses nobody can reach.
+	DefaultAutoTLSAllowPrivateForgeAddrs = false
 )

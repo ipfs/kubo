@@ -33,11 +33,14 @@ config file at runtime.
     - [`AutoTLS.IPCerts`](#autotlsipcerts)
     - [`AutoTLS.IPCertsPort`](#autotlsipcertsport)
     - [`AutoTLS.ShortAddrs`](#autotlsshortaddrs)
+    - [`AutoTLS.SkipDNSLookup`](#autotlsskipdnslookup)
     - [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)
     - [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint)
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
     - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
+    - [`AutoTLS.TrustedCARootsPEM`](#autotlstrustedcarootspem)
+    - [`AutoTLS.AllowPrivateForgeAddrs`](#autotlsallowprivateforgeaddrs)
   - [`AutoConf`](#autoconf)
     - [`AutoConf.URL`](#autoconfurl)
     - [`AutoConf.Enabled`](#autoconfenabled)
@@ -925,6 +928,28 @@ Do not change this unless you self-host [p2p-forge] under own domain.
 Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddyserver/certmagic#pkg-constants) (see [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003))
 
 Type: `optionalString`
+
+### `AutoTLS.TrustedCARootsPEM`
+
+Optional PEM-encoded bundle of CA certificates for connections to the ACME endpoint set in [`AutoTLS.CAEndpoint`](#autotlscaendpoint).
+
+When set, the bundle becomes the only trust anchor for those connections: the system trust store is not consulted. A bundle that does not include the CA behind the endpoint breaks issuance, so include everything the ACME connection needs.
+
+Set this when the endpoint is a CA whose root is not in the system store: private or self-hosted ACME deployments, or the in-process test CA used by the end-to-end test in `test/autotls/`. Leave it unset for public CAs such as Let's Encrypt.
+
+Default: not set (system trust store is used)
+
+Type: `optionalString`
+
+### `AutoTLS.AllowPrivateForgeAddrs`
+
+Optional. Lifts the requirement that this node reports a publicly reachable address before requesting a certificate.
+
+Set this for private or intranet deployments where reachability is asymmetric or implicit, and for tests that run entirely on loopback. Leave it off on public nodes: the default avoids wasting ACME issuance on a node that no one can reach.
+
+Default: `false`
+
+Type: `flag`
 
 ## `Bitswap`
 
