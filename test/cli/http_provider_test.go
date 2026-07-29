@@ -181,6 +181,67 @@ func TestHTTPProvider(t *testing.T) {
 	})
 }
 
+// TestHTTPProviderRequiresWebsocketTransport confirms how HTTPProvider
+// behaves when the WebSocket transport is disabled: the libp2p-stream
+// transport alone is fine (it runs over any transport), but the daemon
+// refuses to start when the config asks for a surface that rides on the
+// WebSocket fallback handler and so cannot exist.
+func TestHTTPProviderRequiresWebsocketTransport(t *testing.T) {
+	t.Parallel()
+
+	newNode := func(t *testing.T, update func(cfg *config.Config)) *harness.Node {
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.HTTPProvider.Enabled = config.True
+			cfg.Swarm.Transports.Network.Websocket = config.False
+			update(cfg)
+		})
+		return node
+	}
+
+	t.Run("refuses when Cleartext needs it", func(t *testing.T) {
+		t.Parallel()
+		node := newNode(t, func(cfg *config.Config) {
+			cfg.HTTPProvider.Cleartext = config.True
+		})
+		res := node.RunIPFS("daemon")
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.String(),
+			"HTTPProvider.Cleartext=true requires Swarm.Transports.Network.Websocket to be true")
+	})
+
+	t.Run("refuses when AnnounceMultiaddrs needs it", func(t *testing.T) {
+		t.Parallel()
+		node := newNode(t, func(cfg *config.Config) {
+			cfg.HTTPProvider.AnnounceMultiaddrs = config.True
+		})
+		res := node.RunIPFS("daemon")
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.String(),
+			"HTTPProvider.AnnounceMultiaddrs=true requires Swarm.Transports.Network.Websocket to be true")
+	})
+
+	t.Run("refuses when no surface remains", func(t *testing.T) {
+		t.Parallel()
+		node := newNode(t, func(cfg *config.Config) {
+			cfg.HTTPProvider.Libp2p = config.False
+		})
+		res := node.RunIPFS("daemon")
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.String(),
+			"leaves no transport to serve on")
+	})
+
+	t.Run("starts with the libp2p-stream transport alone", func(t *testing.T) {
+		t.Parallel()
+		node := newNode(t, func(cfg *config.Config) {}) // Libp2p defaults to true
+		node.StartDaemon()
+		defer node.StopDaemon()
+		require.NotEmpty(t, node.IPFS("id", "-f=<id>").Stdout.Trimmed(),
+			"daemon should be up and answering with only the libp2p-stream surface")
+	})
+}
+
 // findWSListenHostPort returns "host:port" for any /tcp/N/ws listener bound
 // by the node. Auto-appended /ws shares the TCP port with raw /tcp/N via
 // tcpreuse, so any matching listener is a fine target.

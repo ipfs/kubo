@@ -409,6 +409,34 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		)
 	}
 
+	// HTTPProvider's HTTP-on-swarm-port surfaces ride on the WebSocket
+	// transport's fallback handler. The libp2p-stream transport
+	// (HTTPProvider.Libp2p) runs over any transport and is fine on its own,
+	// so with WebSocket disabled the daemon refuses to start only when the
+	// config asks for a surface that cannot exist: a cleartext /ws listener,
+	// the /http announcement, or an enabled HTTPProvider with every surface
+	// turned off.
+	if cfg.HTTPProvider.Enabled.WithDefault(config.DefaultHTTPProviderEnabled) &&
+		!cfg.Swarm.Transports.Network.Websocket.WithDefault(true) {
+		switch {
+		case cfg.HTTPProvider.Cleartext.WithDefault(config.DefaultHTTPProviderCleartext):
+			return errors.New(
+				"HTTPProvider.Cleartext=true requires Swarm.Transports.Network.Websocket to be true; " +
+					"enable the WebSocket transport or disable HTTPProvider.Cleartext",
+			)
+		case cfg.HTTPProvider.AnnounceMultiaddrs.WithDefault(config.DefaultHTTPProviderAnnounceMultiaddrs):
+			return errors.New(
+				"HTTPProvider.AnnounceMultiaddrs=true requires Swarm.Transports.Network.Websocket to be true; " +
+					"enable the WebSocket transport or disable HTTPProvider.AnnounceMultiaddrs",
+			)
+		case !cfg.HTTPProvider.Libp2p.WithDefault(config.DefaultHTTPProviderLibp2p):
+			return errors.New(
+				"HTTPProvider.Enabled=true with Swarm.Transports.Network.Websocket=false leaves no transport to serve on; " +
+					"enable the WebSocket transport, set HTTPProvider.Libp2p=true, or set HTTPProvider.Enabled=false",
+			)
+		}
+	}
+
 	// Validate autoconf setup - check for private network conflict
 	swarmKey, _ := repo.SwarmKey()
 	isPrivateNetwork := swarmKey != nil || pnet.ForcePrivateNetwork
@@ -1266,12 +1294,21 @@ func serveHTTPProviderOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
 	// Wrap with RequireHTTP2OverTLS so the HTTPS path is h2-only (matches
 	// modern public HTTPS endpoints, gives bitswap-httpnet multiplexing)
 	// while the plain /ws path stays permissive for reverse-proxy interop.
+	//
+	// With the WebSocket transport disabled, no listener can ever route to
+	// the handler (daemonFunc allows this combination only when the
+	// libp2p-stream transport below is the sole surface), so skip the
+	// install and say so instead of logging an exposure that is not there.
 	if node.HTTPProvider != nil {
-		mux := http.NewServeMux()
-		mux.Handle("/", handler)
-		mux.Handle(p2phttp.WellKnownProtocols, newGatewayWellKnown())
-		node.HTTPProvider.Set(libp2p.RequireHTTP2OverTLS(mux))
-		log.Info("HTTPProvider: trustless gateway exposed on /ws and /tls/ws TCP ports (h2 required over TLS, h1+h2c allowed cleartext, .well-known/libp2p/protocols served)")
+		if !cfg.Swarm.Transports.Network.Websocket.WithDefault(true) {
+			log.Error("HTTPProvider: Swarm.Transports.Network.Websocket is disabled, so the trustless gateway is not reachable on the swarm port; only the libp2p-stream transport (HTTPProvider.Libp2p) is active")
+		} else {
+			mux := http.NewServeMux()
+			mux.Handle("/", handler)
+			mux.Handle(p2phttp.WellKnownProtocols, newGatewayWellKnown())
+			node.HTTPProvider.Set(libp2p.RequireHTTP2OverTLS(mux))
+			log.Info("HTTPProvider: trustless gateway exposed on /ws and /tls/ws TCP ports (h2 required over TLS, h1+h2c allowed cleartext, .well-known/libp2p/protocols served)")
+		}
 	}
 
 	// libp2p-stream transport. Gated by the Libp2p sub-toggle, independent
