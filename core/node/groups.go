@@ -240,9 +240,10 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 		fx.Provide(libp2p.ResourceManager(bcfg.Repo.Path(), cfg.Swarm, userResourceOverrides)),
 		maybeProvide(libp2p.P2PForgeCertMgr(bcfg.Repo.Path(), cfg.AutoTLS, atlsLog), enableAutoTLS),
 		maybeInvoke(libp2p.StartP2PAutoTLS, enableAutoTLS),
-		// AutoTLS.SelfSignedForTests: bypass the entire AutoTLS / p2p-forge
-		// pipeline and hand the WebSocket transport an in-memory self-signed
-		// cert. Test escape hatch only.
+		// AutoTLS.SelfSignedForTests: hand the WebSocket transport an
+		// in-memory self-signed cert instead of the AutoTLS-managed one.
+		// Does not stop the AutoTLS pipeline itself; tests pair it with
+		// AutoTLS.Enabled=false. Test escape hatch only.
 		maybeProvide(libp2p.NewSelfSignedTestTLSConfig, cfg.AutoTLS.SelfSignedForTests.WithDefault(config.DefaultAutoTLSSelfSignedForTests)),
 		// When HTTPProvider is enabled, register a placeholder fallback
 		// handler so the WebSocket transport can route non-upgrade requests

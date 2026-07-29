@@ -32,6 +32,7 @@ type SelfSignedTestTLSConfig struct {
 // This provider is wired only when AutoTLS.SelfSignedForTests is true.
 // It is a test escape hatch and must not be used in production.
 func NewSelfSignedTestTLSConfig() (*SelfSignedTestTLSConfig, error) {
+	log.Error("⚠️ AutoTLS.SelfSignedForTests is enabled: the WebSocket transport is serving an in-memory self-signed TLS certificate that no browser or CA trusts. This is a test-only escape hatch; never enable it in production.")
 	cert, err := generateSelfSignedTestCert()
 	if err != nil {
 		return nil, fmt.Errorf("self-signed test cert: %w", err)

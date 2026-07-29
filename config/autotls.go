@@ -60,9 +60,11 @@ type AutoTLS struct {
 	// Optional, controls if features like AutoWSS should generate shorter /dnsX instead of /ipX/../sni/..
 	ShortAddrs Flag `json:",omitempty"`
 
-	// SelfSignedForTests is a test-only escape hatch. When true, the daemon
-	// skips the AutoTLS / p2p-forge / ACME pipeline entirely and provides
-	// the WebSocket transport with an in-memory self-signed TLS config.
+	// SelfSignedForTests is a test-only escape hatch. When true, the
+	// WebSocket transport uses an in-memory self-signed TLS config instead
+	// of the AutoTLS-managed certificate. It does not stop the AutoTLS /
+	// p2p-forge / ACME pipeline itself; tests that want no ACME traffic at
+	// all pair it with AutoTLS.Enabled=false.
 	// Test clients pair this with tls.Config{InsecureSkipVerify: true} to
 	// drive the /tls/ws and /tls/http paths without real ACME issuance.
 	//
