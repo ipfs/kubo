@@ -11,6 +11,14 @@ test_description="Test active request commands"
 test_init_ipfs
 test_launch_ipfs_daemon
 
+# By default the daemon drops every finished request from the log each time the
+# log reaches a multiple of ten entries. The polling below makes several
+# requests, so without this the entry we are waiting for could be swept away
+# before we see it.
+test_expect_success "keep finished requests in the log" '
+  ipfs diag cmds set-time 60s
+'
+
 test_expect_success "command works" '
   ipfs diag cmds > cmd_out
 '
@@ -22,11 +30,12 @@ test_expect_success "invoc shows up in output" '
 test_expect_success "start longer running command" '
   ipfs log tail &
   LOGPID=$!
-  go-sleep 100ms
 '
 
+# The daemon only lists the request once the backgrounded client has connected,
+# which on a loaded machine takes longer than any fixed sleep we could pick.
 test_expect_success "long running command shows up" '
-  ipfs diag cmds > cmd_out2
+  test_run_repeat_60_sec "ipfs diag cmds > cmd_out2 && grep log/tail cmd_out2 | grep true"
 '
 
 test_expect_success "output looks good" '
@@ -41,8 +50,10 @@ test_expect_success "kill log cmd" '
   wait $LOGPID || true
 '
 
+# Same on the way out: the daemon marks the request inactive when it notices the
+# client is gone, not when kill returns.
 test_expect_success "long running command inactive" '
-  ipfs diag cmds > cmd_out3
+  test_run_repeat_60_sec "ipfs diag cmds > cmd_out3 && grep log/tail cmd_out3 | grep false"
 '
 
 test_expect_success "command shows up as inactive" '

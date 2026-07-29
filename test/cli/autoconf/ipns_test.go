@@ -1,12 +1,14 @@
 package autoconf
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -72,26 +74,31 @@ func testIPNSPublishingWithWorkingEndpoint(t *testing.T) {
 	require.Equal(t, 0, result.ExitCode(), "Publishing should succeed")
 	assert.Contains(t, result.Stdout.String(), "Published to")
 
-	// Wait for async HTTP request to delegated publisher
-	time.Sleep(2 * time.Second)
+	// Wait for the async HTTP request to reach the delegated publisher
+	require.Eventually(t, func() bool {
+		return len(publisher.getRecordPayloads(peerIDBase36)) > 0
+	}, 30*time.Second, 100*time.Millisecond, "HTTP PUT request should have been made to delegated publisher")
 
 	// Verify HTTP PUT was made to delegated publisher
 	publishedKeys := publisher.getPublishedKeys()
 	assert.NotEmpty(t, publishedKeys, "HTTP PUT request should have been made to delegated publisher")
-
-	// Get the PUT payload that was sent to the delegated publisher
-	putPayload := publisher.getRecordPayload(peerIDBase36)
-	require.NotNil(t, putPayload, "Should have captured PUT payload")
-	require.Greater(t, len(putPayload), 0, "PUT payload should not be empty")
 
 	// Retrieve the IPNS record using routing get
 	getResult := node.RunIPFS("routing", "get", "/ipns/"+peerID)
 	require.Equal(t, 0, getResult.ExitCode(), "Should be able to retrieve IPNS record")
 	getPayload := getResult.Stdout.Bytes()
 
-	// Compare the payloads
-	assert.Equal(t, putPayload, getPayload,
-		"PUT payload sent to delegated publisher should match what routing get returns")
+	// The record routing returns has to be one we PUT to the delegated
+	// publisher, not necessarily the first. A minute after startup the
+	// republisher re-signs every key and publishes it again, which yields a
+	// different signature and expiry for the same value, and routing prefers
+	// that newer record. Waiting lets the matching PUT arrive if it has not yet.
+	require.Eventually(t, func() bool {
+		return slices.ContainsFunc(publisher.getRecordPayloads(peerIDBase36), func(payload []byte) bool {
+			return bytes.Equal(payload, getPayload)
+		})
+	}, 30*time.Second, 200*time.Millisecond,
+		"record returned by routing get should be one of the records PUT to the delegated publisher")
 
 	// Also verify the record points to the expected content
 	assert.Contains(t, getResult.Stdout.String(), testCID,
@@ -252,7 +259,7 @@ type mockIPNSPublisher struct {
 	server         *httptest.Server
 	mu             sync.Mutex
 	publishedKeys  map[string]string                      // peerID -> published CID
-	recordPayloads map[string][]byte                      // peerID -> actual HTTP PUT record payload
+	recordPayloads map[string][][]byte                    // peerID -> every HTTP PUT record payload, in order
 	responseFunc   func(peerID string, record []byte) int // returns HTTP status code
 }
 
@@ -260,7 +267,7 @@ func newMockIPNSPublisher(t *testing.T) *mockIPNSPublisher {
 	m := &mockIPNSPublisher{
 		t:              t,
 		publishedKeys:  make(map[string]string),
-		recordPayloads: make(map[string][]byte),
+		recordPayloads: make(map[string][][]byte),
 	}
 
 	// Default response function accepts all publishes
@@ -301,9 +308,9 @@ func (m *mockIPNSPublisher) handleIPNS(w http.ResponseWriter, r *http.Request) {
 
 		if status == http.StatusOK {
 			if len(body) > 0 {
-				// Store the actual record payload
-				m.recordPayloads[peerID] = make([]byte, len(body))
-				copy(m.recordPayloads[peerID], body)
+				// Keep every record we are sent, not just the last one. The
+				// republisher re-signs and re-publishes on its own schedule.
+				m.recordPayloads[peerID] = append(m.recordPayloads[peerID], bytes.Clone(body))
 			}
 
 			// Mark as published
@@ -335,15 +342,14 @@ func (m *mockIPNSPublisher) getPublishedKeys() map[string]string {
 	return result
 }
 
-func (m *mockIPNSPublisher) getRecordPayload(peerID string) []byte {
+func (m *mockIPNSPublisher) getRecordPayloads(peerID string) [][]byte {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if payload, exists := m.recordPayloads[peerID]; exists {
-		result := make([]byte, len(payload))
-		copy(result, payload)
-		return result
+	payloads := make([][]byte, 0, len(m.recordPayloads[peerID]))
+	for _, payload := range m.recordPayloads[peerID] {
+		payloads = append(payloads, bytes.Clone(payload))
 	}
-	return nil
+	return payloads
 }
 
 func (m *mockIPNSPublisher) close() {
