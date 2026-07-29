@@ -3,7 +3,6 @@ package commands
 import (
 	"os"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 
@@ -207,105 +206,75 @@ func TestFormatSize(t *testing.T) {
 		{1000000, true, "1.0 MB"},
 		{1234567, true, "1.2 MB"},
 		{1000000000, true, "1.0 GB"},
+		{1234567890, false, "1234567890"},
 		{1234567890, true, "1.2 GB"},
 		{1000000000000, true, "1.0 TB"},
 	}
 
 	for _, tt := range tests {
 		got := formatSize(tt.size, tt.human)
-		if got != tt.expect {
-			t.Errorf("formatSize(%d, %v) = %q; want %q", tt.size, tt.human, got, tt.expect)
-		}
+		assert.Equal(t, tt.expect, got, "formatSize(%d, %v)", tt.size, tt.human)
 	}
 }
 
-func TestSortSizeByName(t *testing.T) {
-	links := []LsLink{
-		{Name: "z.txt", Size: 100},
-		{Name: "a.txt", Size: 100},
-		{Name: "m.txt", Size: 100},
+// lsLinkNames returns entry names in slice order, so a failed sort assertion
+// reports the actual order instead of a wall of LsLink structs.
+func lsLinkNames(links []LsLink) []string {
+	names := make([]string, len(links))
+	for i, link := range links {
+		names[i] = link.Name
 	}
-	slices.SortFunc(links, func(a, b LsLink) int {
-		return strings.Compare(a.Name, b.Name)
-	})
-	if links[0].Name != "a.txt" || links[1].Name != "m.txt" || links[2].Name != "z.txt" {
-		t.Errorf("expected sort by name, got %v", links)
-	}
+	return names
 }
 
-func TestSortSizeDescending(t *testing.T) {
-	links := []LsLink{
-		{Name: "small.bin", Size: 100},
-		{Name: "large.bin", Size: 100000},
-		{Name: "medium.bin", Size: 500},
-	}
-	slices.SortFunc(links, func(a, b LsLink) int {
-		if b.Size != a.Size {
-			if b.Size > a.Size {
-				return 1
-			}
-			return -1
-		}
-		return strings.Compare(a.Name, b.Name)
-	})
-	if links[0].Name != "large.bin" || links[1].Name != "medium.bin" || links[2].Name != "small.bin" {
-		t.Errorf("expected sort by size desc, got: %v", links)
-	}
-}
+func TestLsLinkByName(t *testing.T) {
+	t.Parallel()
 
-func TestSortSizeDescendingTieBreaker(t *testing.T) {
-	links := []LsLink{
-		{Name: "b.bin", Size: 100},
-		{Name: "a.bin", Size: 100},
-	}
-	slices.SortFunc(links, func(a, b LsLink) int {
-		if b.Size != a.Size {
-			if b.Size > a.Size {
-				return 1
-			}
-			return -1
-		}
-		return strings.Compare(a.Name, b.Name)
-	})
-	if links[0].Name != "a.bin" || links[1].Name != "b.bin" {
-		t.Errorf("expected tie-breaker by name, got: %v", links)
-	}
-}
-
-func TestSortSizeDirectoriesLast(t *testing.T) {
-	links := []LsLink{
-		{Name: "file.bin", Size: 100, Type: unixfs_pb.Data_File},
-		{Name: "subdir", Size: 0, Type: unixfs_pb.Data_Directory},
-	}
-	slices.SortFunc(links, func(a, b LsLink) int {
-		if b.Size != a.Size {
-			if b.Size > a.Size {
-				return 1
-			}
-			return -1
-		}
-		return strings.Compare(a.Name, b.Name)
-	})
-	if links[0].Name != "file.bin" || links[1].Name != "subdir" {
-		t.Errorf("expected file before dir, got: %v", links)
-	}
-}
-
-func TestDefaultSortByName(t *testing.T) {
 	links := []LsLink{
 		{Name: "z.bin", Size: 100},
 		{Name: "a.bin", Size: 200},
+		{Name: "m.bin", Size: 100},
 	}
-	slices.SortFunc(links, func(a, b LsLink) int {
-		return strings.Compare(a.Name, b.Name)
-	})
-	if links[0].Name != "a.bin" || links[1].Name != "z.bin" {
-		t.Errorf("expected sort by name, got: %v", links)
-	}
+	slices.SortFunc(links, lsLinkByName)
+	assert.Equal(t, []string{"a.bin", "m.bin", "z.bin"}, lsLinkNames(links))
 }
 
-func TestFormatSizeNonHuman(t *testing.T) {
-	if got := formatSize(1234567890, false); got != "1234567890" {
-		t.Errorf("expected '1234567890', got %q", got)
-	}
+func TestLsLinkBySize(t *testing.T) {
+	t.Parallel()
+
+	t.Run("largest first", func(t *testing.T) {
+		t.Parallel()
+		// Names are deliberately out of step with sizes. With names that happen
+		// to already be in size order, this would pass under lsLinkByName too.
+		links := []LsLink{
+			{Name: "a-small.bin", Size: 100},
+			{Name: "m-large.bin", Size: 100000},
+			{Name: "z-medium.bin", Size: 500},
+		}
+		slices.SortFunc(links, lsLinkBySize)
+		assert.Equal(t, []string{"m-large.bin", "z-medium.bin", "a-small.bin"}, lsLinkNames(links))
+	})
+
+	t.Run("equal sizes fall back to name", func(t *testing.T) {
+		t.Parallel()
+		links := []LsLink{
+			{Name: "b.bin", Size: 100},
+			{Name: "a.bin", Size: 100},
+		}
+		slices.SortFunc(links, lsLinkBySize)
+		assert.Equal(t, []string{"a.bin", "b.bin"}, lsLinkNames(links))
+	})
+
+	t.Run("directories rank below any non-empty file", func(t *testing.T) {
+		t.Parallel()
+		// UnixFS directories carry no Filesize, so they arrive here as 0 no
+		// matter how much content they hold. They do not sort strictly last
+		// though: at 0 they tie with empty files and break by name.
+		links := []LsLink{
+			{Name: "subdir", Size: 0, Type: unixfs_pb.Data_Directory},
+			{Name: "tiny.bin", Size: 1, Type: unixfs_pb.Data_File},
+		}
+		slices.SortFunc(links, lsLinkBySize)
+		assert.Equal(t, []string{"tiny.bin", "subdir"}, lsLinkNames(links))
+	})
 }

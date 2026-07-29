@@ -85,8 +85,11 @@ func TestLsHuman(t *testing.T) {
 
 		lsRes := node.IPFS("ls", "--human", "--size=false", dirCid)
 		assert.Equal(t, 0, lsRes.ExitCode())
-		output := lsRes.Stdout.String()
-		assert.NotContains(t, output, "1.0 kB")
+		output := strings.TrimSpace(lsRes.Stdout.String())
+
+		// --size=false drops the size column, so --human has nothing to format
+		// and the line is just <cid> <name>.
+		assert.Len(t, strings.Fields(output), 2, "expected only hash and name, got %q", output)
 	})
 
 	t.Run("human with --long", func(t *testing.T) {
@@ -125,7 +128,6 @@ func TestLsHuman(t *testing.T) {
 
 		// Directories should still show "-" for size, not "0 B"
 		assert.Contains(t, output, "- subdir/")
-		assert.Contains(t, output, "subdir/")
 	})
 }
 
@@ -138,11 +140,14 @@ func TestLsSortSize(t *testing.T) {
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
+		// Names are deliberately out of step with sizes. Name each file after
+		// its size instead and both orders coincide, so the test would pass
+		// even if --sort-size did nothing at all.
 		testDir := filepath.Join(node.Dir, "testdata")
 		require.NoError(t, os.MkdirAll(testDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(testDir, "small.bin"), make([]byte, 100), 0644))
-		require.NoError(t, os.WriteFile(filepath.Join(testDir, "large.bin"), make([]byte, 100_000), 0644))
-		require.NoError(t, os.WriteFile(filepath.Join(testDir, "medium.bin"), make([]byte, 500), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(testDir, "a-small.bin"), make([]byte, 100), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(testDir, "m-large.bin"), make([]byte, 100_000), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(testDir, "z-medium.bin"), make([]byte, 500), 0644))
 
 		addRes := node.IPFS("add", "-r", "-Q", testDir)
 		dirCid := addRes.Stdout.Trimmed()
@@ -151,17 +156,17 @@ func TestLsSortSize(t *testing.T) {
 		lsDefault := node.IPFS("ls", dirCid)
 		defaultLines := strings.Split(strings.TrimSpace(lsDefault.Stdout.String()), "\n")
 		require.Len(t, defaultLines, 3)
-		assert.Contains(t, defaultLines[0], "large.bin")
-		assert.Contains(t, defaultLines[1], "medium.bin")
-		assert.Contains(t, defaultLines[2], "small.bin")
+		assert.Contains(t, defaultLines[0], "a-small.bin")
+		assert.Contains(t, defaultLines[1], "m-large.bin")
+		assert.Contains(t, defaultLines[2], "z-medium.bin")
 
 		// With --sort-size: sorted by size descending
 		lsRes := node.IPFS("ls", "--sort-size", dirCid)
 		lines := strings.Split(strings.TrimSpace(lsRes.Stdout.String()), "\n")
 		require.Len(t, lines, 3)
-		assert.Contains(t, lines[0], "large.bin", "largest file first")
-		assert.Contains(t, lines[1], "medium.bin", "medium file second")
-		assert.Contains(t, lines[2], "small.bin", "smallest file last")
+		assert.Contains(t, lines[0], "m-large.bin", "largest file first")
+		assert.Contains(t, lines[1], "z-medium.bin", "medium file second")
+		assert.Contains(t, lines[2], "a-small.bin", "smallest file last")
 	})
 
 	t.Run("sort-size with short flag -S", func(t *testing.T) {
@@ -169,10 +174,11 @@ func TestLsSortSize(t *testing.T) {
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
+		// a- sorts before z- by name, so only a real size sort puts z-large first
 		testDir := filepath.Join(node.Dir, "testdata")
 		require.NoError(t, os.MkdirAll(testDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(testDir, "small.bin"), make([]byte, 100), 0644))
-		require.NoError(t, os.WriteFile(filepath.Join(testDir, "large.bin"), make([]byte, 100_000), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(testDir, "a-small.bin"), make([]byte, 100), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(testDir, "z-large.bin"), make([]byte, 100_000), 0644))
 
 		addRes := node.IPFS("add", "-r", "-Q", testDir)
 		dirCid := addRes.Stdout.Trimmed()
@@ -180,29 +186,35 @@ func TestLsSortSize(t *testing.T) {
 		lsRes := node.IPFS("ls", "-S", dirCid)
 		lines := strings.Split(strings.TrimSpace(lsRes.Stdout.String()), "\n")
 		require.Len(t, lines, 2)
-		assert.Contains(t, lines[0], "large.bin", "largest file first with -S")
+		assert.Contains(t, lines[0], "z-large.bin", "largest file first with -S")
+		assert.Contains(t, lines[1], "a-small.bin", "smallest file last with -S")
 	})
 
-	t.Run("sort-size puts directories after files", func(t *testing.T) {
+	t.Run("sort-size ranks directories as size 0", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
+		// a-subdir holds content, but UnixFS gives directories no file size, so
+		// it sorts as 0. That means it does not land strictly last: it ties with
+		// the empty file and the tie breaks by name.
 		testDir := filepath.Join(node.Dir, "testdata")
-		subDir := filepath.Join(testDir, "subdir")
+		subDir := filepath.Join(testDir, "a-subdir")
 		require.NoError(t, os.MkdirAll(subDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(subDir, "file.txt"), []byte("data"), 0644))
-		require.NoError(t, os.WriteFile(filepath.Join(testDir, "file.bin"), make([]byte, 100), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(subDir, "file.txt"), make([]byte, 5_000), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(testDir, "m-empty.bin"), []byte{}, 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(testDir, "z-file.bin"), make([]byte, 100), 0644))
 
 		addRes := node.IPFS("add", "-r", "-Q", testDir)
 		dirCid := addRes.Stdout.Trimmed()
 
 		lsRes := node.IPFS("ls", "--sort-size", dirCid)
 		lines := strings.Split(strings.TrimSpace(lsRes.Stdout.String()), "\n")
-		require.Len(t, lines, 2)
+		require.Len(t, lines, 3)
 
-		assert.Contains(t, lines[0], "file.bin")
-		assert.Contains(t, lines[1], "subdir/")
+		assert.Contains(t, lines[0], "z-file.bin", "only non-empty file goes first")
+		assert.Contains(t, lines[1], "a-subdir/", "directory ties at 0 and wins the name tiebreak")
+		assert.Contains(t, lines[2], "m-empty.bin", "empty file ties with the directory")
 	})
 
 	t.Run("sort-size with stream is an error", func(t *testing.T) {

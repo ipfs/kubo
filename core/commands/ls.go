@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"io"
@@ -158,6 +159,11 @@ The JSON output contains type information.
 		if !stream {
 			output := make([]LsObject, len(req.Arguments))
 
+			cmpLinks := lsLinkByName
+			if sortSize {
+				cmpLinks = lsLinkBySize
+			}
+
 			processDir = func() (func(path string, link LsLink) error, func(i int)) {
 				// for each dir
 				outputLinks := make([]LsLink, 0)
@@ -167,23 +173,7 @@ The JSON output contains type information.
 						return nil
 					}, func(i int) {
 						// after each dir
-						if sortSize {
-							slices.SortFunc(outputLinks, func(a, b LsLink) int {
-								// sort by Size descending, then Name ascending
-								// directories (and similar) have 0 effective size
-								if b.Size != a.Size {
-									if b.Size > a.Size {
-										return 1
-									}
-									return -1
-								}
-								return strings.Compare(a.Name, b.Name)
-							})
-						} else {
-							slices.SortFunc(outputLinks, func(a, b LsLink) int {
-								return strings.Compare(a.Name, b.Name)
-							})
-						}
+						slices.SortFunc(outputLinks, cmpLinks)
 
 						output[i] = LsObject{
 							Hash:  paths[i],
@@ -506,6 +496,22 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 	}
 	tw.Flush()
 	return lastObjectHash
+}
+
+// lsLinkByName orders entries alphabetically, the default for 'ipfs ls'.
+func lsLinkByName(a, b LsLink) int {
+	return strings.Compare(a.Name, b.Name)
+}
+
+// lsLinkBySize orders entries largest first, used by --sort-size. Equal sizes
+// fall back to name so the order stays deterministic. UnixFS directories carry
+// no Filesize, so they sort as 0 however much content they hold, which puts
+// them among the empty entries rather than strictly last.
+func lsLinkBySize(a, b LsLink) int {
+	if c := cmp.Compare(b.Size, a.Size); c != 0 {
+		return c
+	}
+	return strings.Compare(a.Name, b.Name)
 }
 
 // formatSize formats a file size for display. When human is true, it uses
