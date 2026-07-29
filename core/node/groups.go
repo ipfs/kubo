@@ -36,6 +36,27 @@ var BaseLibP2P = fx.Options(
 	fx.Invoke(libp2p.PNetChecker),
 )
 
+// cleartextWSListeners returns the plaintext /ws listeners that
+// HTTPProvider.Cleartext should append: one per /tcp/N listener in swarm.
+// It returns nothing when a cleartext /ws listener is already configured,
+// deferring to the user's explicit layout. /wss and /tls/ws are TLS
+// WebSocket forms, not cleartext, so they do not pre-empt the append; the
+// AutoWSS wildcard (/tls/sni/.../ws) does not either.
+func cleartextWSListeners(swarm []string) []string {
+	plainWsRegex := regexp.MustCompile(`/tcp/\d+/ws$`) // cleartext only; excludes /wss and /tls/ws
+	tcpRegex := regexp.MustCompile(`/tcp/\d+$`)
+	var wsListeners []string
+	for _, listener := range swarm {
+		if plainWsRegex.MatchString(listener) {
+			return nil
+		}
+		if tcpRegex.MatchString(listener) {
+			wsListeners = append(wsListeners, listener+"/ws")
+		}
+	}
+	return wsListeners
+}
+
 func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
 	var connmgr fx.Option
 
@@ -202,25 +223,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	// so they do not pre-empt the cleartext auto-append.
 	enableHTTPProviderCleartext := cfg.HTTPProvider.Cleartext.WithDefault(config.DefaultHTTPProviderCleartext)
 	if enableHTTPProvider && enableHTTPProviderCleartext && enableTCPTransport && enableWebsocketTransport {
-		plainWsRegex := regexp.MustCompile(`/tcp/\d+/ws$`) // cleartext only; excludes /wss and /tls/ws
-		tcpRegex := regexp.MustCompile(`/tcp/\d+$`)
-		plainWsPresent := false
-		var tcpListeners []string
-		for _, listener := range cfg.Addresses.Swarm {
-			if plainWsRegex.MatchString(listener) {
-				plainWsPresent = true
-				break
-			}
-			if tcpRegex.MatchString(listener) {
-				tcpListeners = append(tcpListeners, listener)
-			}
-		}
-		if !plainWsPresent {
-			for _, tcpListener := range tcpListeners {
-				wsListener := tcpListener + "/ws"
-				cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, wsListener)
-				atlsLog.Infof("HTTPProvider.Cleartext: appended cleartext /ws listener: %s", wsListener)
-			}
+		for _, wsListener := range cleartextWSListeners(cfg.Addresses.Swarm) {
+			cfg.Addresses.Swarm = append(cfg.Addresses.Swarm, wsListener)
+			atlsLog.Infof("HTTPProvider.Cleartext: appended cleartext /ws listener: %s", wsListener)
 		}
 	}
 
