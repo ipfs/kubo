@@ -172,8 +172,12 @@ test_expect_success "disconnect work without specifying a transport address" '
   [ $(ipfsi 0 swarm peers | wc -l) -eq 0 ]
 '
 
+# No check for zero peers up front: disconnecting is not permanent, and the DHT
+# keeps the other node in its routing table and re-dials it on any refresh, so
+# by the time this case runs the two may be connected again. The disconnect
+# itself is covered by the case above, and the full disconnect-then-connect
+# cycle by the one below, both inside a single command chain.
 test_expect_success "connect work without specifying a transport address" '
-  [ $(ipfsi 0 swarm peers | wc -l) -eq 0 ] &&
   ipfsi 0 swarm connect "/p2p/$(iptb attr get 1 id)" &&
   [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ]
 '
