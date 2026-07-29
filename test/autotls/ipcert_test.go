@@ -36,7 +36,8 @@ import (
 // instead. Everything else, including the reachability gate and the address
 // rewriting, runs as it does in production.
 func TestIPCertificateEndToEnd(t *testing.T) {
-	t.Parallel()
+	// Not parallel: NewStack uses t.Setenv, and the two canaries share
+	// process-wide env and CoreDNS state.
 
 	// The port has to be agreed before anything starts: the node listens on
 	// it, and Pebble's validation authority connects back to it.

@@ -119,10 +119,12 @@ func NewStack(t *testing.T, opts ...StackOption) *Stack {
 
 	// p2p-forge reads its auth token from this env var. Pebble skips its
 	// random 0-15s VA sleep when PEBBLE_VA_NOSLEEP is set; without that
-	// the canary spends most of its budget idle. We restore both on
-	// cleanup so other parallel tests don't observe a leak.
-	prevAuth, hadAuth := setEnv(t, p2pforge.ForgeAuthEnv, forgeAuthToken)
-	prevNoSleep, hadNoSleep := setEnv(t, "PEBBLE_VA_NOSLEEP", "1")
+	// the canary spends most of its budget idle. t.Setenv restores both on
+	// cleanup, and it forbids t.Parallel in tests that reach here, which is
+	// the point: two stacks mutating process env concurrently could tear
+	// down each other's auth token mid-run.
+	t.Setenv(p2pforge.ForgeAuthEnv, forgeAuthToken)
+	t.Setenv("PEBBLE_VA_NOSLEEP", "1")
 
 	// Reserve a port for the forge HTTP registration endpoint. The
 	// acme plugin will bind it a moment later; reserving up-front lets
@@ -141,7 +143,7 @@ func NewStack(t *testing.T, opts ...StackOption) *Stack {
 	// running instance reports both via Servers()[0] below.
 	tmpDir := t.TempDir()
 	// dnsserver.Directives is package state that every CoreDNS instance in
-	// this process reads, so parallel tests must not each assign it.
+	// this process reads, so it is assigned once for the whole process.
 	setDNSDirectives.Do(func() {
 		dnsserver.Directives = []string{"log", "whoami", "startup", "shutdown", "ipparser", "acme"}
 	})
@@ -217,8 +219,6 @@ func NewStack(t *testing.T, opts ...StackOption) *Stack {
 			_ = acmeServer.Close()
 			_ = dnsInstance.Stop()
 			dnsInstance.Wait()
-			restoreEnv(p2pforge.ForgeAuthEnv, prevAuth, hadAuth)
-			restoreEnv("PEBBLE_VA_NOSLEEP", prevNoSleep, hadNoSleep)
 		},
 	}
 	t.Cleanup(stack.Close)
@@ -241,27 +241,6 @@ func dnsServerAddresses(t *testing.T, srv caddy.ServerListener) (udpAddr, tcpAdd
 		t.Fatalf("expected TCP listener on CoreDNS server, got %v", l)
 	}
 	return pkt.String(), l.String()
-}
-
-// setEnv sets key=val for the duration of the test, returning the previous
-// value (if any) so a paired restoreEnv call can put it back on cleanup. We
-// roll our own instead of t.Setenv because the canary uses t.Parallel.
-func setEnv(t *testing.T, key, val string) (prev string, had bool) {
-	t.Helper()
-	prev, had = os.LookupEnv(key)
-	if err := os.Setenv(key, val); err != nil {
-		t.Fatalf("set %s: %v", key, err)
-	}
-	return prev, had
-}
-
-// restoreEnv puts an environment variable back to the value setEnv saw.
-func restoreEnv(key, prev string, had bool) {
-	if had {
-		_ = os.Setenv(key, prev)
-	} else {
-		_ = os.Unsetenv(key)
-	}
 }
 
 // generateLoopbackCert produces a self-signed cert + private key covering

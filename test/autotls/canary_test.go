@@ -34,8 +34,8 @@ import (
 // sub-module's go.mod and stay out of kubo's main module; CI runs the canary
 // as a dedicated autotls-tests job. See doc.go.
 func TestACMEEndToEnd(t *testing.T) {
-	t.Parallel()
-
+	// Not parallel: NewStack uses t.Setenv, and the two canaries share
+	// process-wide env and CoreDNS state.
 	stack := NewStack(t)
 
 	// The kubo harness finds the binary by walking up to the nearest
