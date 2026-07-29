@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -80,6 +80,12 @@ func createTempRepo() (string, error) {
 
 	// No automatic bootstrap: we connect only the peers we need.
 	cfg.Bootstrap = []string{}
+
+	// No local peer discovery either. This example dials its second node by
+	// address, and mDNS would race that: a connection opened while the node is
+	// still being built is invisible to its own bitswap, and the fetch at the
+	// end then waits forever. It would also reach unrelated nodes on your LAN.
+	cfg.Discovery.MDNS.Enabled = false
 
 	// Optional: enable experimental features by modifying cfg before Init, e.g.:
 	if *flagExp {
@@ -170,18 +176,24 @@ func connectToPeers(ctx context.Context, ipfs icore.CoreAPI, peers []string) err
 		pi.Addrs = append(pi.Addrs, pii.Addrs...)
 	}
 
+	var mu sync.Mutex
+	var errs []error
 	wg.Add(len(peerInfos))
 	for _, peerInfo := range peerInfos {
 		go func(peerInfo *peer.AddrInfo) {
 			defer wg.Done()
 			err := ipfs.Swarm().Connect(ctx, *peerInfo)
 			if err != nil {
-				log.Printf("failed to connect to %s: %s", peerInfo.ID, err)
+				mu.Lock()
+				errs = append(errs, fmt.Errorf("connecting to %s: %w", peerInfo.ID, err))
+				mu.Unlock()
 			}
 		}(peerInfo)
 	}
 	wg.Wait()
-	return nil
+	// Report failures instead of logging them. Everything after this assumes the
+	// peers are reachable, so carrying on would stall somewhere less obvious.
+	return errors.Join(errs...)
 }
 
 func getUnixfsNode(path string) (files.Node, error) {
@@ -209,7 +221,10 @@ func main() {
 
 	fmt.Println("-- Getting an IPFS node running -- ")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	// Well inside the 2 minute budget `go test` gives this example, so a stall
+	// ends in a panic naming the step that hung rather than the test harness
+	// killing us with no clue about where we were.
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
 	// Spawn a local peer using a temporary path, for testing purposes.

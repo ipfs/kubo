@@ -64,10 +64,17 @@ func TestIPFSWatch(t *testing.T) {
 		stderrStr := result.Stderr.String()
 		require.NotContains(t, stderrStr, "unknown datastore type", "ipfswatch should recognize datastore plugins")
 
-		// Create a test file with unique content based on timestamp
+		// Create a test file with unique content based on timestamp.
+		// Write it elsewhere and move it in, so the watcher sees a single event for
+		// a file that is already complete. Writing in place creates the file first
+		// and fills it after, and ipfswatch adds whatever is on disk when it wakes
+		// up, which on a busy machine is an empty file.
 		testContent := fmt.Sprintf("ipfswatch test content generated at %s", time.Now().Format(time.RFC3339Nano))
+		stagedFile := filepath.Join(h.Dir, "test.txt.staged")
+		err = os.WriteFile(stagedFile, []byte(testContent), 0o644)
+		require.NoError(t, err)
 		testFile := filepath.Join(watchDir, "test.txt")
-		err = os.WriteFile(testFile, []byte(testContent), 0o644)
+		err = os.Rename(stagedFile, testFile)
 		require.NoError(t, err)
 
 		// Wait for ipfswatch to process the file and extract CID from log
