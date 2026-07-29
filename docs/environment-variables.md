@@ -19,6 +19,7 @@
   - [`IPFS_CONTENT_BLOCKING_DISABLE`](#ipfs_content_blocking_disable)
   - [`IPFS_WAIT_REPO_LOCK`](#ipfs_wait_repo_lock)
   - [`IPFS_TELEMETRY`](#ipfs_telemetry)
+  - [`DO_NOT_TRACK`](#do_not_track)
   - [`HTTPS_PROXY`](#https_proxy)
   - [`HTTP_PROXY`](#http_proxy)
   - [`NO_PROXY`](#no_proxy)
@@ -208,19 +209,29 @@ If the lock cannot be acquired because someone else has the lock, and `IPFS_WAIT
 
 ## `IPFS_TELEMETRY`
 
-Controls the mode of the [telemetry plugin](telemetry.md), which is opt-in and disabled by default. Valid values are:
+Controls the behavior of the [telemetry plugin](telemetry.md). Valid values are:
 
-- `off`: Disables telemetry (default). Nothing is sent.
-- `on`: Enables telemetry. Requires `Plugins.Plugins.telemetry.Config.Endpoint` to be set, otherwise nothing is sent.
-- `auto`: Legacy value, treated the same as `off`.
+- `on`: Enables telemetry.
+- `off`: Disables telemetry. Nothing is sent, and the stored anonymous identifier is removed.
+- `auto`: Like `on`, but logs an informative message about telemetry and gives user 15 minutes to opt-out before first collection. Used automatically on first run and when `IPFS_TELEMETRY` is not set.
 
-The mode can also be set in the config file under `Plugins.Plugins.telemetry.Config.Mode`. This variable only controls the mode; the destination endpoint is configured in the config file. See [telemetry.md](telemetry.md) for details.
+The mode can also be set in the config file under `Plugins.Plugins.telemetry.Config.Mode`. This variable takes precedence over both the config file and [`DO_NOT_TRACK`](#do_not_track), so `IPFS_TELEMETRY=on` keeps telemetry on for one node on a machine that opts out globally.
 
 Example:
 
 ```bash
 export IPFS_TELEMETRY="off"
 ```
+
+## `DO_NOT_TRACK`
+
+Disables the [telemetry plugin](telemetry.md). This is the shared opt-out convention read by other command line tools, so one setting covers them all. Kubo reads `1` and `true` as opting out, and ignores `0` and `false`.
+
+```bash
+export DO_NOT_TRACK=1
+```
+
+[`IPFS_TELEMETRY`](#ipfs_telemetry) overrides this variable in both directions. `DO_NOT_TRACK` overrides the `Mode` set in the config file.
 
 ## `HTTPS_PROXY`
 
