@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime/debug"
 	"slices"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -84,9 +85,9 @@ Example with --long without preserved metadata:
 
   -          QmZULkCELmmk5XNf... 1234 -            document.txt
 
-With the --human (-H) option, print file sizes in human-readable format
-(e.g., 1K 234M 2G). This only affects the text/CLI output; JSON output
-always uses numeric byte sizes.
+With the --human (-H) option, print file sizes in human-readable SI units
+(e.g., 100 B, 3.0 kB, 2.0 MB) rather than exact byte counts. This affects
+text output only. The JSON response from /api/v0/ls stays in bytes.
 
 With the --sort-size (-S) option, sort directory entries by size, largest
 first. Directories are treated as having size 0. This is incompatible with
@@ -110,7 +111,7 @@ The JSON output contains type information.
 		cmds.BoolOption(lsSizeOptionName, "Resolve linked objects to find out their file size.").WithDefault(true),
 		cmds.BoolOption(lsStreamOptionName, "s", "Enable experimental streaming of directory entries as they are traversed."),
 		cmds.BoolOption(lsLongOptionName, "l", "Use a long listing format, showing file mode and modification time."),
-		cmds.BoolOption(lsHumanOptionName, "H", "Print sizes in human readable format (e.g., 1K 234M 2G)"),
+		cmds.BoolOption(lsHumanOptionName, "H", "Print sizes in human readable format (e.g., 1.2 kB, 234 MB, 2.0 GB)."),
 		cmds.BoolOption(lsSortSizeOptionName, "S", "Sort entries by size, largest first (directories treated as size 0)."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -524,5 +525,5 @@ func formatSize(size uint64, human bool) string {
 	if human {
 		return humanize.Bytes(size)
 	}
-	return fmt.Sprintf("%d", size)
+	return strconv.FormatUint(size, 10)
 }
