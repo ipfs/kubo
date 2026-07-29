@@ -8,6 +8,7 @@ import (
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/libp2p/go-libp2p/core/network"
+	basichost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -20,6 +21,13 @@ type reachabilityHost interface {
 type confirmedAddrsHost interface {
 	ConfirmedAddrs() (reachable, unreachable, unknown []ma.Multiaddr)
 }
+
+// Compile-time check: BasicHost must satisfy confirmedAddrsHost.
+// ConfirmedAddrs is not part of the core host.Host interface and is marked
+// experimental in go-libp2p. If BasicHost ever drops or changes this method,
+// this assertion fails at build time instead of the command silently
+// reporting nothing.
+var _ confirmedAddrsHost = (*basichost.BasicHost)(nil)
 
 // autoNATResult represents the AutoNAT reachability information.
 type autoNATResult struct {

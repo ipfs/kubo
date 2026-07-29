@@ -14,7 +14,9 @@ func TestExample(t *testing.T) {
 	t.Log("Starting go run main.go...")
 	start := time.Now()
 
-	cmd := exec.Command("go", "run", "main.go")
+	// CommandContext so the child is killed with the test instead of being left
+	// behind as an orphan when the example hangs.
+	cmd := exec.CommandContext(t.Context(), "go", "run", "main.go")
 	cmd.Env = append(os.Environ(), "GOLOG_LOG_LEVEL=error") // reduce libp2p noise
 
 	// Stream output to both test log and capture buffer for verification
