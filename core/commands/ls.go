@@ -124,11 +124,13 @@ The JSON output contains type information.
 		stream, _ := req.Options[lsStreamOptionName].(bool)
 		sortSize, _ := req.Options[lsSortSizeOptionName].(bool)
 
+		// ErrClient so /api/v0/ls answers 400 rather than 500: a bad flag
+		// combination is the caller's mistake, not a server fault.
 		if sortSize && stream {
-			return fmt.Errorf("cannot use --sort-size with --stream")
+			return cmds.Errorf(cmds.ErrClient, "cannot use --sort-size with --stream")
 		}
 		if sortSize && !resolveSize {
-			return fmt.Errorf("cannot use --sort-size with --size=false")
+			return cmds.Errorf(cmds.ErrClient, "cannot use --sort-size with --size=false")
 		}
 
 		err = req.ParseBodyArgs()
