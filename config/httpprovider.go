@@ -12,9 +12,15 @@ package config
 // Defaults live on the DefaultHTTPProvider* constants below.
 type HTTPProvider struct {
 	// Enabled is the master switch. When true, the trustless gateway
-	// handler is registered for the libp2p-stream transport (see
-	// Libp2p). Cleartext and AnnounceMultiaddrs gate further surfaces
-	// and must each be set explicitly.
+	// handler is installed behind every /ws and /tls/ws listener:
+	// non-WebSocket HTTP requests on those ports reach it (over TLS as
+	// HTTP/2 only, HTTP/1.1 there gets 426 Upgrade Required; cleartext
+	// accepts both). The libp2p-stream transport starts too (Libp2p
+	// defaults to true). On a node with AutoTLS this means the gateway
+	// becomes reachable over public HTTPS on the swarm port as soon as
+	// the switch flips, even while AnnounceMultiaddrs is off:
+	// unannounced, but reachable. Cleartext and AnnounceMultiaddrs gate
+	// further surfaces and must each be set explicitly.
 	Enabled Flag `json:",omitempty"`
 
 	// Libp2p exposes the trustless gateway over a libp2p stream, per the

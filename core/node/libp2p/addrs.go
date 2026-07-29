@@ -378,6 +378,11 @@ func AddrsFactory(announce []string, appendAnnounce []string, noAnnounce []strin
 // httpComponent is the /http multiaddr protocol component that pairs with
 // /ws on the same TCP port. We never listen on it; it is only ever appended
 // to announced multiaddrs to advertise the HTTPProvider endpoint.
+//
+// Dropping the error is safe here: NewComponent fails only for an unknown
+// protocol name or an invalid value, and both arguments are compile-time
+// constants (/http is registered and takes no value). A regression in
+// go-multiaddr would trip TestAppendHTTPProviderAddrs immediately.
 var httpComponent, _ = ma.NewComponent("http", "")
 
 // appendHTTPProviderAddrs returns a slice that contains every input

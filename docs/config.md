@@ -4009,11 +4009,11 @@ The split is intentional. A public-facing HTTP source on the swarm port should n
 ### How the HTTP listener is wired up
 
 - The HTTP listener reuses the same `/tcp` socket as the `/ws` listener through Kubo's shared-TCP demuxer. No extra port is opened.
-- Today the HTTP listener requires a WebSocket listener on the same TCP port to exist. When `/ws` is present, Kubo adds the matching `/http` multiaddr to the announced address set automatically.
-- When [`AutoTLS.AutoWSS`](#autotlsautowss) is enabled, Kubo also adds a `/tls/http` listener on the same host and port as the `/tls/ws` listener, reusing the same AutoTLS certificate. No separate TLS setup is required.
+- Today the HTTP listener requires a WebSocket listener on the same TCP port to exist. With [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket) disabled, this surface is unavailable: the daemon then serves only the libp2p-stream transport ([`HTTPProvider.Libp2p`](#httpproviderlibp2p)), and refuses to start when the config asks for anything more ([`HTTPProvider.Cleartext`](#httpprovidercleartext) or [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) enabled, or `Libp2p` disabled). When `/ws` is present, the matching `/http` multiaddr is announced only if [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) is on.
+- When [`AutoTLS.AutoWSS`](#autotlsautowss) is enabled, the same handler is also served behind the `/tls/ws` listener on the same host and port, reusing the AutoTLS certificate; no separate TLS setup is required. The matching `/tls/http` multiaddr is announced only if [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) is on.
 
 > [!IMPORTANT]
-> Experimental and off by default. Enable it on publicly diallable nodes where you want plain-HTTP clients to fetch blocks directly.
+> Experimental and off by default. Enable it on publicly dialable nodes where you want plain-HTTP clients to fetch blocks directly.
 
 Default: `{}`
 
@@ -4021,7 +4021,9 @@ Type: `object`
 
 ### `HTTPProvider.Enabled`
 
-Master switch for `HTTPProvider`. When `true`, Kubo registers the trustless gateway handler and defaults [`HTTPProvider.Libp2p`](#httpproviderlibp2p) to `true`. The [`HTTPProvider.Cleartext`](#httpprovidercleartext) and [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) sub-toggles stay off until set explicitly.
+Master switch for `HTTPProvider`. When `true`, the trustless gateway handler is installed behind every `/ws` and `/tls/ws` listener: non-WebSocket HTTP requests on those ports reach it (over TLS as HTTP/2 only, HTTP/1.1 there gets `426 Upgrade Required`; cleartext accepts both), and [`HTTPProvider.Libp2p`](#httpproviderlibp2p) defaults to `true`. On a node with [`AutoTLS`](#autotls) this means the gateway becomes reachable over public HTTPS on the swarm port as soon as the switch flips, even while [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) is off: unannounced, but reachable. The [`HTTPProvider.Cleartext`](#httpprovidercleartext) and [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) sub-toggles stay off until set explicitly.
+
+Every surface except [`HTTPProvider.Libp2p`](#httpproviderlibp2p) needs the WebSocket transport: with [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket) disabled, the daemon refuses to start unless the libp2p-stream transport is the only surface enabled.
 
 Default: `false`
 

@@ -24,7 +24,7 @@ import (
 // clients pair this with InsecureSkipVerify to skip cert chain validation.
 //
 // The full p2p-forge + ACME chain is covered separately by the canary in
-// http_provider_autotls_e2e_test.go; the cases here focus on listener
+// test/autotls/canary_test.go; the cases here focus on listener
 // wiring, the kubo-side h2-over-TLS policy, and the multiaddr/well-known
 // surfaces that browsers and HTTP retrieval clients depend on.
 func TestHTTPProviderAutoTLS(t *testing.T) {

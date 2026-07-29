@@ -17,7 +17,7 @@
 
 #### 🌐 Experimental `HTTPProvider`: serve local data over plain HTTP/2
 
-Kubo now ships an experimental, opt-in `HTTPProvider`: the **server** side of HTTP retrieval. Enable it on a publicly diallable node and the local trustless gateway becomes reachable over plain HTTP/2 alongside the existing libp2p path, on the same swarm port (`4001` by default). Kubo reuses the certificate it already obtains through [`AutoTLS`](https://github.com/ipfs/kubo/blob/master/docs/config.md#autotls), so no extra TLS setup is required.
+Kubo now ships an experimental, opt-in `HTTPProvider`: the **server** side of HTTP retrieval. Enable it on a publicly dialable node and the local trustless gateway becomes reachable over plain HTTP/2 alongside the existing libp2p path, on the same swarm port (`4001` by default). Kubo reuses the certificate it already obtains through [`AutoTLS`](https://github.com/ipfs/kubo/blob/master/docs/config.md#autotls), so no extra TLS setup is required.
 
 `HTTPProvider` is read-only: it serves raw blocks (`?format=raw`) from the local blockstore and does not fetch missing data from the network. It is **not** the same as [`Gateway`](https://github.com/ipfs/kubo/blob/master/docs/config.md#gateway), which stays on loopback `127.0.0.1:8080` and is the recursive, deserializing interface for local browsing.
 
