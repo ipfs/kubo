@@ -12,11 +12,12 @@ import (
 )
 
 // WebUI version confirmed to work with this Kubo version
-const WebUIPath = "/ipfs/bafybeihxglpcfyarpm7apn7xpezbuoqgk3l5chyk7w4gvrjwk45rqohlmm" // v4.12.0
+const WebUIPath = "/ipfs/bafybeiciqeyipumpmhxzlxnbqdbbv6u5uij4hy4wax64dmj7kvrhusiq6y" // v4.13.0
 
 // WebUIPaths is a list of all past webUI paths.
 var WebUIPaths = []string{
 	WebUIPath,
+	"/ipfs/bafybeihxglpcfyarpm7apn7xpezbuoqgk3l5chyk7w4gvrjwk45rqohlmm", // v4.12.0
 	"/ipfs/bafybeiddnr2jz65byk67sjt6jsu6g7tueddr7odhzzpzli3rgudlbnc6iq", // v4.11.1
 	"/ipfs/bafybeidfgbcqy435sdbhhejifdxq4o64tlsezajc272zpyxcsmz47uyc64", // v4.11.0
 	"/ipfs/bafybeidsjptidvb6wf6benznq2pxgnt5iyksgtecpmjoimlmswhtx2u5ua", // v4.10.0

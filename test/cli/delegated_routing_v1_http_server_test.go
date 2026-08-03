@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ipfs/boxo/autoconf"
 	"github.com/ipfs/boxo/ipns"
 	"github.com/ipfs/boxo/routing/http/client"
 	"github.com/ipfs/boxo/routing/http/types"
@@ -228,18 +227,26 @@ func TestRoutingV1Server(t *testing.T) {
 		t.Parallel()
 
 		routingTypes := []string{"auto", "autoclient", "dht", "dhtclient"}
-		for _, routingType := range routingTypes {
+
+		// One node per routing type, all bootstrapping off the same set of
+		// in-process DHT peers on loopback. Pointing this at the public swarm
+		// instead made the test depend on a CI runner reaching
+		// bootstrap.libp2p.io from a cold repo, which is what used to fail.
+		h := harness.NewT(t)
+		nodes := h.NewNodes(len(routingTypes)).Init()
+		for i, routingType := range routingTypes {
+			nodes[i].UpdateConfig(func(cfg *config.Config) {
+				cfg.Gateway.ExposeRoutingAPI = config.True
+				cfg.Routing.Type = config.NewOptionalString(routingType)
+			})
+		}
+		h.BootstrapWithStubDHT(nodes)
+
+		for i, routingType := range routingTypes {
+			node := nodes[i]
 			t.Run("routing_type="+routingType, func(t *testing.T) {
 				t.Parallel()
 
-				// Single node with DHT and real bootstrap peers
-				node := harness.NewT(t).NewNode().Init()
-				node.UpdateConfig(func(cfg *config.Config) {
-					cfg.Gateway.ExposeRoutingAPI = config.True
-					cfg.Routing.Type = config.NewOptionalString(routingType)
-					// Set real bootstrap peers from boxo/autoconf
-					cfg.Bootstrap = autoconf.FallbackBootstrapPeers
-				})
 				node.StartDaemon()
 				defer node.StopDaemon()
 
@@ -249,23 +256,26 @@ func TestRoutingV1Server(t *testing.T) {
 				// Query for closest peers to our own peer ID
 				key := peer.ToCid(node.PeerID())
 
-				// Wait for WAN DHT routing table to be populated.
-				// The server has a 30-second routing timeout, so we use 60 seconds
-				// per request to allow for network latency while preventing hangs.
-				// Total wait time is 5 minutes to accommodate slow CI DHT bootstrapping.
-				// Passing runs finish in 8-48s; failures are total bootstrap failures,
-				// not slow convergence, so extra headroom doesn't waste time on success.
+				// The stub peers are on loopback and always reachable, so the
+				// WAN routing table fills in as soon as the daemon finishes
+				// bootstrapping. The wait only covers that startup.
 				var records []*types.PeerRecord
 				require.EventuallyWithT(t, func(ct *assert.CollectT) {
-					ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+					ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 					defer cancel()
 					resultsIter, err := c.GetClosestPeers(ctx, key)
 					if !assert.NoError(ct, err) {
 						return
 					}
-					records, err = iter.ReadAllResults(resultsIter)
-					assert.NoError(ct, err)
-				}, 5*time.Minute, 5*time.Second)
+					res, err := iter.ReadAllResults(resultsIter)
+					if !assert.NoError(ct, err) {
+						return
+					}
+					if !assert.NotEmpty(ct, res) {
+						return
+					}
+					records = res
+				}, 60*time.Second, 500*time.Millisecond)
 
 				// Verify we got some peers back from WAN DHT
 				require.NotEmpty(t, records, "should return peers close to own peerid")

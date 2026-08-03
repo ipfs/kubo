@@ -2,6 +2,7 @@ package libp2p
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p"
@@ -109,10 +110,10 @@ func HolePunching(flag config.Flag, hasRelayClient bool) func() (opts Libp2pOpts
 	return func() (opts Libp2pOpts, err error) {
 		if flag.WithDefault(true) {
 			if !hasRelayClient {
-				// If hole punching is explicitly enabled but the relay client is disabled then panic,
-				// otherwise just silently disable hole punching
+				// If hole punching is explicitly enabled but the relay client is disabled,
+				// return an error; otherwise just silently disable hole punching.
 				if flag != config.Default {
-					log.Fatal("Failed to enable `Swarm.EnableHolePunching`, it requires `Swarm.RelayClient.Enabled` to be true.")
+					err = fmt.Errorf("failed to enable Swarm.EnableHolePunching: it requires Swarm.RelayClient.Enabled to be true")
 				} else {
 					log.Info("HolePunching has been disabled due to the RelayClient being disabled.")
 				}

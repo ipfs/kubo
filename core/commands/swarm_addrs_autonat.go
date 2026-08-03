@@ -6,7 +6,9 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/libp2p/go-libp2p/core/network"
+	basichost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -20,9 +22,17 @@ type confirmedAddrsHost interface {
 	ConfirmedAddrs() (reachable, unreachable, unknown []ma.Multiaddr)
 }
 
+// Compile-time check: BasicHost must satisfy confirmedAddrsHost.
+// ConfirmedAddrs is not part of the core host.Host interface and is marked
+// experimental in go-libp2p. If BasicHost ever drops or changes this method,
+// this assertion fails at build time instead of the command silently
+// reporting nothing.
+var _ confirmedAddrsHost = (*basichost.BasicHost)(nil)
+
 // autoNATResult represents the AutoNAT reachability information.
 type autoNATResult struct {
 	Reachability string   `json:"reachability"`
+	NAT          string   `json:"nat,omitempty"` // "cgnat", "double-nat", or empty when not determinable
 	Reachable    []string `json:"reachable,omitempty"`
 	Unreachable  []string `json:"unreachable,omitempty"`
 	Unknown      []string `json:"unknown,omitempty"`
@@ -114,6 +124,9 @@ Example:
 			result.Reachability = h.Reachability().String()
 		}
 
+		// Best-effort NAT classification (carrier-grade / double NAT).
+		result.NAT = libp2p.DetectNAT(nd.PeerHost)
+
 		return cmds.EmitOnce(res, result)
 	},
 	Type: autoNATResult{},
@@ -121,6 +134,9 @@ Example:
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, result autoNATResult) error {
 			fmt.Fprintln(w, "AutoNAT V2 Status:")
 			fmt.Fprintf(w, "  Reachability: %s\n", result.Reachability)
+			if result.NAT != "" {
+				fmt.Fprintf(w, "  NAT: %s\n", result.NAT)
+			}
 
 			fmt.Fprintln(w)
 			fmt.Fprintln(w, "Per-Address Reachability:")

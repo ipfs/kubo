@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
@@ -86,6 +87,18 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 				errCh <- fmt.Errorf("stream flush failed: %s", err)
 			}
 			close(errCh)
+		}()
+
+		// Traversal decodes blocks with whatever codec their CID names, so it
+		// runs third-party code. This goroutine is detached from the request,
+		// and a panic on it would end the daemon rather than the command.
+		// Registered after the close above so it runs first, while errCh is
+		// still open.
+		defer func() {
+			if rec := recover(); rec != nil {
+				log.Errorf("recovered from panic exporting %s: %v\n%s", c, rec, debug.Stack())
+				errCh <- errors.New("internal error during CAR export")
+			}
 		}()
 
 		if localOnly {

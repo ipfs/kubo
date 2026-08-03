@@ -61,6 +61,10 @@ func IpnsRepublisher(repubPeriod time.Duration, recordLifetime time.Duration) fu
 			repub.RecordLifetime = recordLifetime
 		}
 
+		if repub.RecordLifetime < repub.Interval {
+			return fmt.Errorf("config setting IPNS.RecordLifetime (%s) must be >= IPNS.RepublishPeriod (%s), otherwise records expire before they are republished", repub.RecordLifetime, repub.Interval)
+		}
+
 		lc.Append(repub.Run)
 		return nil
 	}

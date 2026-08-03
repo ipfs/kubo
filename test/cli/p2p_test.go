@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os/exec"
 	"slices"
@@ -285,19 +284,16 @@ func TestP2PForeground(t *testing.T) {
 		})
 		nodes.StartDaemons().Connect()
 
-		httpServerPort := harness.NewRandPort()
+		listener, httpServerPort := harness.NewTCPListener(t)
 		forwardPort := harness.NewRandPort()
 
 		// Start HTTP server
 		expectedBody := "Hello from p2p tunnel!"
 		httpServer := &http.Server{
-			Addr: fmt.Sprintf("127.0.0.1:%d", httpServerPort),
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				_, _ = w.Write([]byte(expectedBody))
 			}),
 		}
-		listener, err := net.Listen("tcp", httpServer.Addr)
-		require.NoError(t, err)
 		go func() { _ = httpServer.Serve(listener) }()
 		defer httpServer.Close()
 
@@ -342,19 +338,16 @@ func TestP2PForeground(t *testing.T) {
 		})
 		nodes.StartDaemons().Connect()
 
-		httpServerPort := harness.NewRandPort()
+		listener, httpServerPort := harness.NewTCPListener(t)
 		forwardPort := harness.NewRandPort()
 
 		// Start HTTP server
 		expectedBody := "Hello from forward foreground tunnel!"
 		httpServer := &http.Server{
-			Addr: fmt.Sprintf("127.0.0.1:%d", httpServerPort),
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				_, _ = w.Write([]byte(expectedBody))
 			}),
 		}
-		listener, err := net.Listen("tcp", httpServer.Addr)
-		require.NoError(t, err)
 		go func() { _ = httpServer.Serve(listener) }()
 		defer httpServer.Close()
 

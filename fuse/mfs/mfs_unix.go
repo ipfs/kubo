@@ -19,5 +19,12 @@ func NewFileSystem(ipfs *core.IpfsNode, mounts config.Mounts, imp config.Import)
 		DAG:        ipfs.DAG,
 		RepoPath:   ipfs.Repo.Path(),
 		Blksize:    fusemnt.BlksizeFromChunker(imp.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)),
+		// This mount writes ipfs.FilesRoot, the same MFS root the `ipfs files`
+		// commands use, so guard its writes with the pin lock too. GC already
+		// protects that root's blocks via corerepo.BestEffortRoots.
+		GCLocker: ipfs.Blockstore,
+		// Long-lived write descriptors bind to the node context so their
+		// writes are cancelled on shutdown instead of blocking forever.
+		MountCtx: ipfs.Context(),
 	})
 }

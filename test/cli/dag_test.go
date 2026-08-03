@@ -110,6 +110,38 @@ func TestDag(t *testing.T) {
 		stat := node.RunIPFS("dag", "stat", "--progress=false", node1Cid, node2Cid)
 		assert.Equal(t, content, stat.Stdout.Bytes())
 	})
+
+	t.Run("ipfs dag stat single root", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
+
+		r, err := os.Open(fixtureFile)
+		assert.NoError(t, err)
+		defer r.Close()
+		err = node.IPFSDagImport(r, fixtureCid)
+		assert.NoError(t, err)
+
+		// Stat a single root. boxo dedups shared blocks during the traversal, so
+		// the result reports no redundancy: SharedSize is 0 and Ratio is 1.
+		stat := node.RunIPFS("dag", "stat", "--progress=false", "--enc=json", fixtureCid)
+		var data Data
+		err = json.Unmarshal(stat.Stdout.Bytes(), &data)
+		assert.NoError(t, err)
+
+		// root (95B) + node1 (46B) + node2 (46B) + shared child (7B) = 4 blocks, 194B
+		assert.Equal(t, 4, data.UniqueBlocks)
+		assert.Equal(t, 194, data.TotalSize)
+		assert.Equal(t, 0, data.SharedSize)
+		assert.Equal(t, float64(1), data.Ratio)
+
+		// With one root, every counted block is unique, so the summary totals
+		// match that root's own block count and size.
+		require.Len(t, data.DagStats, 1)
+		assert.Equal(t, fixtureCid, data.DagStats[0].Cid)
+		assert.Equal(t, data.UniqueBlocks, data.DagStats[0].NumBlocks)
+		assert.Equal(t, data.TotalSize, data.DagStats[0].Size)
+	})
 }
 
 func TestDagImportCARv2(t *testing.T) {

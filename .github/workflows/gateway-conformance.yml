@@ -47,11 +47,11 @@ jobs:
 
       # 2. Build the kubo-gateway
       - name: Checkout kubo-gateway
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: kubo-gateway
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'kubo-gateway/go.mod'
           cache: true
@@ -133,11 +133,11 @@ jobs:
 
       # 2. Build the kubo-gateway
       - name: Checkout kubo-gateway
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: kubo-gateway
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'kubo-gateway/go.mod'
           cache: true

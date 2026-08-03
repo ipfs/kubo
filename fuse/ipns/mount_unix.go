@@ -45,9 +45,15 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (fusemnt.Mount, error) {
 		return nil, err
 	}
 
-	root, err := CreateRoot(ipfs.Context(), coreAPI, map[string]iface.Key{"local": key}, ipfsmp, ipnsmp, ipfs.Repo.Path(), cfg.Mounts, cfg.Import, mfsOpts...)
+	root, err := CreateRoot(ipfs.Context(), coreAPI, ipfs.Blockstore, map[string]iface.Key{"local": key}, ipfsmp, ipnsmp, ipfs.Repo.Path(), cfg.Mounts, cfg.Import, mfsOpts...)
 	if err != nil {
 		return nil, err
+	}
+
+	// Register the mount's per-key MFS roots so garbage collection keeps their
+	// blocks live while the mount is active. Unregistered on unmount below.
+	for _, r := range root.Roots {
+		ipfs.RegisterMFSRoot(r)
 	}
 
 	opts := &fs.Options{
@@ -67,11 +73,14 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (fusemnt.Mount, error) {
 
 	m, err := fusemnt.NewMount(root, ipnsmp, opts)
 	if err != nil {
+		for _, r := range root.Roots {
+			ipfs.UnregisterMFSRoot(r)
+		}
 		_ = root.Close()
 		return nil, err
 	}
 
-	return &ipnsMount{Mount: m, root: root}, nil
+	return &ipnsMount{Mount: m, root: root, ipfs: ipfs}, nil
 }
 
 // ipnsMount wraps mount.Mount to call Root.Close() on unmount,
@@ -79,10 +88,14 @@ func Mount(ipfs *core.IpfsNode, ipnsmp, ipfsmp string) (fusemnt.Mount, error) {
 type ipnsMount struct {
 	fusemnt.Mount
 	root *Root
+	ipfs *core.IpfsNode
 }
 
 func (m *ipnsMount) Unmount() error {
 	err := m.Mount.Unmount()
+	for _, r := range m.root.Roots {
+		m.ipfs.UnregisterMFSRoot(r)
+	}
 	_ = m.root.Close()
 	return err
 }

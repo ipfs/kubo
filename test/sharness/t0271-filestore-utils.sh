@@ -35,46 +35,46 @@ test_init() {
   test_init_dataset
 }
 
-EXPHASH="QmXqfraAT3U8ct14PPPXcFkWyvmqUZazLdo29GXTKSHkP4"
+EXPHASH="QmT8nut4Y5pHXUftaX7PC7QcojAQfYsjiLMoxwdc7bNS7p"
 
 cat <<EOF > ls_expect_file_order
-bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0
-bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0
-bafkreiemzfmzws23c2po4m6deiueknqfty7r3voes3e3zujmobrooc2ngm 262144 somedir/file3 0
-bafkreihgm53yhxn427lnfdwhqgpawc62qejog7gega5kqb6uwbyhjm47hu 262144 somedir/file3 262144
-bafkreigl2pjptgxz6cexcnua56zc5dwsyrc4ph2eulmcb634oes6gzvmuy 262144 somedir/file3 524288
-bafkreifjcthslybjizk36xffcsb32fsbguxz3ptkl7723wz4u3qikttmam 213568 somedir/file3 786432
+bafkreihed5ipyj3uenaem5zroilgdrhp4lvs7c2r6ldgcd7is66xj6izmi   1000 somedir/file1 0
+bafkreidfpbh7afcrsl4bc67qnmrtiksdqoxdto7tug5zo7bkh3vq46svs4  10000 somedir/file2 0
+bafkreihj5dckiavi3e3hpyxy544aewbne3gca2synmo6bpgmx6ezitklyq 262144 somedir/file3 0
+bafkreigfefue3rninmokrkyuho5dvrj7sjfvzunztmqusnfms4jpjkg3sq 262144 somedir/file3 262144
+bafkreid4ozonym3z5tm5rm2cli5fmzudkcwnazzhbgu2k6kpbj5qj27mha 262144 somedir/file3 524288
+bafkreiap7vddw56ggaod7d7kot4s3tvcc6aidlyoqzp4wuqp7c63zsttw4 213568 somedir/file3 786432
 EOF
 
 sort < ls_expect_file_order > ls_expect_key_order
 
-FILE1_HASH=bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu
-FILE2_HASH=bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4
-FILE3_HASH=QmYEZtRGGk8rgM8MetegLLRHMKskPCg7zWpmQQAo3cQiN5
+FILE1_HASH=bafkreihed5ipyj3uenaem5zroilgdrhp4lvs7c2r6ldgcd7is66xj6izmi
+FILE2_HASH=bafkreidfpbh7afcrsl4bc67qnmrtiksdqoxdto7tug5zo7bkh3vq46svs4
+FILE3_HASH=QmWtHwhJ3RKxJpdv7M99MmF2g2G882LKLKFphYmCnaWre2
 
 cat <<EOF > verify_expect_file_order
-ok      bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0
-ok      bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0
-ok      bafkreiemzfmzws23c2po4m6deiueknqfty7r3voes3e3zujmobrooc2ngm 262144 somedir/file3 0
-ok      bafkreihgm53yhxn427lnfdwhqgpawc62qejog7gega5kqb6uwbyhjm47hu 262144 somedir/file3 262144
-ok      bafkreigl2pjptgxz6cexcnua56zc5dwsyrc4ph2eulmcb634oes6gzvmuy 262144 somedir/file3 524288
-ok      bafkreifjcthslybjizk36xffcsb32fsbguxz3ptkl7723wz4u3qikttmam 213568 somedir/file3 786432
+ok      bafkreihed5ipyj3uenaem5zroilgdrhp4lvs7c2r6ldgcd7is66xj6izmi   1000 somedir/file1 0
+ok      bafkreidfpbh7afcrsl4bc67qnmrtiksdqoxdto7tug5zo7bkh3vq46svs4  10000 somedir/file2 0
+ok      bafkreihj5dckiavi3e3hpyxy544aewbne3gca2synmo6bpgmx6ezitklyq 262144 somedir/file3 0
+ok      bafkreigfefue3rninmokrkyuho5dvrj7sjfvzunztmqusnfms4jpjkg3sq 262144 somedir/file3 262144
+ok      bafkreid4ozonym3z5tm5rm2cli5fmzudkcwnazzhbgu2k6kpbj5qj27mha 262144 somedir/file3 524288
+ok      bafkreiap7vddw56ggaod7d7kot4s3tvcc6aidlyoqzp4wuqp7c63zsttw4 213568 somedir/file3 786432
 EOF
 
 sort < verify_expect_file_order > verify_expect_key_order
 
 cat <<EOF > verify_rm_expect
-ok      bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0 keep
-ok      bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0 keep
-changed bafkreiemzfmzws23c2po4m6deiueknqfty7r3voes3e3zujmobrooc2ngm 262144 somedir/file3 0 remove
-changed bafkreifjcthslybjizk36xffcsb32fsbguxz3ptkl7723wz4u3qikttmam 213568 somedir/file3 786432 remove
-changed bafkreigl2pjptgxz6cexcnua56zc5dwsyrc4ph2eulmcb634oes6gzvmuy 262144 somedir/file3 524288 remove
-changed bafkreihgm53yhxn427lnfdwhqgpawc62qejog7gega5kqb6uwbyhjm47hu 262144 somedir/file3 262144 remove
+changed bafkreiap7vddw56ggaod7d7kot4s3tvcc6aidlyoqzp4wuqp7c63zsttw4 213568 somedir/file3 786432 remove
+ok      bafkreidfpbh7afcrsl4bc67qnmrtiksdqoxdto7tug5zo7bkh3vq46svs4  10000 somedir/file2 0 keep
+changed bafkreid4ozonym3z5tm5rm2cli5fmzudkcwnazzhbgu2k6kpbj5qj27mha 262144 somedir/file3 524288 remove
+changed bafkreigfefue3rninmokrkyuho5dvrj7sjfvzunztmqusnfms4jpjkg3sq 262144 somedir/file3 262144 remove
+ok      bafkreihed5ipyj3uenaem5zroilgdrhp4lvs7c2r6ldgcd7is66xj6izmi   1000 somedir/file1 0 keep
+changed bafkreihj5dckiavi3e3hpyxy544aewbne3gca2synmo6bpgmx6ezitklyq 262144 somedir/file3 0 remove
 EOF
 
 cat <<EOF > verify_after_rm_expect
-ok      bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0
-ok      bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0
+ok      bafkreidfpbh7afcrsl4bc67qnmrtiksdqoxdto7tug5zo7bkh3vq46svs4  10000 somedir/file2 0
+ok      bafkreihed5ipyj3uenaem5zroilgdrhp4lvs7c2r6ldgcd7is66xj6izmi   1000 somedir/file1 0
 EOF
 
 IPFS_CMD="ipfs"
@@ -240,30 +240,30 @@ test_filestore_rm_bad_blocks
 ## base32
 ##
 
-EXPHASH="bafybeienfbjfbywu5y44i5qm4wxajblgy5a6xuc4eepjaw5fq223wwsy3m"
+EXPHASH="bafybeichic6xnxoz63r5kk736bxskyfstt4bdqiqlmfy3kkp7modsf2v64"
 
 cat <<EOF > ls_expect_file_order
-bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0
-bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0
-bafkreiemzfmzws23c2po4m6deiueknqfty7r3voes3e3zujmobrooc2ngm 262144 somedir/file3 0
-bafkreihgm53yhxn427lnfdwhqgpawc62qejog7gega5kqb6uwbyhjm47hu 262144 somedir/file3 262144
-bafkreigl2pjptgxz6cexcnua56zc5dwsyrc4ph2eulmcb634oes6gzvmuy 262144 somedir/file3 524288
-bafkreifjcthslybjizk36xffcsb32fsbguxz3ptkl7723wz4u3qikttmam 213568 somedir/file3 786432
+bafkreihed5ipyj3uenaem5zroilgdrhp4lvs7c2r6ldgcd7is66xj6izmi   1000 somedir/file1 0
+bafkreidfpbh7afcrsl4bc67qnmrtiksdqoxdto7tug5zo7bkh3vq46svs4  10000 somedir/file2 0
+bafkreihj5dckiavi3e3hpyxy544aewbne3gca2synmo6bpgmx6ezitklyq 262144 somedir/file3 0
+bafkreigfefue3rninmokrkyuho5dvrj7sjfvzunztmqusnfms4jpjkg3sq 262144 somedir/file3 262144
+bafkreid4ozonym3z5tm5rm2cli5fmzudkcwnazzhbgu2k6kpbj5qj27mha 262144 somedir/file3 524288
+bafkreiap7vddw56ggaod7d7kot4s3tvcc6aidlyoqzp4wuqp7c63zsttw4 213568 somedir/file3 786432
 EOF
 
 sort < ls_expect_file_order > ls_expect_key_order
 
-FILE1_HASH=bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu
-FILE2_HASH=bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4
-FILE3_HASH=bafybeietaxxjghilcjhc2m4zcmicm7yjvkjdfkamc3ct2hq4gmsb3shqsi
+FILE1_HASH=bafkreihed5ipyj3uenaem5zroilgdrhp4lvs7c2r6ldgcd7is66xj6izmi
+FILE2_HASH=bafkreidfpbh7afcrsl4bc67qnmrtiksdqoxdto7tug5zo7bkh3vq46svs4
+FILE3_HASH=bafybeid67cm7p4m75octeh54es3un5me5hr7udz6wchlek2mfz3tfllmx4
 
 cat <<EOF > verify_expect_file_order
-ok      bafkreidx7ivgllulfkzyoo4oa7dfrg4mjmudg2qgdivoooj4s7lh3m5nqu   1000 somedir/file1 0
-ok      bafkreic2wqrsyr3y3qgzbvufen2w25r3p3zljckqyxkpcagsxz3zdcosd4  10000 somedir/file2 0
-ok      bafkreiemzfmzws23c2po4m6deiueknqfty7r3voes3e3zujmobrooc2ngm 262144 somedir/file3 0
-ok      bafkreihgm53yhxn427lnfdwhqgpawc62qejog7gega5kqb6uwbyhjm47hu 262144 somedir/file3 262144
-ok      bafkreigl2pjptgxz6cexcnua56zc5dwsyrc4ph2eulmcb634oes6gzvmuy 262144 somedir/file3 524288
-ok      bafkreifjcthslybjizk36xffcsb32fsbguxz3ptkl7723wz4u3qikttmam 213568 somedir/file3 786432
+ok      bafkreihed5ipyj3uenaem5zroilgdrhp4lvs7c2r6ldgcd7is66xj6izmi   1000 somedir/file1 0
+ok      bafkreidfpbh7afcrsl4bc67qnmrtiksdqoxdto7tug5zo7bkh3vq46svs4  10000 somedir/file2 0
+ok      bafkreihj5dckiavi3e3hpyxy544aewbne3gca2synmo6bpgmx6ezitklyq 262144 somedir/file3 0
+ok      bafkreigfefue3rninmokrkyuho5dvrj7sjfvzunztmqusnfms4jpjkg3sq 262144 somedir/file3 262144
+ok      bafkreid4ozonym3z5tm5rm2cli5fmzudkcwnazzhbgu2k6kpbj5qj27mha 262144 somedir/file3 524288
+ok      bafkreiap7vddw56ggaod7d7kot4s3tvcc6aidlyoqzp4wuqp7c63zsttw4 213568 somedir/file3 786432
 EOF
 
 sort < verify_expect_file_order > verify_expect_key_order

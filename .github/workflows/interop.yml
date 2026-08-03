@@ -46,8 +46,8 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
       - run: make build
@@ -63,47 +63,93 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-node@v6
+      # Pin a concrete major instead of an lts/ alias. setup-node resolves an
+      # alias by fetching the actions/node-versions manifest from GitHub with no
+      # retry and no fallback, so a GitHub blip fails the job outright. A
+      # concrete version falls back to downloading from nodejs.org.
+      - uses: actions/setup-node@v7
         with:
-          node-version: lts/*
+          node-version: '24'
       - uses: actions/download-artifact@v8
         with:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
-      - run: sudo apt update
-      - run: sudo apt install -y libxkbcommon0 libxdamage1 libgbm1 libpango-1.0-0 libcairo2 # dependencies for playwright
       # Cache node_modules based on latest @helia/interop version from npm registry.
       # This ensures we always test against the latest release while still benefiting
       # from caching when the version hasn't changed.
       - name: Get latest @helia/interop version
         id: helia-version
-        run: echo "version=$(npm view @helia/interop version)" >> $GITHUB_OUTPUT
-      - name: Cache helia-interop node_modules
-        uses: actions/cache@v5
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if version=$(npm view @helia/interop version); then break; fi
+            echo "npm view failed (attempt $attempt of 3), retrying" >&2
+            sleep $((attempt * 5))
+          done
+          if [ -z "${version:-}" ]; then
+            echo "could not resolve the latest @helia/interop version from the npm registry" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      # Restore and save are separate so a failed install cannot be cached under
+      # a version key and then reused by every later run on that version.
+      - name: Restore helia-interop node_modules
+        uses: actions/cache/restore@v6
         id: helia-cache
         with:
           path: node_modules
           key: ${{ runner.os }}-helia-interop-${{ steps.helia-version.outputs.version }}
-      - name: Install @helia/interop
+      # Install the exact version the cache key names. Plain `npm install
+      # @helia/interop` is a second `latest` lookup, and helia has published
+      # several interop versions within an hour, so the key could name a version
+      # that is not the one on disk.
+      - name: Install @helia/interop@${{ steps.helia-version.outputs.version }}
         if: steps.helia-cache.outputs.cache-hit != 'true'
-        run: npm install @helia/interop
-      # TODO(IPIP-499): Remove --grep --invert workaround once helia implements IPIP-499
-      # Tracking issue: https://github.com/ipfs/helia/issues/941
+        run: npm install --fetch-retries=5 --fetch-retry-maxtimeout=120000 "@helia/interop@${{ steps.helia-version.outputs.version }}"
+      # Search for the compiled specs rather than hardcoding where they live.
+      # Upstream has already moved this stuff around more than once, and every
+      # time it did, this job failed with mocha's unhelpful "no test files
+      # found". Searching survives a move; if the specs stop being called
+      # *.spec.js the job still fails, but it says so in one line.
+      - name: Find the compiled interop specs
+        working-directory: node_modules/@helia/interop
+        run: |
+          set -euo pipefail
+          find . -name '*.spec.js' -not -path './node_modules/*' | sort > "$RUNNER_TEMP/helia-specs.txt"
+          count=$(wc -l < "$RUNNER_TEMP/helia-specs.txt")
+          echo "@helia/interop@${{ steps.helia-version.outputs.version }} ships $count compiled spec files:"
+          cat "$RUNNER_TEMP/helia-specs.txt"
+          if [ "$count" -eq 0 ]; then
+            echo "found no compiled *.spec.js in the published package, so its layout changed" >&2
+            exit 1
+          fi
+      - name: Save helia-interop node_modules
+        if: steps.helia-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-helia-interop-${{ steps.helia-version.outputs.version }}
+      # We run aegir directly (instead of the helia-interop binary) because the
+      # bin spawns a bare `aegir test` with no way to pass the flags below.
       #
-      # PROVISIONAL HACK: Skip '@helia/mfs - should have the same CID after
-      # creating a file' test due to IPIP-499 changes in kubo.
+      # --files: pass the specs we found above rather than trusting the .aegir.js
+      # that @helia/interop publishes, which is written for running inside the
+      # helia monorepo and has broken this job twice. It globs the TypeScript
+      # sources (./src/*.spec.ts), which node refuses to type-strip under
+      # node_modules (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING, no tsconfig is
+      # shipped), and versions 11.0.0-11.0.2 shipped no config at all
+      # (ipfs/helia#1049), leaving aegir with nothing to discover.
       #
-      # WHY IT FAILS: The test creates a 5-byte file in MFS on both kubo and helia,
-      # then compares the root directory CID. With kubo PR #11148, `ipfs files write`
-      # now produces raw CIDs for single-block files (matching `ipfs add --raw-leaves`),
-      # while helia uses `reduceSingleLeafToSelf: false` which keeps the dag-pb wrapper.
-      # Different file CIDs lead to different directory CIDs.
-      #
-      # We run aegir directly (instead of helia-interop binary) because only aegir
-      # supports the --grep/--invert flags needed to exclude specific tests.
-      - name: Run helia-interop tests (excluding IPIP-499 incompatible test)
-        run: npx aegir test -t node --bail -- --grep 'should have the same CID after creating a file' --invert
+      # --exit: the node interop specs spawn kubo daemons (via ipfsd-ctl +
+      # KUBO_BINARY) whose libp2p/RPC handles keep Node's event loop alive after
+      # the run, so mocha prints its summary and then hangs until the job timeout.
+      # Force exit once the run completes.
+      - name: Run helia-interop tests
+        run: |
+          set -euo pipefail
+          mapfile -t specs < "$RUNNER_TEMP/helia-specs.txt"
+          npx aegir test -t node --bail --files "${specs[@]}" -- --exit
         env:
           KUBO_BINARY: ${{ github.workspace }}/cmd/ipfs/ipfs
         working-directory: node_modules/@helia/interop
@@ -127,11 +173,11 @@ jobs:
           name: kubo
           path: cmd/ipfs
       - run: chmod +x cmd/ipfs/ipfs
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: ipfs/ipfs-webui
           path: ipfs-webui
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: 'ipfs-webui/.tool-versions'
       - id: webui-ref
@@ -146,7 +192,7 @@ jobs:
         run: gh api "$ENDPOINT" --jq "$SELECTOR" | xargs -I{} echo "$KEY={}" | tee -a $GITHUB_OUTPUT
       # Cache node_modules based on package-lock.json
       - name: Cache node_modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: node-modules-cache
         with:
           path: ipfs-webui/node_modules
@@ -159,26 +205,39 @@ jobs:
         working-directory: ipfs-webui
       # Cache Playwright browsers
       - name: Cache Playwright browsers
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('ipfs-webui/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-playwright-
-      # On cache miss: download browsers and install OS dependencies
+      # Only chromium is needed: ipfs-webui's playwright config declares no
+      # projects, so Playwright runs its default browser. Installing OS
+      # dependencies for all three pulls in the ffmpeg stack that firefox and
+      # webkit need, which has taken longer than this job's whole budget when
+      # the Ubuntu mirror is slow.
+      # On cache miss: download the browser and install OS dependencies
       - name: Install Playwright with dependencies
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
+        timeout-minutes: 8
         working-directory: ipfs-webui
-      # On cache hit: only ensure OS dependencies are present (fast, idempotent)
+      # On cache hit: top up OS dependencies, best effort. The runner image
+      # already ships what headless chromium needs, so this is belt and
+      # braces. It runs apt-get update first, which has taken over four
+      # minutes at 39 kB/s when the Ubuntu mirror is slow, so cap it and carry
+      # on. A library that really is missing shows up when the browser fails
+      # to launch, which names the problem far better than a stalled install.
       - name: Install Playwright OS dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps
+        run: npx playwright install-deps chromium
+        timeout-minutes: 4
+        continue-on-error: true
         working-directory: ipfs-webui
       # Cache test build output
       - name: Cache test build
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: test-build-cache
         with:
           path: ipfs-webui/build

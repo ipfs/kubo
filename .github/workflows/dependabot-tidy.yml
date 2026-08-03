@@ -36,11 +36,11 @@ jobs:
           echo "number=$pr_number" >> $GITHUB_OUTPUT
           branch=$(gh pr view "$pr_number" --repo "${{ github.repository }}" --json headRefName -q '.headRefName')
           echo "branch=$branch" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ steps.pr.outputs.branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Run make mod_tidy

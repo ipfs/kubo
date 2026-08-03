@@ -1,6 +1,9 @@
 // Tests for `ipfs name` CLI commands.
 // - TestName: tests name publish, resolve, and inspect
 // - TestNameGetPut: tests name get and put for raw IPNS record handling
+// - TestNamePublishFlagValidation: tests --lifetime/--ttl validation
+// - TestNamePublishTTLClamp: tests that the default TTL is capped to --lifetime
+// - TestNameRepublishConfigValidation: tests RecordLifetime/RepublishPeriod validation
 
 package cli
 
@@ -12,8 +15,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ipfs/boxo/ipns"
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/name"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/require"
@@ -966,4 +971,90 @@ func TestNameGetPut(t *testing.T) {
 		require.Error(t, res.Err)
 		require.Contains(t, res.Stderr.String(), "existing IPNS record has sequence 100 >= new record sequence 100")
 	})
+}
+
+func TestNamePublishFlagValidation(t *testing.T) {
+	t.Parallel()
+
+	// Any syntactically valid CID works: flag validation runs before the path
+	// is resolved or the record is published, so the node only needs a repo.
+	const publishPath = "/ipfs/bafybeidg3uxibfrt7uqh7zd5yaodetik7wjwi4u7rwv2ndbgj6ec7lsv2a"
+
+	newNode := func(t *testing.T) *harness.Node {
+		return harness.NewT(t).NewNode().Init("--profile=test")
+	}
+
+	t.Run("rejects negative --lifetime", func(t *testing.T) {
+		t.Parallel()
+		res := newNode(t).RunIPFS("name", "publish", "--allow-offline", "--lifetime=-5m", publishPath)
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.Trimmed(), "lifetime must be greater than zero")
+	})
+
+	t.Run("rejects zero --lifetime", func(t *testing.T) {
+		t.Parallel()
+		res := newNode(t).RunIPFS("name", "publish", "--allow-offline", "--lifetime=0s", publishPath)
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.Trimmed(), "lifetime must be greater than zero")
+	})
+
+	t.Run("rejects negative --ttl", func(t *testing.T) {
+		t.Parallel()
+		res := newNode(t).RunIPFS("name", "publish", "--allow-offline", "--ttl=-5m", publishPath)
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.Trimmed(), "ttl must not be negative")
+	})
+
+	t.Run("rejects explicit --ttl greater than --lifetime", func(t *testing.T) {
+		t.Parallel()
+		res := newNode(t).RunIPFS("name", "publish", "--allow-offline", "--lifetime=1m", "--ttl=5m", publishPath)
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.Trimmed(), "ttl (5m0s) must not be greater than lifetime (1m0s)")
+	})
+}
+
+func TestNameRepublishConfigValidation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("daemon refuses to start when RecordLifetime is shorter than RepublishPeriod", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Ipns.RecordLifetime = "1h"
+			cfg.Ipns.RepublishPeriod = "4h"
+		})
+		res := node.RunIPFS("daemon")
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.Trimmed(), "IPNS.RecordLifetime (1h0m0s) must be >= IPNS.RepublishPeriod (4h0m0s)")
+	})
+}
+
+func TestNamePublishTTLClamp(t *testing.T) {
+	t.Parallel()
+
+	const (
+		fixturePath = "fixtures/TestName.car"
+		fixtureCid  = "bafybeidg3uxibfrt7uqh7zd5yaodetik7wjwi4u7rwv2ndbgj6ec7lsv2a"
+	)
+
+	node := harness.NewT(t).NewNode().Init("--profile=test")
+	r, err := os.Open(fixturePath)
+	require.NoError(t, err)
+	defer r.Close()
+	require.NoError(t, node.IPFSDagImport(r, fixtureCid))
+	node.StartDaemon()
+	t.Cleanup(func() { node.StopDaemon() })
+
+	ipnsPath := ipns.NamespacePrefix + ipns.NameFromPeer(node.PeerID()).String()
+	publishPath := "/ipfs/" + fixtureCid
+
+	// Lifetime (30s) is shorter than the default TTL (5m); the record's TTL is
+	// capped to the lifetime rather than erroring.
+	node.IPFS("name", "publish", "--lifetime=30s", publishPath)
+	record := node.IPFS("routing", "get", ipnsPath).Stdout.Bytes()
+	res := node.PipeToIPFS(bytes.NewReader(record), "name", "inspect", "--enc=json")
+	val := name.IpnsInspectResult{}
+	require.NoError(t, json.Unmarshal(res.Stdout.Bytes(), &val))
+	require.NotNil(t, val.Entry.TTL)
+	require.Equal(t, 30*time.Second, *val.Entry.TTL)
 }

@@ -1,30 +1,80 @@
-# Telemetry Plugin Documentation
+# Telemetry
 
-The **Telemetry plugin** is a feature in Kubo that collects **anonymized usage data** to help the development team better understand how the software is used, identify areas for improvement, and guide future feature development.
+The telemetry plugin sends anonymized usage data about a Kubo node to an HTTP endpoint. It tells Kubo maintainers which features are actually used, so work goes where it helps.
 
-This data is not personally identifiable and is used solely for the purpose of improving the Kubo project.
+Telemetry is enabled by default and reports to `https://telemetry.ipshipyard.dev`. Each report carries a random identifier, coarse buckets, and configuration flags. It never carries personal data, file names, content identifiers, or peer addresses. The first report is sent 15 minutes after the daemon starts, then once a day.
 
----
+You can turn it off at any time, and a build of Kubo can ship with the endpoint removed. See [Disabling telemetry](#disabling-telemetry).
 
-## 🛡️ How to Control Telemetry
+**Table of Contents**
 
-The behavior of the Telemetry plugin is controlled via the environment variable [`IPFS_TELEMETRY`](environment-variables.md#ipfs_telemetry) and optionally via the `Plugins.Plugins.telemetry.Config.Mode` in the IPFS config file.
+- [Disabling telemetry](#disabling-telemetry)
+  - [For one daemon run](#for-one-daemon-run)
+  - [For a node](#for-a-node)
+  - [For every tool on the machine](#for-every-tool-on-the-machine)
+  - [When building Kubo yourself](#when-building-kubo-yourself)
+- [Sending to your own collector](#sending-to-your-own-collector)
+  - [Modes](#modes)
+  - [Configuration](#configuration)
+- [Endpoint API](#endpoint-api)
+  - [Payload](#payload)
+  - [Retiring an endpoint](#retiring-an-endpoint)
+  - [Running your own collector](#running-your-own-collector)
+- [Data collected](#data-collected)
+- [Privacy](#privacy)
+- [Testing locally](#testing-locally)
+- [See also](#see-also)
 
-### Available Modes
+## Disabling telemetry
 
-| Mode     | Description                                                                 |
-|----------|-----------------------------------------------------------------------------|
-| `on`     | **Default**. Telemetry is enabled. Data is sent periodically.              |
-| `off`    | Telemetry is disabled. No data is sent. Any existing telemetry UUID file is removed. |
-| `auto`   | Like `on`, but logs an informative message about the telemetry and gives user 15 minutes to opt-out before first collection. This mode is automatically used on the first run when `IPFS_TELEMETRY` is not set and telemetry UUID is not found (not generated yet). The informative message is only shown once. |
+Any of the options below stops the node from sending. Each takes effect on the next daemon start.
 
-You can set the mode in your environment:
+### For one daemon run
+
+Set [`IPFS_TELEMETRY`](environment-variables.md#ipfs_telemetry) to `off`:
 
 ```bash
-export IPFS_TELEMETRY="off"
+export IPFS_TELEMETRY=off
+ipfs daemon
 ```
 
-Or in your IPFS config file:
+### For a node
+
+Set the mode in the config file, then restart the daemon:
+
+```bash
+ipfs config Plugins.Plugins.telemetry.Config.Mode off
+```
+
+To go further and keep the plugin from loading at all:
+
+```bash
+ipfs config --json Plugins.Plugins.telemetry.Disabled true
+```
+
+### For every tool on the machine
+
+Kubo honors [`DO_NOT_TRACK`](environment-variables.md#do_not_track), the shared opt-out convention other command line tools read as well:
+
+```bash
+export DO_NOT_TRACK=1
+```
+
+`IPFS_TELEMETRY` wins over `DO_NOT_TRACK`, so a machine that opts out globally can still keep telemetry on for one node with `IPFS_TELEMETRY=on`.
+
+### When building Kubo yourself
+
+The built-in endpoint lives in one linker-settable variable, so you can build a Kubo that has no telemetry destination at all. Blank it at build time:
+
+```bash
+go build -ldflags "-X github.com/ipfs/kubo/plugin/plugins/telemetry.defaultEndpoint=" -o ipfs ./cmd/ipfs
+```
+
+A binary built this way collects nothing, writes no telemetry identifier, and needs no configuration from the people running it. Distributors and packagers who do not want their users reporting to the Kubo maintainers should use this rather than patching source. The operator of such a build can still point it at their own collector with `Endpoint`.
+
+## Sending to your own collector
+
+Set `Endpoint` to your own URL to report there instead of the built-in destination:
 
 ```json
 {
@@ -32,7 +82,7 @@ Or in your IPFS config file:
     "Plugins": {
       "telemetry": {
         "Config": {
-          "Mode": "off"
+          "Endpoint": "https://telemetry.example.com"
         }
       }
     }
@@ -40,87 +90,107 @@ Or in your IPFS config file:
 }
 ```
 
----
+### Modes
 
-## 📦 What Data is Collected?
+The mode comes from [`IPFS_TELEMETRY`](environment-variables.md#ipfs_telemetry) first, then [`DO_NOT_TRACK`](environment-variables.md#do_not_track), then `Plugins.Plugins.telemetry.Config.Mode`.
 
-The telemetry plugin collects the following anonymized data:
+| Mode   | Description                                                                                             |
+|--------|---------------------------------------------------------------------------------------------------------|
+| `auto` | Default when the mode is unset. Telemetry is enabled, and a node shows the startup notice on its first run. |
+| `on`   | Telemetry is enabled.                                                                                    |
+| `off`  | Telemetry is disabled. Nothing is sent, and the stored identifier is removed.                            |
 
-### General Information
+### Configuration
 
-- **UUID**: Anonymous identifier for this node
-- **Agent version**: Kubo version string
-- **Private network**: Whether running in a private IPFS network
-- **Repository size**: Categorized into privacy-preserving buckets (1GB, 5GB, 10GB, 100GB, 500GB, 1TB, 10TB, >10TB)
-- **Uptime**: Categorized into privacy-preserving buckets (1d, 2d, 3d, 7d, 14d, 30d, >30d)
+| Key        | Type   | Default                            | Description                                                                              |
+|------------|--------|------------------------------------|--------------------------------------------------------------------------------------------|
+| `Mode`     | string | `auto`                             | `auto`, `on` or `off`. See [Modes](#modes).                                              |
+| `Endpoint` | string | `https://telemetry.ipshipyard.dev` | URL the node sends telemetry to.                                                          |
+| `Delay`    | string | `15m`                              | How long to wait after daemon start before the first send. Accepts a Go duration string. |
 
-### Routing & Discovery
+## Endpoint API
 
-- **Custom bootstrap peers**: Whether custom `Bootstrap` peers are configured
-- **Routing type**: The `Routing.Type` configured for the node
-- **Accelerated DHT client**: Whether `Routing.AcceleratedDHTClient` is enabled
-- **Delegated routing count**: Number of `Routing.DelegatedRouters` configured
-- **AutoConf enabled**: Whether `AutoConf.Enabled` is set
-- **Custom AutoConf URL**: Whether custom `AutoConf.URL` is configured
-- **mDNS**: Whether `Discovery.MDNS.Enabled` is set
+When enabled, the node sends one request per collection to the `Endpoint`:
 
-### Content Providing
+- Method: `POST`
+- Headers: `Content-Type: application/json`, plus a `User-Agent` carrying the Kubo version
+- Body: a single JSON object (see [Payload](#payload))
+- Response: any `2xx` is success. A status of `400` or higher is a failure; the node logs it and retries on the next interval. `410` is special, see [Retiring an endpoint](#retiring-an-endpoint).
 
-- **Provide and Reprovide strategy**: The `Provide.Strategy` configured
-- **Sweep-based provider**: Whether `Provide.DHT.SweepEnabled` is set
-- **Custom Interval**: Whether custom `Provide.DHT.Interval` is configured
-- **Custom MaxWorkers**: Whether custom `Provide.DHT.MaxWorkers` is configured
+The first request is sent `Delay` after the daemon starts (15 minutes by default), then once every 24 hours while the daemon runs. Requests go through `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` when those are set.
 
-### Network Configuration
+### Payload
 
-- **AutoNAT service mode**: The `AutoNAT.ServiceMode` configured
-- **AutoNAT reachability**: Current reachability status determined by AutoNAT
-- **Hole punching**: Whether `Swarm.EnableHolePunching` is enabled
-- **Circuit relay addresses**: Whether the node advertises circuit relay addresses
-- **Public IPv4 addresses**: Whether the node has public IPv4 addresses
-- **Public IPv6 addresses**: Whether the node has public IPv6 addresses
-- **AutoWSS**: Whether `AutoTLS.AutoWSS` is enabled
-- **Custom domain suffix**: Whether custom `AutoTLS.DomainSuffix` is configured
+The body is the `LogEvent` struct defined in [`plugin/plugins/telemetry/telemetry.go`](https://github.com/ipfs/kubo/blob/master/plugin/plugins/telemetry/telemetry.go). That struct is the source of truth for the fields; this page can fall behind it, so check the code for the current set.
 
-### Platform Information
+Example:
 
-- **Operating system**: The OS the node is running on
-- **CPU architecture**: The architecture the node is running on
-- **Container detection**: Whether the node is running inside a container
-- **VM detection**: Whether the node is running inside a virtual machine
+```json
+{
+  "uuid": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
+  "agent_version": "kubo/0.43.0/",
+  "private_network": false,
+  "bootstrappers_custom": false,
+  "repo_size_bucket": 5368709120,
+  "uptime_bucket": 86400000000000,
+  "reprovider_strategy": "all",
+  "provide_dht_sweep_enabled": false,
+  "provide_dht_interval_custom": false,
+  "provide_dht_max_workers_custom": false,
+  "routing_type": "auto",
+  "routing_accelerated_dht_client": false,
+  "routing_delegated_count": 0,
+  "autonat_service_mode": "enabled",
+  "autonat_reachability": "Public",
+  "swarm_enable_hole_punching": true,
+  "swarm_circuit_addresses": true,
+  "swarm_ipv4_public_addresses": true,
+  "swarm_ipv6_public_addresses": false,
+  "auto_tls_auto_wss": true,
+  "auto_tls_domain_suffix_custom": false,
+  "autoconf": true,
+  "autoconf_custom": false,
+  "discovery_mdns_enabled": true,
+  "platform_os": "linux",
+  "platform_arch": "amd64",
+  "platform_containerized": false,
+  "platform_vm": false
+}
+```
 
-### Code Reference
+`repo_size_bucket` is an upper bound in bytes and `uptime_bucket` is an upper bound in nanoseconds. Both are coarse buckets rather than exact values (see [Privacy](#privacy)).
 
-Data is organized in the `LogEvent` struct at [`plugin/plugins/telemetry/telemetry.go`](https://github.com/ipfs/kubo/blob/master/plugin/plugins/telemetry/telemetry.go). This struct is the authoritative source of truth for all telemetry data, including privacy-preserving buckets for repository size and uptime. Note that this documentation may not always be up-to-date - refer to the code for the current implementation.
+### Retiring an endpoint
 
----
+A collector that answers `410 Gone` is telling nodes to stop.[^rfc9110] A node that gets a `410` writes a `telemetry_retired` file in its repo, removes its `telemetry_uuid`, and sends nothing further to that endpoint, on this run or any later one.
 
-## 🧑‍🤝‍🧑 Privacy and Anonymization
+This is how telemetry gets switched off across nodes that are already running, without waiting for anyone to upgrade. It works the same for third-party collectors: answer `410` when you retire yours, so the nodes pointed at it stop rather than retry forever.
 
-All data collected is:
-- **Anonymized**: No personally identifiable information (PII) is sent.
-- **Optional**: Users can choose to opt out at any time.
-- **Secure**: Data is sent over HTTPS to a trusted endpoint.
+The marker holds the endpoint it applies to. Pointing the node at a different `Endpoint`, or deleting the file, starts reporting again.
 
-The telemetry UUID is stored in the IPFS repo folder and is used to identify the node across runs, but it does not contain any personal information. When you opt-out, this UUID file is automatically removed to ensure complete privacy.
+[^rfc9110]: [RFC 9110, section 15.5.11](https://httpwg.org/specs/rfc9110.html#status.410): a `410` means the resource is intentionally unavailable, the condition is likely permanent, and the server owners want remote references removed.
 
----
+### Running your own collector
 
-## 📦 Contributing to the Project
+A collector is any HTTP service that accepts the `POST` above and replies with a `2xx`. Parse the JSON body and keep the fields you need. Point one or more nodes at it through their `Endpoint`, and use the per-node `uuid` to group repeated reports from the same node.
 
-By enabling telemetry, you are helping the Kubo team improve the software for the entire community. The data is used to:
+## Data collected
 
-- Prioritize feature development
-- Identify performance bottlenecks
-- Improve user experience
+Each report carries the fields shown in the [Payload example](#payload): the Kubo version, coarse buckets for repository size and uptime, booleans and enums describing the node's routing, providing, network, and discovery configuration, and basic platform facts such as OS and architecture. No file names, content identifiers, or peer addresses are included.
 
-You can always disable telemetry at any time if you change your mind.
+To see the exact data your node would send, set `GOLOG_LOG_LEVEL="telemetry=debug"`.
 
----
+## Privacy
 
-## 🧪 Testing Telemetry
+- **Anonymized**: no personally identifiable information is sent. Sizes and uptimes are reported as coarse buckets, not exact values.
+- **Announced**: the first run of a node prints a notice naming the endpoint and the ways to opt out, 15 minutes before anything is sent.
+- **Yours to turn off**: see [Disabling telemetry](#disabling-telemetry). Opting out removes the stored identifier.
 
-If you're testing telemetry locally, you can change the endpoint by setting the `Endpoint` field in the config:
+The telemetry identifier (`uuid`) is stored in the IPFS repo directory and identifies the node across runs while telemetry is enabled. It holds no personal information.
+
+## Testing locally
+
+To capture and inspect telemetry on your own machine, run a small HTTP server and point the endpoint at it:
 
 ```json
 {
@@ -129,7 +199,8 @@ If you're testing telemetry locally, you can change the endpoint by setting the 
       "telemetry": {
         "Config": {
           "Mode": "on",
-          "Endpoint": "http://localhost:8080"
+          "Endpoint": "http://localhost:9099",
+          "Delay": "5s"
         }
       }
     }
@@ -137,13 +208,10 @@ If you're testing telemetry locally, you can change the endpoint by setting the 
 }
 ```
 
-This allows you to capture and inspect telemetry data locally.
+The short `Delay` sends the first report a few seconds after startup instead of after the default 15 minutes.
 
----
+## See also
 
-## 📦 Further Reading
-
-For more information, see:
-- [IPFS Environment Variables](docs/environment-variables.md)
-- [IPFS Plugins](docs/plugins.md)
-- [IPFS Configuration](docs/config.md)
+- [Kubo environment variables](environment-variables.md)
+- [Plugins](plugins.md)
+- [Kubo configuration](config.md)
