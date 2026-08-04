@@ -4253,6 +4253,8 @@ Accepted values:
 - `balanced` (default): Balanced DAG layout with uniform leaf depth.
 - `trickle`: Trickle DAG layout optimized for streaming.
 
+`ipfs add --trickle` and `ipfs add --trickle=false` override this per command.
+
 Commands affected: `ipfs add`
 
 Default: `balanced`

@@ -322,7 +322,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		}
 
 		progress, _ := req.Options[progressOptionName].(bool)
-		trickle, _ := req.Options[trickleOptionName].(bool)
+		trickle, trickleSet := req.Options[trickleOptionName].(bool)
 		wrap, _ := req.Options[wrapOptionName].(bool)
 		onlyHash, _ := req.Options[onlyHashOptionName].(bool)
 		silent, _ := req.Options[silentOptionName].(bool)
@@ -497,8 +497,15 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			opts = append(opts, options.Unixfs.Chunker(chunker))
 		}
 
-		if trickle {
-			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
+		// Forward the layout only when --trickle was passed, so an explicit
+		// --trickle=false still overrides a config that selects the trickle
+		// layout; otherwise UnixfsAPI.Add applies Import.UnixFSDAGLayout.
+		if trickleSet {
+			layout := options.BalancedLayout
+			if trickle {
+				layout = options.TrickleLayout
+			}
+			opts = append(opts, options.Unixfs.Layout(layout))
 		}
 
 		opts = append(opts, nil) // events option placeholder
