@@ -63,6 +63,33 @@ var (
 	LegacyFallbackUnixFSHAMTDirectoryMaxFanout = int64(uio.DefaultShardWidth)
 )
 
+// Aliases kept for external users of this package. The values are the fallback
+// applied when the matching Import field is unset, not what `ipfs init` writes:
+// a new repository gets the unixfs-v1-2025 profile instead.
+const (
+	// Deprecated: use LegacyFallbackCidVersion.
+	DefaultCidVersion = LegacyFallbackCidVersion
+	// Deprecated: use LegacyFallbackUnixFSRawLeaves.
+	DefaultUnixFSRawLeaves = LegacyFallbackUnixFSRawLeaves
+	// Deprecated: use LegacyFallbackUnixFSChunker.
+	DefaultUnixFSChunker = LegacyFallbackUnixFSChunker
+	// Deprecated: use LegacyFallbackHashFunction.
+	DefaultHashFunction = LegacyFallbackHashFunction
+	// Deprecated: use LegacyFallbackUnixFSHAMTDirectorySizeEstimation.
+	DefaultUnixFSHAMTDirectorySizeEstimation = LegacyFallbackUnixFSHAMTDirectorySizeEstimation
+	// Deprecated: use LegacyFallbackUnixFSDAGLayout.
+	DefaultUnixFSDAGLayout = LegacyFallbackUnixFSDAGLayout
+)
+
+var (
+	// Deprecated: use LegacyFallbackUnixFSFileMaxLinks.
+	DefaultUnixFSFileMaxLinks = LegacyFallbackUnixFSFileMaxLinks
+	// Deprecated: use LegacyFallbackUnixFSDirectoryMaxLinks.
+	DefaultUnixFSDirectoryMaxLinks = LegacyFallbackUnixFSDirectoryMaxLinks
+	// Deprecated: use LegacyFallbackUnixFSHAMTDirectoryMaxFanout.
+	DefaultUnixFSHAMTDirectoryMaxFanout = LegacyFallbackUnixFSHAMTDirectoryMaxFanout
+)
+
 // Import configures the default options for ingesting data. This affects commands
 // that ingest data, such as 'ipfs add', 'ipfs dag put, 'ipfs block put', 'ipfs files write'.
 type Import struct {
