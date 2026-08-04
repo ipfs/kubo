@@ -272,7 +272,6 @@ Use --live for a fresh DHT provider count (requires content routing).
 			g, gctx := errgroup.WithContext(req.Context)
 			g.SetLimit(liveLookupParallelism)
 			for i := range records {
-				i := i
 				c := records[i].Cid
 				g.Go(func() error {
 					lookupCtx, cancel := context.WithTimeout(gctx, ondemandpin.CheckTimeout)

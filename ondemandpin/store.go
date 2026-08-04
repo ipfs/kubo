@@ -23,11 +23,11 @@ const dsPrefix = "/ondemand-pins/"
 
 type Record struct {
 	Cid               cid.Cid   `json:"Cid"`
-	LastAboveTarget   time.Time `json:"LastAboveTarget,omitempty"`
-	UnpinAt           time.Time `json:"UnpinAt,omitempty"` // grace deadline (includes jitter)
+	LastAboveTarget   time.Time `json:"LastAboveTarget"`
+	UnpinAt           time.Time `json:"UnpinAt"` // grace deadline (includes jitter)
 	FailureCount      int       `json:"FailureCount,omitempty"`
-	NextCheckAt       time.Time `json:"NextCheckAt,omitempty"`
-	LastCheckedAt     time.Time `json:"LastCheckedAt,omitempty"`
+	NextCheckAt       time.Time `json:"NextCheckAt"`
+	LastCheckedAt     time.Time `json:"LastCheckedAt"`
 	LastProviderCount int       `json:"LastProviderCount,omitempty"`
 	LastResult        string    `json:"LastResult,omitempty"`
 	CreatedAt         time.Time `json:"CreatedAt"`
