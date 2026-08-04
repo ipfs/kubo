@@ -57,7 +57,7 @@ type UnixfsAPI CoreAPI
 func importDefaultOptions(imp *config.Import, caller *options.UnixfsAddSettings) ([]options.UnixfsAddOption, error) {
 	var opts []options.UnixfsAddOption
 
-	callerForcesVersion := caller.CidVersionSet || caller.MhType != mh.SHA2_256
+	callerForcesVersion := caller.CidVersionSet || (caller.MhTypeSet && caller.MhType != mh.SHA2_256)
 	configCidVer := int(imp.CidVersion.WithDefault(config.LegacyFallbackCidVersion))
 	if !callerForcesVersion || caller.CidVersion == configCidVer {
 		if !imp.CidVersion.IsDefault() {

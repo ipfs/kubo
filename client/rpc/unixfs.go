@@ -34,14 +34,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 		return path.ImmutablePath{}, err
 	}
 
-	mht, ok := mh.Codes[options.MhType]
-	if !ok {
-		return path.ImmutablePath{}, fmt.Errorf("unknowm mhType %d", options.MhType)
-	}
-
 	req := api.core().Request("add").
-		Option("hash", mht).
-		Option("chunker", options.Chunker).
 		Option("fscache", options.FsCache).
 		Option("inline", options.Inline).
 		Option("inline-limit", options.InlineLimit).
@@ -51,14 +44,24 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 		Option("silent", options.Silent).
 		Option("progress", options.Progress)
 
-	// Only forward cid-version and raw-leaves when the caller set them
-	// explicitly; otherwise let the daemon apply its configured Import
-	// defaults (the CID version follows the daemon's import profile).
+	// Forward every DAG-shaping option only when the caller set it explicitly.
+	// Anything left unset is resolved by the daemon from its Import config, so
+	// an Add over RPC produces the same CIDs as `ipfs add` on that node.
 	if options.CidVersionSet {
 		req.Option("cid-version", options.CidVersion)
 	}
 	if options.RawLeavesSet {
 		req.Option("raw-leaves", options.RawLeaves)
+	}
+	if options.MhTypeSet {
+		mht, ok := mh.Codes[options.MhType]
+		if !ok {
+			return path.ImmutablePath{}, fmt.Errorf("unknowm mhType %d", options.MhType)
+		}
+		req.Option("hash", mht)
+	}
+	if options.ChunkerSet {
+		req.Option("chunker", options.Chunker)
 	}
 	if options.MaxFileLinksSet {
 		req.Option("max-file-links", options.MaxFileLinks)
@@ -69,12 +72,8 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 	if options.MaxHAMTFanoutSet {
 		req.Option("max-hamt-fanout", options.MaxHAMTFanout)
 	}
-
-	switch options.Layout {
-	case caopts.BalancedLayout:
-		// noop, default
-	case caopts.TrickleLayout:
-		req.Option("trickle", true)
+	if options.LayoutSet {
+		req.Option("trickle", options.Layout == caopts.TrickleLayout)
 	}
 
 	d := files.NewMapDirectory(map[string]files.Node{"": f}) // unwrapped on the other side
