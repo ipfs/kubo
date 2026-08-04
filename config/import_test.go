@@ -139,6 +139,59 @@ func TestValidateImportConfig_CidVersionRawLeaves(t *testing.T) {
 	}
 }
 
+// TestValidateImportConfig_CidVersionHashFunction covers the one pairing that
+// cannot be honored as written: CIDv0 is defined as sha2-256 dag-pb. An unset
+// CidVersion is not a conflict, because a non-sha2-256 hash then selects CIDv1.
+func TestValidateImportConfig_CidVersionHashFunction(t *testing.T) {
+	tests := []struct {
+		name       string
+		setVersion bool
+		cidVer     int64
+		hashFunc   string
+		wantErr    bool
+	}{
+		{name: "cidv0 with sha2-256", setVersion: true, cidVer: 0, hashFunc: "sha2-256", wantErr: false},
+		{name: "cidv0 with blake3 is rejected", setVersion: true, cidVer: 0, hashFunc: "blake3", wantErr: true},
+		{name: "cidv1 with blake3", setVersion: true, cidVer: 1, hashFunc: "blake3", wantErr: false},
+		{name: "unset version with blake3 selects cidv1", setVersion: false, hashFunc: "blake3", wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Import{HashFunction: *NewOptionalString(tt.hashFunc)}
+			if tt.setVersion {
+				cfg.CidVersion = *NewOptionalInteger(tt.cidVer)
+			}
+
+			err := ValidateImportConfig(cfg)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("ValidateImportConfig() expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ValidateImportConfig() unexpected error: %v", err)
+			}
+
+			// Every accepted pairing must yield a builder whose version can
+			// carry the hash, so `ipfs add` and MFS agree on it.
+			builder, err := cfg.UnixFSCidBuilder()
+			if err != nil {
+				t.Fatalf("UnixFSCidBuilder() unexpected error: %v", err)
+			}
+			c, err := builder.Sum([]byte("test"))
+			if err != nil {
+				t.Fatalf("builder.Sum failed: %v", err)
+			}
+			wantMhType := mh.Names[strings.ToLower(tt.hashFunc)]
+			if c.Prefix().MhType != wantMhType {
+				t.Errorf("multihash type = 0x%x, want 0x%x (%s)", c.Prefix().MhType, wantMhType, tt.hashFunc)
+			}
+		})
+	}
+}
+
 func TestValidateImportConfig_UnixFSFileMaxLinks(t *testing.T) {
 	tests := []struct {
 		name     string

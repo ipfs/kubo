@@ -689,6 +689,42 @@ func TestImportProfileStartupNotice(t *testing.T) {
 	})
 }
 
+// TestImportCidVersionHashFunctionConflict verifies that a config pinning CIDv0
+// next to a hash CIDv0 cannot carry is refused, instead of `ipfs add` erroring
+// on every import while `ipfs files write` quietly writes CIDv1.
+func TestImportCidVersionHashFunctionConflict(t *testing.T) {
+	t.Parallel()
+
+	const conflict = "Import.HashFunction=\"blake3\" requires Import.CidVersion=1"
+
+	t.Run("cidv0 with a non-sha2-256 hash is refused", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init("--profile=unixfs-v0-2015")
+		node.IPFS("config", "Import.HashFunction", "blake3")
+
+		res := node.RunIPFS("add", "-q", "--offline", node.ConfigFile())
+		require.Equal(t, 1, res.ExitCode())
+		require.Contains(t, res.Stderr.Trimmed(), conflict)
+	})
+
+	t.Run("an unset cid version lets the hash select CIDv1", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init()
+		node.IPFS("config", "--json", "Import", `{"HashFunction":"blake3"}`)
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		// `ipfs add` and MFS must agree: both follow the hash to CIDv1.
+		added := node.IPFSAddStr("hello blake3")
+		node.PipeStrToIPFS("hello blake3", "files", "write", "--create", "/blake3")
+		written := node.IPFS("files", "stat", "--hash", "/blake3").Stdout.Trimmed()
+
+		for _, c := range []string{added, written} {
+			require.Equal(t, "cidv1-blake3", node.IPFS("cid", "format", "-f", "%v-%h", c).Stdout.Trimmed())
+		}
+	})
+}
+
 // TestProtobufHelpers verifies the protobuf size calculation helpers.
 func TestProtobufHelpers(t *testing.T) {
 	t.Parallel()

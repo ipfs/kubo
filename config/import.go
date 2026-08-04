@@ -200,6 +200,13 @@ func ValidateImportConfig(cfg *Import) error {
 		if !verifcid.DefaultAllowlist.IsAllowed(hashCode) {
 			return fmt.Errorf("Import.HashFunction %q is not allowed for use in IPFS", hashFunc)
 		}
+
+		// CIDv0 is sha2-256 only, so this pair cannot be honored as written.
+		// An unset CidVersion is not a conflict: a non-sha2-256 hash then
+		// selects CIDv1, the way `ipfs add --hash` does.
+		if !cfg.CidVersion.IsDefault() && cfg.CidVersion.WithDefault(LegacyFallbackCidVersion) == 0 && hashCode != mh.SHA2_256 {
+			return fmt.Errorf("Import.HashFunction=%q requires Import.CidVersion=1 (CIDv0 only supports sha2-256)", hashFunc)
+		}
 	}
 
 	// Validate UnixFSHAMTDirectorySizeEstimation
@@ -347,6 +354,9 @@ func (i *Import) UnixFSCidBuilder() (cid.Builder, error) {
 	cidVer := int(i.CidVersion.WithDefault(LegacyFallbackCidVersion))
 	hashFunc := i.HashFunction.WithDefault(LegacyFallbackHashFunction)
 
+	// A non-sha2-256 hash requires CIDv1, so it selects the version whenever
+	// CidVersion is unset. Pinning CidVersion=0 next to such a hash is rejected
+	// by ValidateImportConfig rather than silently overridden here.
 	if hashFunc != LegacyFallbackHashFunction && cidVer == 0 {
 		cidVer = 1
 	}

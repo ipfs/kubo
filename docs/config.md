@@ -4075,6 +4075,8 @@ Must be a valid multihash name (e.g., `sha2-256`, `blake3`) and must be allowed 
 
 Run `ipfs cid hashes --supported` to see the full list of allowed hash functions.
 
+Anything other than `sha2-256` requires CIDv1. Leave `CidVersion` unset and the hash selects CIDv1 on its own; pin `CidVersion=0` next to such a hash and the node refuses to start, since CIDv0 cannot carry it.
+
 Default: `sha2-256`
 
 Type: `optionalString`
