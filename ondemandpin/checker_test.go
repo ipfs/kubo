@@ -26,7 +26,7 @@ func newFakeClock() *fakeClock {
 	return c
 }
 
-func (c *fakeClock) Now() time.Time          { return time.Unix(0, c.t.Load()) }
+func (c *fakeClock) Now() time.Time          { return time.Unix(0, c.t.Load()).UTC() }
 func (c *fakeClock) Advance(d time.Duration) { c.t.Add(int64(d)) }
 
 type mockRouting struct {
