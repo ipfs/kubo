@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -16,6 +17,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// clearTelemetryEnv keeps a developer machine that opted out of telemetry from
+// changing what these tests exercise.
+func clearTelemetryEnv(node *harness.Node) {
+	node.Runner.Env["IPFS_TELEMETRY"] = ""
+	node.Runner.Env["DO_NOT_TRACK"] = ""
+}
 
 func TestTelemetry(t *testing.T) {
 	t.Parallel()
@@ -145,94 +153,80 @@ func TestTelemetry(t *testing.T) {
 		assert.True(t, os.IsNotExist(err), "UUID file should be removed after opt-out")
 	})
 
-	t.Run("disabled by default (opt-in)", func(t *testing.T) {
+	t.Run("opt-out via DO_NOT_TRACK", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init()
+		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
+
+		node.Runner.Env["DO_NOT_TRACK"] = "1"
+		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
+
+		// Capture daemon output
+		stdout := &harness.Buffer{}
+		stderr := &harness.Buffer{}
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithStdout(stdout),
+				harness.RunWithStderr(stderr),
+			},
+		}, "")
+
+		time.Sleep(500 * time.Millisecond)
+
+		output := stdout.String() + stderr.String()
+		assert.Contains(t, output, "mode set to off by DO_NOT_TRACK", "Expected DO_NOT_TRACK to disable telemetry")
+		assert.NotContains(t, output, "Anonymous telemetry will be enabled", "Notice should not be shown when opted out")
+
+		node.StopDaemon()
+
+		uuidPath := filepath.Join(node.Dir, "telemetry_uuid")
+		_, err := os.Stat(uuidPath)
+		assert.True(t, os.IsNotExist(err), "UUID file should not exist when opted out")
+	})
+
+	t.Run("IPFS_TELEMETRY overrides DO_NOT_TRACK", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init()
+		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
+
+		// The Kubo-specific variable is the more specific signal, so it wins.
+		node.Runner.Env["DO_NOT_TRACK"] = "1"
+		node.Runner.Env["IPFS_TELEMETRY"] = "on"
+		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
+		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Endpoint", "https://telemetry.example.com")
+
+		// Capture daemon output
+		stdout := &harness.Buffer{}
+		stderr := &harness.Buffer{}
+
+		node.StartDaemonWithReq(harness.RunRequest{
+			CmdOpts: []harness.CmdOpt{
+				harness.RunWithStdout(stdout),
+				harness.RunWithStderr(stderr),
+			},
+		}, "")
+
+		time.Sleep(500 * time.Millisecond)
+
+		output := stdout.String() + stderr.String()
+		assert.Contains(t, output, "Anonymous telemetry will be enabled", "Expected telemetry to stay on")
+
+		node.StopDaemon()
+	})
+
+	t.Run("enabled by default shows info message", func(t *testing.T) {
 		t.Parallel()
 
 		// Create a new node and re-enable the plugin (the harness disables it).
-		// Leave Mode unset so we exercise the default, which is off.
+		// Leave everything else at defaults: telemetry is on and reports to the
+		// built-in endpoint. Nothing is sent during this test, the first
+		// collection is 15 minutes out.
 		node := harness.NewT(t).NewNode().Init()
 		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
-		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
-
-		// Capture daemon output
-		stdout := &harness.Buffer{}
-		stderr := &harness.Buffer{}
-
-		node.StartDaemonWithReq(harness.RunRequest{
-			CmdOpts: []harness.CmdOpt{
-				harness.RunWithStdout(stdout),
-				harness.RunWithStderr(stderr),
-			},
-		}, "")
-
-		time.Sleep(500 * time.Millisecond)
-
-		output := stdout.String() + stderr.String()
-
-		// No opt-in: no info message and no data collection.
-		assert.Contains(t, output, "telemetry not enabled (opt-in)", "Expected opt-in disabled message")
-		assert.NotContains(t, output, "Telemetry is enabled", "Info message should not be shown when telemetry is off by default")
-
-		node.StopDaemon()
-
-		// Verify UUID file was not created
-		uuidPath := filepath.Join(node.Dir, "telemetry_uuid")
-		_, err := os.Stat(uuidPath)
-		assert.True(t, os.IsNotExist(err), "UUID file should not exist when telemetry is off by default")
-	})
-
-	t.Run("default leaves existing UUID file untouched", func(t *testing.T) {
-		t.Parallel()
-
-		// The implicit default (no env, no config Mode) must do no work, not
-		// even disk IO: an existing UUID file is left in place, only an
-		// explicit "off" removes it.
-		node := harness.NewT(t).NewNode().Init()
-		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
-		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
-
-		uuidPath := filepath.Join(node.Dir, "telemetry_uuid")
-		require.NoError(t, os.WriteFile(uuidPath, []byte("existing-uuid"), 0600))
-
-		// Capture daemon output
-		stdout := &harness.Buffer{}
-		stderr := &harness.Buffer{}
-
-		node.StartDaemonWithReq(harness.RunRequest{
-			CmdOpts: []harness.CmdOpt{
-				harness.RunWithStdout(stdout),
-				harness.RunWithStderr(stderr),
-			},
-		}, "")
-
-		time.Sleep(500 * time.Millisecond)
-
-		output := stdout.String() + stderr.String()
-
-		assert.Contains(t, output, "telemetry not enabled (opt-in)", "Expected opt-in disabled message")
-		assert.NotContains(t, output, "removed existing telemetry UUID file", "Default must not touch the UUID file")
-
-		node.StopDaemon()
-
-		// The file must still be there and unchanged.
-		data, err := os.ReadFile(uuidPath)
-		require.NoError(t, err, "UUID file should still exist under the implicit default")
-		assert.Equal(t, "existing-uuid", string(data), "UUID file contents should be unchanged")
-	})
-
-	t.Run("opt-in shows info message", func(t *testing.T) {
-		t.Parallel()
-		// Create a new node
-		node := harness.NewT(t).NewNode().Init()
-		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
-
-		// Enable debug logging
-		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
-
-		// Opt in: telemetry is off by default, so enable it and point it at an
-		// endpoint. "on" logs the startup notice once on the first run.
-		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Mode", "on")
-		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Endpoint", "https://telemetry.example.com")
+		clearTelemetryEnv(node)
 
 		// Capture daemon output
 		stdout := &harness.Buffer{}
@@ -250,11 +244,14 @@ func TestTelemetry(t *testing.T) {
 		// Get daemon output
 		output := stdout.String() + stderr.String()
 
-		// Opt-in run should show the info message
-		assert.Contains(t, output, "Telemetry is enabled", "Expected telemetry enabled message")
-		assert.Contains(t, output, "To disable telemetry", "Expected disable instructions")
+		// First run: the notice explains what happens and how to opt out.
+		assert.Contains(t, output, "Anonymous telemetry")
+		assert.Contains(t, output, "https://telemetry.ipshipyard.dev", "Expected the built-in endpoint in the notice")
+		assert.Contains(t, output, "No data sent yet", "Expected no data sent message")
+		assert.Contains(t, output, "To opt-out before collection starts", "Expected opt-out instructions")
+		assert.Contains(t, output, "IPFS_TELEMETRY=off", "Expected the Kubo opt-out in the notice")
+		assert.Contains(t, output, "DO_NOT_TRACK=1", "Expected the cross-tool opt-out in the notice")
 		assert.Contains(t, output, "Learn more:", "Expected learn more link")
-		assert.Contains(t, output, "telemetry enabled via opt-in", "Expected telemetry enabled opt-in message")
 
 		// Stop daemon
 		node.StopDaemon()
@@ -262,84 +259,51 @@ func TestTelemetry(t *testing.T) {
 		// Verify UUID file was created
 		uuidPath := filepath.Join(node.Dir, "telemetry_uuid")
 		_, err := os.Stat(uuidPath)
-		assert.NoError(t, err, "UUID file should exist when telemetry is opted in")
+		assert.NoError(t, err, "UUID file should exist when daemon started without telemetry opt-out")
 	})
 
-	t.Run("auto is treated as off", func(t *testing.T) {
+	t.Run("endpoint answering 410 Gone stops telemetry for good", func(t *testing.T) {
 		t.Parallel()
 
-		// Create a new node
+		// A collector retires itself with 410 Gone. Nodes pointed at it stop
+		// sending, and stay stopped across restarts.
+		var requests atomic.Int32
+		retiredServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requests.Add(1)
+			w.WriteHeader(http.StatusGone)
+		}))
+		defer retiredServer.Close()
+
 		node := harness.NewT(t).NewNode().Init()
 		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
-
-		// "auto" is a legacy value; it now behaves like the default (off), even
-		// with an endpoint set.
-		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Mode", "auto")
-		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Endpoint", "https://telemetry.example.com")
+		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Delay", "100ms")
+		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Endpoint", retiredServer.URL)
 		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
+		clearTelemetryEnv(node)
 
-		// Capture daemon output
-		stdout := &harness.Buffer{}
-		stderr := &harness.Buffer{}
+		node.StartDaemon()
+		require.Eventually(t, func() bool {
+			return requests.Load() >= 1
+		}, 10*time.Second, 100*time.Millisecond, "expected one report before the endpoint retired")
 
-		node.StartDaemonWithReq(harness.RunRequest{
-			CmdOpts: []harness.CmdOpt{
-				harness.RunWithStdout(stdout),
-				harness.RunWithStderr(stderr),
-			},
-		}, "")
+		retiredPath := filepath.Join(node.Dir, "telemetry_retired")
+		require.Eventually(t, func() bool {
+			_, err := os.Stat(retiredPath)
+			return err == nil
+		}, 10*time.Second, 100*time.Millisecond, "expected the retired marker to be written")
 
-		time.Sleep(500 * time.Millisecond)
-
-		output := stdout.String() + stderr.String()
-
-		// auto must stay off: no info message and no data collection.
-		assert.Contains(t, output, "telemetry not enabled (opt-in)", "auto should behave like off")
-		assert.NotContains(t, output, "Telemetry is enabled", "auto must not show the opt-in banner")
+		// The identifier is dropped along with the endpoint.
+		_, err := os.Stat(filepath.Join(node.Dir, "telemetry_uuid"))
+		assert.True(t, os.IsNotExist(err), "UUID file should be removed once the endpoint retires")
 
 		node.StopDaemon()
 
-		// Verify UUID file was not created
-		uuidPath := filepath.Join(node.Dir, "telemetry_uuid")
-		_, err := os.Stat(uuidPath)
-		assert.True(t, os.IsNotExist(err), "auto must not create a UUID file")
-	})
-
-	t.Run("enabled without endpoint is skipped", func(t *testing.T) {
-		t.Parallel()
-
-		// Create a new node
-		node := harness.NewT(t).NewNode().Init()
-		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
-
-		// Enable telemetry but do not configure an endpoint.
-		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Mode", "on")
-		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
-
-		// Capture daemon output
-		stdout := &harness.Buffer{}
-		stderr := &harness.Buffer{}
-
-		node.StartDaemonWithReq(harness.RunRequest{
-			CmdOpts: []harness.CmdOpt{
-				harness.RunWithStdout(stdout),
-				harness.RunWithStderr(stderr),
-			},
-		}, "")
-
-		time.Sleep(500 * time.Millisecond)
-
-		output := stdout.String() + stderr.String()
-
-		// Enabled without an endpoint warns and sends nothing.
-		assert.Contains(t, output, "no endpoint is configured", "Expected missing-endpoint warning")
-
+		// A restart must not resume reporting to that endpoint.
+		requests.Store(0)
+		node.StartDaemon()
+		time.Sleep(2 * time.Second)
 		node.StopDaemon()
-
-		// Without an endpoint, no UUID is generated.
-		uuidPath := filepath.Join(node.Dir, "telemetry_uuid")
-		_, err := os.Stat(uuidPath)
-		assert.True(t, os.IsNotExist(err), "UUID file should not be created without an endpoint")
+		assert.Zero(t, requests.Load(), "no further reports should be sent to a retired endpoint")
 	})
 
 	t.Run("telemetry schema regression guard", func(t *testing.T) {
@@ -414,8 +378,8 @@ func TestTelemetry(t *testing.T) {
 		node := harness.NewT(t).NewNode().Init()
 		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
 
-		// Opt in to telemetry (off by default) and configure a very short delay
-		// and the mock endpoint for testing.
+		// Send to the mock endpoint instead of the built-in one, right away
+		// instead of 15 minutes in.
 		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Mode", "on")
 		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Delay", "100ms")
 		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Endpoint", mockServer.URL)

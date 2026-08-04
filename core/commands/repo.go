@@ -167,7 +167,7 @@ Version         string The repo version.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(repoSizeOnlyOptionName, "s", "Only report RepoSize and StorageMax."),
-		cmds.BoolOption(repoHumanOptionName, "H", "Print sizes in human readable format (e.g., 1K 234M 2G)"),
+		cmds.BoolOption(repoHumanOptionName, "H", "Print sizes in human readable format (e.g., 1.2 kB, 234 MB, 2.0 GB)."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)

@@ -131,7 +131,11 @@ func (r *contentRouter) GetClosestPeers(ctx context.Context, key cid.Cid) (iter.
 		return nil, fmt.Errorf("GetClosestPeers not supported for DHT type %T", r.n.DHTClient)
 	}
 
-	if err != nil {
+	// A lookup cut short by the deadline returns the closest peers found so far
+	// along with the context error. The HTTP routing server caps every request
+	// (server.DefaultRoutingTimeout), so on a slow query this is the difference
+	// between a useful answer and a 500.
+	if err != nil && len(peers) == 0 {
 		return nil, err
 	}
 

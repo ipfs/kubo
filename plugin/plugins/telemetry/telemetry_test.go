@@ -3,6 +3,7 @@ package telemetry
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -142,6 +143,9 @@ func TestSendTelemetry(t *testing.T) {
 	if err := logging.SetLogLevel("telemetry", "DEBUG"); err != nil {
 		t.Fatal(err)
 	}
+	// Ignore whatever the machine running the tests has set.
+	t.Setenv(modeEnvVar, "")
+	t.Setenv(doNotTrackEnvVar, "")
 	ts, eventGetter := mockServer(t)
 	defer ts.Close()
 
@@ -152,12 +156,10 @@ func TestSendTelemetry(t *testing.T) {
 		runOnce: true,
 	}
 
-	// Initialize the plugin. Telemetry is opt-in, so enable it and point it at
-	// the mock endpoint via config.
+	// Point the plugin at the mock endpoint instead of the built-in one.
 	pe := &plugin.Environment{
 		Repo: repoPath,
 		Config: map[string]any{
-			"Mode":     "on",
 			"Endpoint": ts.URL,
 		},
 	}
@@ -175,5 +177,129 @@ func TestSendTelemetry(t *testing.T) {
 	e := eventGetter()
 	if e.UUID != p.event.UUID {
 		t.Fatal("uuid mismatch")
+	}
+}
+
+// TestModeResolution covers where the mode comes from: IPFS_TELEMETRY wins over
+// DO_NOT_TRACK, which wins over the config file, which wins over the default.
+func TestModeResolution(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		telemetry  string // IPFS_TELEMETRY
+		doNotTrack string // DO_NOT_TRACK
+		configMode string
+		want       pluginMode
+	}{
+		{name: "unset is on", want: modeOn},
+		{name: "env off", telemetry: "off", want: modeOff},
+		{name: "env auto", telemetry: "auto", want: modeAuto},
+		{name: "config off", configMode: "off", want: modeOff},
+		{name: "env beats config", telemetry: "on", configMode: "off", want: modeOn},
+		{name: "do not track", doNotTrack: "1", want: modeOff},
+		{name: "do not track true", doNotTrack: "true", want: modeOff},
+		{name: "do not track beats config", doNotTrack: "1", configMode: "on", want: modeOff},
+		{name: "do not track zero is not opting out", doNotTrack: "0", want: modeOn},
+		{name: "env beats do not track", telemetry: "on", doNotTrack: "1", want: modeOn},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv(modeEnvVar, tc.telemetry)
+			t.Setenv(doNotTrackEnvVar, tc.doNotTrack)
+
+			cfg := map[string]any{}
+			if tc.configMode != "" {
+				cfg["Mode"] = tc.configMode
+			}
+
+			p := &telemetryPlugin{}
+			if err := p.Init(&plugin.Environment{Repo: t.TempDir(), Config: cfg}); err != nil {
+				t.Fatalf("Init() failed: %v", err)
+			}
+			if p.mode != tc.want {
+				t.Fatalf("mode = %d, want %d", p.mode, tc.want)
+			}
+		})
+	}
+}
+
+// TestEndpointFromBuild covers the built-in endpoint and the build-time knob
+// that removes it, documented in the package comment.
+func TestEndpointFromBuild(t *testing.T) {
+	t.Setenv(modeEnvVar, "")
+	t.Setenv(doNotTrackEnvVar, "")
+
+	p := &telemetryPlugin{}
+	if err := p.Init(&plugin.Environment{Repo: t.TempDir()}); err != nil {
+		t.Fatalf("Init() failed: %v", err)
+	}
+	if p.endpoint != defaultEndpoint {
+		t.Fatalf("endpoint = %q, want the built-in %q", p.endpoint, defaultEndpoint)
+	}
+
+	// Same as building with -ldflags "-X ...telemetry.defaultEndpoint=".
+	t.Cleanup(func(orig string) func() {
+		return func() { defaultEndpoint = orig }
+	}(defaultEndpoint))
+	defaultEndpoint = ""
+
+	p = &telemetryPlugin{}
+	if err := p.Init(&plugin.Environment{Repo: t.TempDir()}); err != nil {
+		t.Fatalf("Init() failed: %v", err)
+	}
+	if p.endpoint != "" {
+		t.Fatalf("endpoint = %q, want none", p.endpoint)
+	}
+}
+
+// TestEndpointRetired covers the kill switch: a collector answering 410 Gone
+// stops this node for good, without a Kubo release.
+func TestEndpointRetired(t *testing.T) {
+	t.Setenv(modeEnvVar, "")
+	t.Setenv(doNotTrackEnvVar, "")
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusGone)
+	}))
+	defer ts.Close()
+
+	repoPath := t.TempDir()
+	env := &plugin.Environment{Repo: repoPath, Config: map[string]any{"Endpoint": ts.URL}}
+
+	p := &telemetryPlugin{}
+	if err := p.Init(env); err != nil {
+		t.Fatalf("Init() failed: %v", err)
+	}
+	if err := os.WriteFile(p.uuidFilename, []byte("f81d4fae-7dec-11d0-a765-00a0c91e6bf6"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := p.sendTelemetry(); !errors.Is(err, errEndpointRetired) {
+		t.Fatalf("sendTelemetry() = %v, want %v", err, errEndpointRetired)
+	}
+	p.retire()
+
+	if _, err := os.Stat(p.uuidFilename); !os.IsNotExist(err) {
+		t.Fatal("retiring should drop the node identifier")
+	}
+
+	// A later run stays off for that endpoint.
+	next := &telemetryPlugin{}
+	if err := next.Init(env); err != nil {
+		t.Fatalf("Init() failed: %v", err)
+	}
+	if next.mode != modeOff {
+		t.Fatalf("mode = %d, want %d after the endpoint retired", next.mode, modeOff)
+	}
+
+	// Pointing at another collector resumes reporting.
+	elsewhere := &telemetryPlugin{}
+	err := elsewhere.Init(&plugin.Environment{
+		Repo:   repoPath,
+		Config: map[string]any{"Endpoint": "https://telemetry.example.com"},
+	})
+	if err != nil {
+		t.Fatalf("Init() failed: %v", err)
+	}
+	if elsewhere.mode == modeOff {
+		t.Fatal("a retired endpoint must not disable a different one")
 	}
 }
