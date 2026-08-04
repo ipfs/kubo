@@ -318,7 +318,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			if err != nil {
 				return err
 			}
-			conf, err = config.InitWithIdentity(identity)
+			conf, err = NewGeneratedConfig(identity)
 			if err != nil {
 				return err
 			}

@@ -116,17 +116,8 @@ environment variable:
 			if err != nil {
 				return err
 			}
-			conf, err = config.InitWithIdentity(identity)
+			conf, err = NewGeneratedConfig(identity)
 			if err != nil {
-				return err
-			}
-
-			// New repos adopt the unixfs-v1-2025 import profile from IPIP-499
-			// (CIDv1 with modern defaults); see ipfs/kubo#4143. This is applied
-			// only to the freshly generated config, not to a config supplied via
-			// `ipfs init - < config.json`. A user-provided --profile such as
-			// unixfs-v0-2015 is applied later in doInit and overrides this.
-			if err := config.Profiles[config.DefaultImportProfile].Transform(conf); err != nil {
 				return err
 			}
 		}
@@ -134,6 +125,24 @@ environment variable:
 		profiles, _ := req.Options[profileOptionName].(string)
 		return doInit(os.Stdout, cctx.ConfigRoot, empty, profiles, conf)
 	},
+}
+
+// NewGeneratedConfig builds the config for a brand-new repository: the
+// generated defaults plus the unixfs-v1-2025 import profile from IPIP-499, so
+// new repos produce CIDv1 (see ipfs/kubo#4143). Both `ipfs init` and
+// `ipfs daemon --init` use it. A config the user supplies instead (`ipfs init -
+// < config.json`, `ipfs daemon --init-config`) is left alone, and a
+// user-provided --profile such as unixfs-v0-2015 is applied later in doInit and
+// overrides the import profile.
+func NewGeneratedConfig(identity config.Identity) (*config.Config, error) {
+	conf, err := config.InitWithIdentity(identity)
+	if err != nil {
+		return nil, err
+	}
+	if err := config.Profiles[config.DefaultImportProfile].Transform(conf); err != nil {
+		return nil, err
+	}
+	return conf, nil
 }
 
 func applyProfiles(conf *config.Config, profiles string) error {

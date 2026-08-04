@@ -674,6 +674,19 @@ func TestImportProfileStartupNotice(t *testing.T) {
 
 		require.NotContains(t, node.Daemon.Stderr.String(), notice)
 	})
+
+	t.Run("no notice for a repo created by ipfs daemon --init", func(t *testing.T) {
+		t.Parallel()
+		// `ipfs daemon --init` writes the repo through its own code path, which
+		// must apply the same default import profile as `ipfs init`.
+		// The test profile only randomizes the listen ports.
+		node := harness.NewT(t).NewNode()
+		node.StartDaemon("--init", "--init-profile=test", "--offline")
+		defer node.StopDaemon()
+
+		require.Equal(t, "1", node.IPFS("config", "Import.CidVersion").Stdout.Trimmed())
+		require.NotContains(t, node.Daemon.Stderr.String(), notice)
+	})
 }
 
 // TestProtobufHelpers verifies the protobuf size calculation helpers.
