@@ -7,7 +7,7 @@ go 1.26.5
 replace github.com/ipfs/kubo => ./../../..
 
 require (
-	github.com/ipfs/boxo v0.42.2-0.20260804065645-1e7ee08dd1df
+	github.com/ipfs/boxo v0.42.2-0.20260804071642-5b06ee75a00c
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.49.0
 	github.com/multiformats/go-multiaddr v0.16.1
@@ -117,7 +117,7 @@ require (
 	github.com/libp2p/go-doh-resolver v0.6.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.3.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.4.1 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.42.2-0.20260804065032-2cc8c275c7fa // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.42.2-0.20260804071500-ab187effae98 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.9.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.17.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.6.0 // indirect
