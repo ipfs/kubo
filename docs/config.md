@@ -4017,13 +4017,15 @@ These options implement [IPIP-499: UnixFS CID Profiles](https://specs.ipfs.tech/
 
 Note that using CLI flags will override the options defined here.
 
+`ipfs init` and `ipfs daemon --init` write the [`unixfs-v1-2025`](#unixfs-v1-2025-profile) profile into a new repository, so a new node imports data as CIDv1 with raw leaves, 1 MiB chunks, and the rest of that profile's values. The `Default` listed under each option below is the fallback used when the field is absent, which is what an older repository created before this change relies on. Run `ipfs init --profile unixfs-v0-2015` to start a new repository on those legacy values instead.
+
 ### `Import.CidVersion`
 
 The default CID version. Commands affected: `ipfs add`.
 
 Must be either 0 or 1. CIDv0 uses SHA2-256 only, while CIDv1 supports multiple hash functions.
 
-New repositories default to `1` (CIDv1): `ipfs init` writes it via the [`unixfs-v1-2025`](#unixfs-v1-2025-profile) profile. Run `ipfs init --profile unixfs-v0-2015` for CIDv0 instead. The `Default` below is the fallback used only when the field is absent (older repositories).
+New repositories get `1` (CIDv1) from the [`unixfs-v1-2025`](#unixfs-v1-2025-profile) profile, as described above.
 
 Default: `0`
 
