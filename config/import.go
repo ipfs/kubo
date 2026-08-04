@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -111,12 +110,6 @@ func ValidateImportConfig(cfg *Import) error {
 		if cidVer != 0 && cidVer != 1 {
 			return fmt.Errorf("Import.CidVersion must be 0 or 1, got %d", cidVer)
 		}
-	}
-
-	// CIDv0 is dag-pb only; raw leaves are a CIDv1 feature. Reject the mix so a
-	// CidVersion=0 config cannot silently emit CIDv1 raw-leaf blocks.
-	if cfg.CidVersion.WithDefault(LegacyFallbackCidVersion) == 0 && cfg.UnixFSRawLeaves.WithDefault(LegacyFallbackUnixFSRawLeaves) {
-		return errors.New("Import.UnixFSRawLeaves=true is incompatible with Import.CidVersion=0 (CIDv0 requires dag-pb leaves); set Import.CidVersion=1 to use raw leaves")
 	}
 
 	// Validate UnixFSFileMaxLinks

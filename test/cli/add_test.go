@@ -112,6 +112,32 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, shortStringCidV1NoRawLeaves, cidStr)
 	})
 
+	t.Run("legacy repo with only Import.UnixFSRawLeaves set keeps working", func(t *testing.T) {
+		t.Parallel()
+		// Before the import profiles existed, raw leaves on top of the implicit
+		// CIDv0 default were a single config knob. Such a repo must keep
+		// starting and keep producing the CIDs it always did: a dag-pb root
+		// over raw leaves, which for a single-block file is the raw leaf itself.
+		node := harness.NewT(t).NewNode().Init()
+		node.IPFS("config", "--json", "Import", "{}")
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.UnixFSRawLeaves = config.True
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		require.Equal(t, shortStringCidV1, node.IPFSAddStr(shortString))
+
+		// The same pairing spelled out explicitly, including on the CLI.
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(0)
+		})
+		node.StopDaemon()
+		node.StartDaemon()
+		require.Equal(t, shortStringCidV1, node.IPFSAddStr(shortString))
+		require.Equal(t, shortStringCidV1, node.IPFSAddStr(shortString, "--cid-version=0", "--raw-leaves"))
+	})
+
 	t.Run("ipfs add --pin-name=foo", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()

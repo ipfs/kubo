@@ -265,7 +265,7 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		// MFS Integration
 		cmds.StringOption(toFilesOptionName, "Add reference to Files API (MFS) at the provided path."),
 		// CID & Hashing
-		cmds.IntOption(cidVersionOptionName, "CID version (0 or 1). CIDv1 enables raw-leaves and is required for non-sha2-256 hashes; CIDv0 forces dag-pb leaves. Default: Import.CidVersion"),
+		cmds.IntOption(cidVersionOptionName, "CID version (0 or 1). CIDv1 enables raw-leaves and is required for non-sha2-256 hashes; CIDv0 uses dag-pb leaves unless --raw-leaves is set. Default: Import.CidVersion"),
 		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. Default: Import.HashFunction"),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. Note: CIDv1 automatically enables raw-leaves. Default: false for CIDv0, true for CIDv1 (Import.UnixFSRawLeaves)"),
 		// Chunking & DAG Structure
@@ -337,7 +337,6 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 		nocopy, _ := req.Options[noCopyOptionName].(bool)
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
-		cidVersionSetByUser := cidVerSet // whether --cid-version was passed on the CLI
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
@@ -402,16 +401,6 @@ https://github.com/ipfs/kubo/blob/master/docs/config.md#import
 			// No explicit preference from user, disable raw-leaves and continue
 			rbset = true
 			rawblks = false
-		}
-
-		// --cid-version=0 and --raw-leaves contradict: CIDv0 has no raw leaf
-		// codec. Raw leaves at cidVer==0 can only come from an explicit
-		// --raw-leaves here (config raw-leaves is applied by the coreapi, and
-		// only when the effective CID version matches the config's; a config
-		// pinning CidVersion=0 with UnixFSRawLeaves=true is rejected at daemon
-		// start), so this is always a user contradiction.
-		if cidVersionSetByUser && cidVer == 0 && rawblks {
-			return fmt.Errorf("%s can't be true with --cid-version=0 (CIDv0 requires dag-pb leaves)", rawLeavesOptionName)
 		}
 
 		if onlyHash && toFilesSet {

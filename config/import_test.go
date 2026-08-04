@@ -107,19 +107,22 @@ func TestValidateImportConfig_CidVersion(t *testing.T) {
 	}
 }
 
+// TestValidateImportConfig_CidVersionRawLeaves guards a combination that looks
+// wrong but is not: a CIDv0 dag-pb root over raw (CIDv1) leaves. It is what
+// `ipfs add --nocopy` writes on a CIDv0 repo, and repos configured that way
+// before the Import profiles existed must keep starting.
 func TestValidateImportConfig_CidVersionRawLeaves(t *testing.T) {
 	tests := []struct {
 		name       string
 		setVersion bool
 		cidVer     int64
 		rawLeaves  Flag
-		wantErr    bool
 	}{
-		{name: "cidv1 with raw leaves is valid", setVersion: true, cidVer: 1, rawLeaves: True, wantErr: false},
-		{name: "cidv0 without raw leaves is valid", setVersion: true, cidVer: 0, rawLeaves: False, wantErr: false},
-		{name: "cidv0 with raw leaves is rejected", setVersion: true, cidVer: 0, rawLeaves: True, wantErr: true},
-		{name: "raw leaves with unset version defaults to 0 and is rejected", setVersion: false, rawLeaves: True, wantErr: true},
-		{name: "defaults are valid", setVersion: false, rawLeaves: Default, wantErr: false},
+		{name: "cidv1 with raw leaves", setVersion: true, cidVer: 1, rawLeaves: True},
+		{name: "cidv0 without raw leaves", setVersion: true, cidVer: 0, rawLeaves: False},
+		{name: "cidv0 with raw leaves", setVersion: true, cidVer: 0, rawLeaves: True},
+		{name: "raw leaves with unset version", setVersion: false, rawLeaves: True},
+		{name: "defaults", setVersion: false, rawLeaves: Default},
 	}
 
 	for _, tt := range tests {
@@ -129,12 +132,7 @@ func TestValidateImportConfig_CidVersionRawLeaves(t *testing.T) {
 				cfg.CidVersion = *NewOptionalInteger(tt.cidVer)
 			}
 
-			err := ValidateImportConfig(cfg)
-
-			if tt.wantErr && err == nil {
-				t.Errorf("ValidateImportConfig() expected error, got nil")
-			}
-			if !tt.wantErr && err != nil {
+			if err := ValidateImportConfig(cfg); err != nil {
 				t.Errorf("ValidateImportConfig() unexpected error: %v", err)
 			}
 		})

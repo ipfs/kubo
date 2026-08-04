@@ -888,8 +888,7 @@ tests_for_files_api() {
   fi
 
   # Reset Import.CidVersion and raw leaves back to the legacy CIDv0 pair (the
-  # base unixfs-v0-2015 defaults). Both must move together: CidVersion=0 with
-  # UnixFSRawLeaves=true is an invalid pairing the daemon refuses to start.
+  # base unixfs-v0-2015 defaults).
   test_expect_success "reset Import.CidVersion to cidv0" '
     ipfs config --json Import.CidVersion 0 &&
     ipfs config --json Import.UnixFSRawLeaves false

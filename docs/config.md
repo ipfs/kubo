@@ -4033,7 +4033,7 @@ Type: `optionalInteger`
 
 The default UnixFS raw leaves option. Commands affected: `ipfs add`, `ipfs files write`.
 
-Raw leaves are a CIDv1 feature: setting `UnixFSRawLeaves=true` together with `CidVersion=0` is rejected at startup, since CIDv0 requires dag-pb leaves. On `ipfs add`, `--cid-version=0` likewise forces dag-pb leaves.
+Raw leaves are stored as raw blocks, which are always CIDv1. Pairing them with `CidVersion=0` is allowed and produces a mixed DAG: a `Qm...` dag-pb root over `bafk...` raw leaves, the same shape `ipfs add --nocopy` writes. Asking for `--cid-version=0` on `ipfs add` forces dag-pb leaves instead, ignoring this setting.
 
 Default: `false` if `CidVersion=0`; `true` if `CidVersion=1`
 
