@@ -51,7 +51,7 @@ jobs:
         with:
           path: kubo-gateway
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'kubo-gateway/go.mod'
           cache: true
@@ -137,7 +137,7 @@ jobs:
         with:
           path: kubo-gateway
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'kubo-gateway/go.mod'
           cache: true

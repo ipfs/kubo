@@ -227,8 +227,9 @@ func TestPins(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init()
-		cidAStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
-		cidBStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
+		rnd := random.New()
+		cidAStr := node.IPFSAddStr(string(rnd.Bytes(1000)), "--pin=false")
+		cidBStr := node.IPFSAddStr(string(rnd.Bytes(1000)), "--pin=false")
 
 		_ = node.IPFS("pin", "add", "--name", "testPin", cidAStr)
 
@@ -255,9 +256,10 @@ func TestPins(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init()
-		cidAStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
-		cidBStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
-		cidCStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
+		rnd := random.New()
+		cidAStr := node.IPFSAddStr(string(rnd.Bytes(1000)), "--pin=false")
+		cidBStr := node.IPFSAddStr(string(rnd.Bytes(1000)), "--pin=false")
+		cidCStr := node.IPFSAddStr(string(rnd.Bytes(1000)), "--pin=false")
 
 		outA := cidAStr + " recursive testPin"
 		outB := cidBStr + " recursive testPin"
@@ -293,7 +295,8 @@ func TestPins(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init()
-		cidStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
+		rnd := random.New()
+		cidStr := node.IPFSAddStr(string(rnd.Bytes(1000)), "--pin=false")
 
 		outBefore := cidStr + " recursive A"
 		outAfter := cidStr + " recursive B"
@@ -314,8 +317,9 @@ func TestPins(t *testing.T) {
 		t.Parallel()
 
 		node := harness.NewT(t).NewNode().Init()
-		cidAStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
-		cidBStr := node.IPFSAddStr(string(random.Bytes(1000)), "--pin=false")
+		rnd := random.New()
+		cidAStr := node.IPFSAddStr(string(rnd.Bytes(1000)), "--pin=false")
+		cidBStr := node.IPFSAddStr(string(rnd.Bytes(1000)), "--pin=false")
 
 		_ = node.IPFS("pin", "add", "--name", "testPinJson", cidAStr)
 

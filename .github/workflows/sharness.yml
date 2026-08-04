@@ -27,7 +27,7 @@ jobs:
         with:
           path: kubo
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'kubo/go.mod'
       - name: Install missing tools

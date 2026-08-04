@@ -28,6 +28,12 @@ var log = logging.Logger("epictest")
 
 const kSeed = 1
 
+var randSeed [32]byte
+
+func init() {
+	randSeed = random.Uint64ToSeed(kSeed)
+}
+
 func Test1KBInstantaneous(t *testing.T) {
 	conf := testutil.LatencyConfig{
 		NetworkLatency:    0,
@@ -84,8 +90,7 @@ func AddCatPowers(conf testutil.LatencyConfig, megabytesMax int64) error {
 }
 
 func RandomBytes(n int64) []byte {
-	random.SetSeed(kSeed)
-	return random.Bytes(int(n))
+	return random.NewSeeded(randSeed).Bytes(n)
 }
 
 func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {

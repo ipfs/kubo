@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -272,7 +273,49 @@ func TestHTTPDelegatedRoutingProviderAddrs(t *testing.T) {
 
 		addrs := getAddrs()
 		require.NotEmpty(t, addrs, "provider record should contain addresses")
-		assert.Contains(t, addrs, "/ip4/5.6.7.8/tcp/4001", "AppendAnnounce address should be present")
+		// Exactly once: the AddrsFactory injects AppendAnnounce into
+		// host.Addrs() and httpRouterAddrFunc re-appends it, so a dedup bug
+		// shows up as a duplicate entry here.
+		count := 0
+		for _, a := range addrs {
+			if a == "/ip4/5.6.7.8/tcp/4001" {
+				count++
+			}
+		}
+		assert.Equal(t, 1, count, "AppendAnnounce address should appear exactly once, got: %v", addrs)
+	})
+
+	t.Run("provider records keep browser-dialable transports", func(t *testing.T) {
+		t.Parallel()
+		srv, getAddrs := captureProviderAddrs(t)
+
+		// Browsers can only dial webrtc-direct and secure WebSockets, so
+		// dropping those from the record leaves a browser client with nothing
+		// to connect to. See https://github.com/ipfs/kubo/issues/11369.
+		//
+		// The node here is loopback-only, so it never gets an AutoNAT V2
+		// confirmation and cannot reproduce #11369 on its own. What this pins
+		// is that a webrtc-direct address, certhash and all, survives the trip
+		// into the PUT payload.
+		node := harness.NewT(t).NewNode().Init()
+		node.SetIPFSConfig("Addresses.Swarm", []string{
+			"/ip4/127.0.0.1/tcp/0",
+			"/ip4/127.0.0.1/udp/0/webrtc-direct",
+		})
+		node.SetIPFSConfig("Routing", customRoutingConf(srv.URL))
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		cidStr := node.IPFSAddStr(time.Now().String())
+		node.IPFS("routing", "provide", cidStr)
+
+		addrs := getAddrs()
+		require.NotEmpty(t, addrs, "provider record should contain addresses")
+		idx := slices.IndexFunc(addrs, func(a string) bool {
+			return strings.Contains(a, "/webrtc-direct/")
+		})
+		require.NotEqual(t, -1, idx, "webrtc-direct address missing from provider record: %v", addrs)
+		assert.Contains(t, addrs[idx], "/certhash/", "webrtc-direct address is undialable without a certhash: %s", addrs[idx])
 	})
 
 	t.Run("provider records resolve 0.0.0.0 Swarm bind to interface addresses", func(t *testing.T) {

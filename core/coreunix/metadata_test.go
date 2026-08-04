@@ -2,7 +2,6 @@ package coreunix
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"testing"
 
@@ -31,11 +30,11 @@ func getDagserv(t *testing.T) ipld.DAGService {
 }
 
 func TestMetadata(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	// Make some random node
 	ds := getDagserv(t)
 	data := make([]byte, 1000)
-	_, err := io.ReadFull(random.NewRand(), data)
+	_, err := io.ReadFull(random.New(), data)
 	if err != nil {
 		t.Fatal(err)
 	}

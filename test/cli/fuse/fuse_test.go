@@ -20,6 +20,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 
@@ -435,6 +436,9 @@ func TestFUSE(t *testing.T) {
 	})
 }
 
+// mountLock serializes the mount step across parallel subtests. See mountAll.
+var mountLock sync.Mutex
+
 // mountAll creates mount directories and mounts IPFS, IPNS, and MFS.
 func mountAll(t *testing.T, node *harness.Node) (ipfsMount, ipnsMount, mfsMount string) {
 	t.Helper()
@@ -452,7 +456,18 @@ func mountAll(t *testing.T, node *harness.Node) (ipfsMount, ipnsMount, mfsMount 
 	lazyUnmount(ipnsMount)
 	lazyUnmount(mfsMount)
 
-	result := node.IPFS("mount", "-f", ipfsMount, "-n", ipnsMount, "-m", mfsMount)
+	// One mount at a time. Each `ipfs mount` runs three setuid fusermount
+	// helpers, and the parallel subtests reach this point together, so without
+	// the lock a couple of dozen of them race to open /dev/fuse at once and one
+	// occasionally comes back with a bare exit status 1.
+	mountLock.Lock()
+	result := node.RunIPFS("mount", "-f", ipfsMount, "-n", ipnsMount, "-m", mfsMount)
+	mountLock.Unlock()
+
+	// Report rather than panic, and include the daemon's stderr: fusermount
+	// explains itself there, and the exit code on its own says nothing.
+	require.NoError(t, result.Err, "ipfs mount failed\nclient stderr: %s\ndaemon stderr:\n%s",
+		result.Stderr.String(), node.Daemon.Stderr.String())
 
 	// Extra space after "MFS" matches the column-aligned output produced
 	// by MountCmd in core/commands/mount_unix.go.

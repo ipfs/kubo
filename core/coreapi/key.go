@@ -73,6 +73,10 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 		return nil, fmt.Errorf("key with name '%s' already exists", name)
 	}
 
+	if err := caopts.CheckKeySize(options.Algorithm, options.Size); err != nil {
+		return nil, err
+	}
+
 	var sk crypto.PrivKey
 	var pk crypto.PubKey
 
@@ -91,6 +95,14 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 		pk = pub
 	case "ed25519":
 		priv, pub, err := crypto.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+
+		sk = priv
+		pk = pub
+	case "secp256k1":
+		priv, pub, err := crypto.GenerateSecp256k1Key(rand.Reader)
 		if err != nil {
 			return nil, err
 		}

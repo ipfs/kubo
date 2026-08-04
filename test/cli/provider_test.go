@@ -1446,10 +1446,15 @@ func TestProviderUniqueDedupLogging(t *testing.T) {
 		// Single pin add with both CIDs shares one bloom.
 		node.IPFS("pin", "add", "--fast-provide-dag", "--fast-provide-wait", cidDirA, cidDirB)
 
+		// The daemon writes this line before it answers the RPC, but the test
+		// reads a buffer filled by a goroutine copying the daemon's stderr, and
+		// that copy can lag behind the command returning.
+		require.True(t, waitForLogMessage(node.Daemon.Stderr, `"providedCIDs": 5`, 30*time.Second),
+			"fast-provide-dag should log how many CIDs it provided")
+
 		daemonLog := node.Daemon.Stderr.String()
 		require.Contains(t, daemonLog, "bloom tracker created")
 		require.NotContains(t, daemonLog, "bloom tracker autoscaled")
-		require.Contains(t, daemonLog, `"providedCIDs": 5`)
 		require.Contains(t, daemonLog, `"skippedBranches": 1`)
 	})
 
@@ -1497,10 +1502,14 @@ func TestProviderUniqueDedupLogging(t *testing.T) {
 
 		waitForSweepReprovide(t, publisher, 90*time.Second, 6)
 
+		// waitForSweepReprovide polls `ipfs provide stat`, which can report the
+		// reprovide as done before the copy of the daemon's stderr catches up.
+		require.True(t, waitForLogMessage(publisher.Daemon.Stderr, `"providedCIDs": 6`, 30*time.Second),
+			"reprovide should log how many CIDs it provided")
+
 		daemonLog := publisher.Daemon.Stderr.String()
 		require.Contains(t, daemonLog, "bloom tracker created")
 		require.NotContains(t, daemonLog, "bloom tracker autoscaled")
-		require.Contains(t, daemonLog, `"providedCIDs": 6`)
 		require.Contains(t, daemonLog, `"skippedBranches": 1`)
 	})
 }

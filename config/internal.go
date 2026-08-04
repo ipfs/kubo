@@ -61,6 +61,16 @@ type Internal struct {
 	// Addresses.NoAnnounce. Defaults to DefaultDeadListenerCheck. Set to false
 	// to disable the check entirely.
 	DeadListenerCheck Flag `json:",omitempty"`
+	// NonPublicAddrPublishing toggles whether addresses outside globally
+	// routable ranges (private, CGNAT, link-local, loopback, ULA, reserved
+	// IPv6 space, and special-use DNS names such as .local) are kept in the
+	// peerstore self-entry and the signed peer record, and so announced over
+	// identify and the DHT. Multiaddrs without an IP or DNS component, such
+	// as /p2p-circuit, are unaffected. When unset, no option is passed to
+	// go-libp2p and its default applies. Set to false to keep non-public
+	// addresses off the wire, which is useful when checking what a node
+	// advertises.
+	NonPublicAddrPublishing Flag `json:",omitempty"`
 }
 
 type InternalBitswap struct {

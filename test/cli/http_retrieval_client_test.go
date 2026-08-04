@@ -93,7 +93,9 @@ func TestHTTPRetrievalClient(t *testing.T) {
 		// Ok, now attempt retrieval.
 		// If there was no timeout and returned bytes match expected body, HTTP routing and retrieval worked end-to-end.
 		catRes := node.IPFS("cat", testCid.String())
-		assert.Equal(t, randStr, catRes.Stdout.Trimmed())
+		// Compare the raw bytes. The payload is random, so roughly one run in 256
+		// ends in a newline, and Trimmed() would eat it and fail the comparison.
+		assert.Equal(t, randStr, catRes.Stdout.String())
 	})
 }
 
