@@ -53,12 +53,12 @@ func (tp *TestSuite) TestUnixfs(t *testing.T) {
 
 // `echo -n 'hello, world!' | ipfs add`
 var (
-	hello    = "/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk"
+	hello    = "/ipfs/bafkreidi4zlleupgp2bvrpxyja5lbvi4mym7hz5bvhyoowby2qp7g2hxfa"
 	helloStr = "hello, world!"
 )
 
 // `echo -n | ipfs add`
-var emptyFile = "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
+var emptyFile = "/ipfs/bafkreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku"
 
 func strFile(data string) func() files.Node {
 	return func() files.Node {
@@ -198,13 +198,13 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 		{
 			name: "addInline",
 			data: strFile(helloStr),
-			path: "/ipfs/bafyaafikcmeaeeqnnbswy3dpfqqho33snrsccgan",
+			path: "/ipfs/bafkqadlimvwgy3zmeb3w64tmmqqq",
 			opts: []options.UnixfsAddOption{options.Unixfs.Inline(true)},
 		},
 		{
 			name: "addInlineLimit",
 			data: strFile(helloStr),
-			path: "/ipfs/bafyaafikcmeaeeqnnbswy3dpfqqho33snrsccgan",
+			path: "/ipfs/bafkqadlimvwgy3zmeb3w64tmmqqq",
 			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32), options.Unixfs.Inline(true)},
 		},
 		{
@@ -219,18 +219,21 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 			path: "/ipfs/bafkqadlimvwgy3zmeb3w64tmmqqq",
 			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true)},
 		},
-		// Chunker / Layout
+		// Chunker / Layout. Pin a small MaxFileLinks so these stay multi-block
+		// DAGs (and trickle stays distinct from balanced) regardless of the
+		// node's import profile, which may raise the default beyond the chunk
+		// count.
 		{
 			name: "addChunks",
 			data: strFile(strings.Repeat("aoeuidhtns", 200)),
-			path: "/ipfs/QmRo11d4QJrST47aaiGVJYwPhoNA4ihRpJ5WaxBWjWDwbX",
-			opts: []options.UnixfsAddOption{options.Unixfs.Chunker("size-4")},
+			path: "/ipfs/bafybeiei5blsfgi4i7rnxhhvfc6ny5zcnoeuuxlp76eml4mstficbqxobm",
+			opts: []options.UnixfsAddOption{options.Unixfs.Chunker("size-4"), options.Unixfs.MaxFileLinks(174)},
 		},
 		{
 			name: "addChunksTrickle",
 			data: strFile(strings.Repeat("aoeuidhtns", 200)),
-			path: "/ipfs/QmNNhDGttafX3M1wKWixGre6PrLFGjnoPEDXjBYpTv93HP",
-			opts: []options.UnixfsAddOption{options.Unixfs.Chunker("size-4"), options.Unixfs.Layout(options.TrickleLayout)},
+			path: "/ipfs/bafybeigqe4spk3jqgeujftnbqzpf2xbvdtnz6beemlulxibiebujm2yhvy",
+			opts: []options.UnixfsAddOption{options.Unixfs.Chunker("size-4"), options.Unixfs.Layout(options.TrickleLayout), options.Unixfs.MaxFileLinks(174)},
 		},
 		// Local
 		{
@@ -249,26 +252,26 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 		{
 			name: "simpleDirNoWrap",
 			data: flatDir,
-			path: "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
+			path: "/ipfs/bafybeih422b3sfmdfavtrlhuf44wnekorhupgjd53ct6weheenmx74tyri",
 		},
 		{
 			name:   "simpleDir",
 			data:   flatDir,
 			wrap:   "t",
 			expect: wrapped("t"),
-			path:   "/ipfs/Qmc3nGXm1HtUVCmnXLQHvWcNwfdZGpfg2SRm1CxLf7Q2Rm",
+			path:   "/ipfs/bafybeidf2nlicerfu6oga32oyrongzqnvmhs5x7vlupecbbvag25lrhsgq",
 		},
 		{
 			name:   "twoLevelDir",
 			data:   twoLevelDir(),
 			wrap:   "t",
 			expect: wrapped("t"),
-			path:   "/ipfs/QmPwsL3T5sWhDmmAWZHAzyjKtMVDS9a11aHNRqb3xoVnmg",
+			path:   "/ipfs/bafybeiglrre3vqtv5wrk5ozefyl6qgv36sunayg7vt7rtwqh7o3p5yv57a",
 		},
 		// wrapped
 		{
 			name: "addWrapped",
-			path: "/ipfs/QmVE9rNpj5doj7XHzp5zMUxD7BJgXEqx4pe3xZ3JBReWHE",
+			path: "/ipfs/bafybeihjcz4kj34m3e6b6xapbjbopcxzff55zj5qvppt6nlkas5ctxv2ei",
 			data: func() files.Node {
 				return files.NewBytesFile([]byte(helloStr))
 			},
@@ -287,7 +290,7 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 			},
 			wrap:   "t",
 			expect: wrapped("t"),
-			path:   "/ipfs/QmPXLSBX382vJDLrGakcbrZDkU3grfkjMox7EgSC9KFbtQ",
+			path:   "/ipfs/bafybeicwtw7j3ij66ns3ymewvruly7r6k3cscnbx2zb7z7walyw4dcoski",
 		},
 		// NoCopy
 		{
@@ -323,23 +326,23 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 		{
 			name: "silentAddEvent",
 			data: twoLevelDir(),
-			path: "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
+			path: "/ipfs/bafybeidyteoyfd4moos7wy6ludtp4mc22eokijw7jh3jt3g6npvzkeaeji",
 			events: []coreiface.AddEvent{
-				{Name: "abc", Path: p("QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt"), Size: "62"},
-				{Name: "", Path: p("QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr"), Size: "229"},
+				{Name: "abc", Path: p("bafybeiarx6zwubttezmgppshdx3ujs37dd6k7kliljrewmdwz2hv3cg5ke"), Size: "56"},
+				{Name: "", Path: p("bafybeidyteoyfd4moos7wy6ludtp4mc22eokijw7jh3jt3g6npvzkeaeji"), Size: "213"},
 			},
 			opts: []options.UnixfsAddOption{options.Unixfs.Silent(true)},
 		},
 		{
 			name: "dirAddEvents",
 			data: twoLevelDir(),
-			path: "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
+			path: "/ipfs/bafybeidyteoyfd4moos7wy6ludtp4mc22eokijw7jh3jt3g6npvzkeaeji",
 			events: []coreiface.AddEvent{
-				{Name: "abc/def", Path: p("QmNyJpQkU1cEkBwMDhDNFstr42q55mqG5GE5Mgwug4xyGk"), Size: "13"},
-				{Name: "bar", Path: p("QmS21GuXiRMvJKHos4ZkEmQDmRBqRaF5tQS2CQCu2ne9sY"), Size: "14"},
-				{Name: "foo", Path: p("QmfAjGiVpTN56TXi6SBQtstit5BEw3sijKj1Qkxn6EXKzJ"), Size: "14"},
-				{Name: "abc", Path: p("QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt"), Size: "62"},
-				{Name: "", Path: p("QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr"), Size: "229"},
+				{Name: "abc/def", Path: p("bafkreicin2sgejgrxnh3nahtj56jvwlkr4sozcf6opvi4wtmmuta5hfyu4"), Size: "5"},
+				{Name: "bar", Path: p("bafkreiehfggmf4y7xjzrqhvcvhto6eg44ipnsxuyxwwjytqvatvbn5eg4q"), Size: "6"},
+				{Name: "foo", Path: p("bafkreier5esa6qkseomc5xbukuzggbyq5ffh6uwnl5epl3q27rkva6hqvm"), Size: "6"},
+				{Name: "abc", Path: p("bafybeiarx6zwubttezmgppshdx3ujs37dd6k7kliljrewmdwz2hv3cg5ke"), Size: "56"},
+				{Name: "", Path: p("bafybeidyteoyfd4moos7wy6ludtp4mc22eokijw7jh3jt3g6npvzkeaeji"), Size: "213"},
 			},
 		},
 		{
@@ -347,16 +350,19 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 			data: func() files.Node {
 				return files.NewReaderFile(bytes.NewReader(bytes.Repeat([]byte{0}, 1000000)))
 			},
-			path: "/ipfs/QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD",
+			path: "/ipfs/bafybeidide6lpcdutn3we5vvypssfhlq2n265w6dygwj37fyeklhlmfi34",
 			events: []coreiface.AddEvent{
 				{Name: "", Bytes: 262144},
 				{Name: "", Bytes: 524288},
 				{Name: "", Bytes: 786432},
 				{Name: "", Bytes: 1000000},
-				{Name: "QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD", Path: p("QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD"), Size: "1000256"},
+				{Name: "bafybeidide6lpcdutn3we5vvypssfhlq2n265w6dygwj37fyeklhlmfi34", Path: p("bafybeidide6lpcdutn3we5vvypssfhlq2n265w6dygwj37fyeklhlmfi34"), Size: "1000208"},
 			},
 			wrap: "",
-			opts: []options.UnixfsAddOption{options.Unixfs.Progress(true)},
+			// Pin the 256 KiB chunker so a 1 MB file stays multiple chunks (and
+			// keeps emitting incremental progress) regardless of the node's
+			// import profile, which may use a larger chunk size.
+			opts: []options.UnixfsAddOption{options.Unixfs.Progress(true), options.Unixfs.Chunker("size-262144")},
 		},
 	}
 
@@ -548,7 +554,7 @@ func (tp *TestSuite) TestAddPinned(t *testing.T) {
 		t.Fatalf("expected 1 pin, got %d", len(pins))
 	}
 
-	if pins[0].Path().String() != "/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk" {
+	if pins[0].Path().String() != "/ipfs/bafkreidi4zlleupgp2bvrpxyja5lbvi4mym7hz5bvhyoowby2qp7g2hxfa" {
 		t.Fatalf("got unexpected pin: %s", pins[0].Path().String())
 	}
 }
@@ -691,8 +697,8 @@ func (tp *TestSuite) TestLs(t *testing.T) {
 	if entry.Type != coreiface.TFile {
 		t.Errorf("wrong type %s", entry.Type)
 	}
-	if entry.Cid.String() != "QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr" {
-		t.Errorf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", entry.Cid)
+	if entry.Cid.String() != "bafkreibbgwlzr56fmpiiqbqo7llxix53lelr237julgqowc2kpagofk4jm" {
+		t.Errorf("expected cid = bafkreibbgwlzr56fmpiiqbqo7llxix53lelr237julgqowc2kpagofk4jm, got %s", entry.Cid)
 	}
 	entry, ok = <-entries
 	if !ok {

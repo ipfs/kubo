@@ -122,7 +122,7 @@ func TestLsLongFormat(t *testing.T) {
 		dataFields := strings.Fields(lines[1])
 		require.GreaterOrEqual(t, len(dataFields), 5)
 		assert.Regexp(t, `^-[rwx-]{9}$`, dataFields[0], "first field should be mode")
-		assert.Regexp(t, `^Qm`, dataFields[1], "second field should be CID")
+		assert.Regexp(t, `^bafy`, dataFields[1], "second field should be a CIDv1 dag-pb CID")
 		assert.Regexp(t, `^\d+$`, dataFields[2], "third field should be size")
 	})
 

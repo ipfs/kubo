@@ -36,8 +36,33 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
+      # These jobs have a 15 minute budget and were spending up to 13 of it
+      # here. The runner's Ubuntu mirror has served as slowly as 30 kB/s, so
+      # keep the packages in the workflow cache and let apt install them from
+      # disk. The cap makes a bad mirror fail under this step's name rather
+      # than as a mystery job timeout with no test output.
+      - name: Cache apt packages
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/apt-cache
+          key: ${{ runner.os }}-apt-zsh-v1
       - name: Install missing tools
-        run: sudo apt update && sudo apt install -y zsh
+        run: |
+          if ! command -v zsh &>/dev/null; then
+            mkdir -p "$RUNNER_TEMP/apt-cache/partial"
+            apt_install() {
+              sudo apt-get install -y --no-install-recommends \
+                -o Dir::Cache::archives="$RUNNER_TEMP/apt-cache" \
+                -o Acquire::Retries=5 \
+                -o Acquire::http::Timeout=15 \
+                -o Acquire::https::Timeout=15 \
+                "$@"
+            }
+            apt_install zsh || { sudo apt-get update && apt_install --fix-missing zsh; }
+            # The cache action runs unprivileged and cannot read root's files.
+            sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/apt-cache"
+          fi
+        timeout-minutes: 5
       - name: Run unit tests
         run: |
           make test_unit &&
@@ -107,8 +132,33 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: 'go.mod'
+      # These jobs have a 15 minute budget and were spending up to 13 of it
+      # here. The runner's Ubuntu mirror has served as slowly as 30 kB/s, so
+      # keep the packages in the workflow cache and let apt install them from
+      # disk. The cap makes a bad mirror fail under this step's name rather
+      # than as a mystery job timeout with no test output.
+      - name: Cache apt packages
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/apt-cache
+          key: ${{ runner.os }}-apt-zsh-v1
       - name: Install missing tools
-        run: sudo apt update && sudo apt install -y zsh
+        run: |
+          if ! command -v zsh &>/dev/null; then
+            mkdir -p "$RUNNER_TEMP/apt-cache/partial"
+            apt_install() {
+              sudo apt-get install -y --no-install-recommends \
+                -o Dir::Cache::archives="$RUNNER_TEMP/apt-cache" \
+                -o Acquire::Retries=5 \
+                -o Acquire::http::Timeout=15 \
+                -o Acquire::https::Timeout=15 \
+                "$@"
+            }
+            apt_install zsh || { sudo apt-get update && apt_install --fix-missing zsh; }
+            # The cache action runs unprivileged and cannot read root's files.
+            sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/apt-cache"
+          fi
+        timeout-minutes: 5
       - name: Run CLI tests
         env:
           IPFS_PATH: ${{ runner.temp }}/ipfs-test

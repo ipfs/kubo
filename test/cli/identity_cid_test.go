@@ -150,7 +150,7 @@ func TestIdentityCIDOverflowProtection(t *testing.T) {
 		assert.NotEqual(t, "identity", res.Stdout.Trimmed())
 
 		// verify it switched to a cryptographic hash
-		assert.Equal(t, config.DefaultHashFunction, res.Stdout.Trimmed())
+		assert.Equal(t, config.LegacyFallbackHashFunction, res.Stdout.Trimmed())
 	})
 
 	t.Run("ipfs files write --hash=identity with small write creates identity CID", func(t *testing.T) {
@@ -305,6 +305,6 @@ func TestIdentityCIDOverflowProtection(t *testing.T) {
 		assert.NotEqual(t, "identity", res.Stdout.Trimmed())
 
 		// should use configured hash
-		assert.Equal(t, config.DefaultHashFunction, res.Stdout.Trimmed())
+		assert.Equal(t, config.LegacyFallbackHashFunction, res.Stdout.Trimmed())
 	})
 }

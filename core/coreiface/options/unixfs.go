@@ -21,8 +21,10 @@ const (
 )
 
 type UnixfsAddSettings struct {
-	CidVersion int
-	MhType     uint64
+	CidVersion    int
+	CidVersionSet bool
+	MhType        uint64
+	MhTypeSet     bool
 
 	Inline                bool
 	InlineLimit           int
@@ -37,8 +39,10 @@ type UnixfsAddSettings struct {
 	SizeEstimationMode    *io.SizeEstimationMode
 	SizeEstimationModeSet bool
 
-	Chunker string
-	Layout  Layout
+	Chunker    string
+	ChunkerSet bool
+	Layout     Layout
+	LayoutSet  bool
 
 	Pin      bool
 	PinName  string
@@ -188,6 +192,7 @@ var Unixfs unixfsOpts
 func (unixfsOpts) CidVersion(version int) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.CidVersion = version
+		settings.CidVersionSet = true
 		return nil
 	}
 }
@@ -198,6 +203,7 @@ func (unixfsOpts) CidVersion(version int) UnixfsAddOption {
 func (unixfsOpts) Hash(mhtype uint64) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.MhType = mhtype
+		settings.MhTypeSet = true
 		return nil
 	}
 }
@@ -286,6 +292,7 @@ func (unixfsOpts) InlineLimit(limit int) UnixfsAddOption {
 func (unixfsOpts) Chunker(chunker string) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Chunker = chunker
+		settings.ChunkerSet = true
 		return nil
 	}
 }
@@ -297,6 +304,7 @@ func (unixfsOpts) Chunker(chunker string) UnixfsAddOption {
 func (unixfsOpts) Layout(layout Layout) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Layout = layout
+		settings.LayoutSet = true
 		return nil
 	}
 }

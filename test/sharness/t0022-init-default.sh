@@ -25,6 +25,12 @@ test_expect_success ".ipfs/config has been created" '
   test_fsh ls -al .ipfs
 '
 
+test_expect_success "default init uses CIDv1 (Import.CidVersion=1)" '
+  echo 1 >expected_cidversion &&
+  ipfs config Import.CidVersion >actual_cidversion &&
+  test_cmp expected_cidversion actual_cidversion
+'
+
 test_expect_success "ipfs config succeeds" '
   ipfs config $cfg_flags "$cfg_key" "$cfg_val"
 '

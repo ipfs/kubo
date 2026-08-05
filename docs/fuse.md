@@ -146,7 +146,7 @@ ipfs.cid="bafkreifjjcie6lypi6ny7amxnfftagclbuxndqonfipmb64f2km2devei4"
 ```
 
 > [!TIP]
-> New IPFS nodes should run `ipfs config profile apply unixfs-v1-2025` to use CIDv1 with modern defaults. Without this, files default to CIDv0 (base58 `Qm...` hashes).
+> New IPFS nodes default to CIDv1 (base32 `bafy...`/`bafk...` hashes). To use legacy CIDv0 (base58 `Qm...`), run `ipfs config profile apply unixfs-v0-2015`.
 
 ## Mode and mtime
 

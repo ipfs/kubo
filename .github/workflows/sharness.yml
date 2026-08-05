@@ -30,8 +30,41 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: 'kubo/go.mod'
+      # Install only what is missing, from the workflow cache where possible:
+      # the runner's Ubuntu mirror has served these at 30 kB/s, which used to
+      # eat the job's whole time budget. --no-install-recommends keeps the
+      # download small too, since fish pulls in lynx and friends this suite
+      # never uses. See the same step in gotest.yml.
+      - name: Cache apt packages
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/apt-cache
+          key: ${{ runner.os }}-apt-sharness-v1
       - name: Install missing tools
-        run: sudo apt update && sudo apt install -y socat net-tools fish libxml2-utils
+        run: |
+          missing=()
+          command -v socat &>/dev/null || missing+=(socat)
+          command -v netstat &>/dev/null || missing+=(net-tools)
+          command -v fish &>/dev/null || missing+=(fish)
+          command -v xmllint &>/dev/null || missing+=(libxml2-utils)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "installing: ${missing[*]}"
+            mkdir -p "$RUNNER_TEMP/apt-cache/partial"
+            apt_install() {
+              sudo apt-get install -y --no-install-recommends \
+                -o Dir::Cache::archives="$RUNNER_TEMP/apt-cache" \
+                -o Acquire::Retries=5 \
+                -o Acquire::http::Timeout=15 \
+                -o Acquire::https::Timeout=15 \
+                "$@"
+            }
+            apt_install "${missing[@]}" || {
+              sudo apt-get update && apt_install --fix-missing "${missing[@]}"
+            }
+            # The cache action runs unprivileged and cannot read root's files.
+            sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/apt-cache"
+          fi
+        timeout-minutes: 5
       - uses: actions/cache@v6
         with:
           path: test/sharness/lib/dependencies

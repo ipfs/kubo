@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/require"
 )
@@ -46,13 +47,13 @@ func TestBalancedDAGLayout(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 
-		// Create file that triggers multi-level DAG.
-		// For default v0: 175 chunks × 256KiB = ~44.8 MiB (just over 174 max links)
-		// This creates a 2-level DAG where balanced layout ensures uniform depth.
+		// Create file that triggers multi-level DAG. Force 256KiB chunks and 174
+		// max links so 45 MiB yields ~180 chunks, just over the link limit, for a
+		// 2-level DAG regardless of the default import profile.
 		fileSize := "45MiB"
 		seed := "balanced-test"
 
-		cidStr := node.IPFSAddDeterministic(fileSize, seed)
+		cidStr := node.IPFSAddDeterministic(fileSize, seed, "--chunker=size-262144", "--max-file-links=174")
 
 		// Collect leaf depths by walking DAG
 		depths := collectLeafDepths(t, node, cidStr, 0)
@@ -85,7 +86,7 @@ func TestBalancedDAGLayout(t *testing.T) {
 		// Trickle produces non-uniform leaf depths, optimized for append-only
 		// and streaming reads (no seeking). This subtest validates the test
 		// logic by confirming we can detect varying depths.
-		cidStr := node.IPFSAddDeterministic(fileSize, seed, "--trickle")
+		cidStr := node.IPFSAddDeterministic(fileSize, seed, "--trickle", "--chunker=size-262144", "--max-file-links=174")
 
 		depths := collectLeafDepths(t, node, cidStr, 0)
 
@@ -109,6 +110,43 @@ func TestBalancedDAGLayout(t *testing.T) {
 			require.NoError(t, node.IPFSDagExport(cidStr, carPath))
 			t.Logf("exported: %s -> %s", cidStr, carPath)
 		}
+	})
+}
+
+// TestDAGLayoutFromConfig verifies that Import.UnixFSDAGLayout drives `ipfs add`
+// and that the --trickle flag overrides it in both directions.
+func TestDAGLayoutFromConfig(t *testing.T) {
+	t.Parallel()
+
+	const (
+		fileSize = "1MiB"
+		seed     = "dag-layout-config"
+		// Small chunks and few links per node keep the file multi-level, so
+		// balanced and trickle produce different roots.
+		addArgs = "--chunker=size-4096"
+	)
+
+	node := harness.NewT(t).NewNode().Init().StartDaemon()
+	defer node.StopDaemon()
+
+	balanced := node.IPFSAddDeterministic(fileSize, seed, addArgs, "--max-file-links=8")
+	trickle := node.IPFSAddDeterministic(fileSize, seed, addArgs, "--max-file-links=8", "--trickle")
+	require.NotEqual(t, balanced, trickle, "trickle and balanced must produce different roots")
+
+	node.StopDaemon()
+	node.UpdateConfig(func(cfg *config.Config) {
+		cfg.Import.UnixFSDAGLayout = *config.NewOptionalString(config.DAGLayoutTrickle)
+	})
+	node.StartDaemon()
+
+	t.Run("config trickle layout applies without a flag", func(t *testing.T) {
+		cidStr := node.IPFSAddDeterministic(fileSize, seed, addArgs, "--max-file-links=8")
+		require.Equal(t, trickle, cidStr)
+	})
+
+	t.Run("--trickle=false overrides config trickle layout", func(t *testing.T) {
+		cidStr := node.IPFSAddDeterministic(fileSize, seed, addArgs, "--max-file-links=8", "--trickle=false")
+		require.Equal(t, balanced, cidStr)
 	})
 }
 

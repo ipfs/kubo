@@ -58,12 +58,21 @@ func ipnsPubFunc(ipfs iface.CoreAPI, key iface.Key) mfs.PubFunc {
 	}
 }
 
-func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key, cfg *writable.Config, mfsOpts ...mfs.Option) (*mfs.Root, *writable.Dir, error) {
+func loadRoot(ctx context.Context, ipfs iface.CoreAPI, key iface.Key, cidBuilder cid.Builder, cfg *writable.Config, mfsOpts ...mfs.Option) (*mfs.Root, *writable.Dir, error) {
 	node, err := ipfs.ResolveNode(ctx, key.Path())
 	switch err {
 	case nil:
 	case namesys.ErrResolveFailed:
-		node = ft.EmptyDirNode()
+		// A key that was never published starts from an empty directory. Build
+		// it with the repo's CID version: MFS re-encodes the root with the
+		// configured builder anyway, and a mismatch here leaves the republisher
+		// thinking the root is unpublished, so unmount blocks for its close
+		// timeout publishing an empty directory nobody asked for.
+		emptyDir := ft.EmptyDirNode()
+		if err := emptyDir.SetCidBuilder(cidBuilder); err != nil {
+			return nil, nil, err
+		}
+		node = emptyDir
 	default:
 		log.Errorf("looking up %s: %s", key.Path(), err)
 		return nil, nil, err
@@ -89,16 +98,21 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, gcLocker bstore.GCLocke
 		StoreMode:  mountsCfg.StoreMode.WithDefault(config.DefaultStoreMode),
 		DAG:        ipfs.Dag(),
 		RepoPath:   repoPath,
-		Blksize:    fusemnt.BlksizeFromChunker(imp.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)),
+		Blksize:    fusemnt.BlksizeFromChunker(imp.UnixFSChunker.WithDefault(config.LegacyFallbackUnixFSChunker)),
 		GCLocker:   gcLocker,
 		MountCtx:   ctx,
+	}
+
+	cidBuilder, err := imp.UnixFSCidBuilder()
+	if err != nil {
+		return nil, err
 	}
 
 	ldirs := make(map[string]*writable.Dir)
 	roots := make(map[string]*mfs.Root)
 	links := make(map[string]*Link)
 	for alias, k := range keys {
-		root, dir, err := loadRoot(ctx, ipfs, k, cfg, mfsOpts...)
+		root, dir, err := loadRoot(ctx, ipfs, k, cidBuilder, cfg, mfsOpts...)
 		if err != nil {
 			return nil, err
 		}

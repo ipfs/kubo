@@ -25,7 +25,9 @@ func TestCidBase(t *testing.T) {
 
 	makeDaemon := func(t *testing.T) *harness.Node {
 		t.Helper()
-		node := harness.NewT(t).NewNode().Init().StartDaemon("--offline")
+		// This suite exercises CIDv0 -> base16 CIDv1 re-encoding, so pin the node
+		// to the unixfs-v0-2015 import profile as the deterministic baseline.
+		node := harness.NewT(t).NewNode().Init("--profile=unixfs-v0-2015").StartDaemon("--offline")
 		t.Cleanup(func() { node.StopDaemon() })
 		return node
 	}
@@ -124,7 +126,7 @@ func TestCidBase(t *testing.T) {
 		t.Parallel()
 		node := makeDaemon(t)
 
-		// ipfs add creates dag-pb blocks with CIDv0 by default
+		// ipfs add creates dag-pb blocks with CIDv0 on this unixfs-v0-2015 node
 		cidV0 := node.IPFSAddStr("test-dag-stat", "--pin=false")
 		require.True(t, strings.HasPrefix(cidV0, "Qm"))
 

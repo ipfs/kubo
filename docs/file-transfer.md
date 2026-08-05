@@ -16,11 +16,11 @@ you added. Now, on node B, you can fetch the content using `ipfs get <hash>`.
 ```
 # On A
 > ipfs add myfile.txt
-added QmZJ1xT1T9KYkHhgRhbv8D7mYrbemaXwYUkg7CeHdrk1Ye myfile.txt
+added bafkreic3ondyhizrzeoufvoodehinugpj3ecruwokaygl7elezhn2khqfa myfile.txt
 
 # On B
-> ipfs get QmZJ1xT1T9KYkHhgRhbv8D7mYrbemaXwYUkg7CeHdrk1Ye
-Saving file(s) to QmZJ1xT1T9KYkHhgRhbv8D7mYrbemaXwYUkg7CeHdrk1Ye
+> ipfs get bafkreic3ondyhizrzeoufvoodehinugpj3ecruwokaygl7elezhn2khqfa
+Saving file(s) to bafkreic3ondyhizrzeoufvoodehinugpj3ecruwokaygl7elezhn2khqfa
  13 B / 13 B [=====================================================] 100.00% 1s
  ```
 

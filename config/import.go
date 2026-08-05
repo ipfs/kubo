@@ -17,13 +17,20 @@ import (
 )
 
 const (
-	DefaultCidVersion      = 0
-	DefaultUnixFSRawLeaves = false
-	DefaultUnixFSChunker   = "size-262144"
-	DefaultHashFunction    = "sha2-256"
-	DefaultFastProvideRoot = true
-	DefaultFastProvideWait = false
-	DefaultFastProvideDAG  = false
+	// LegacyFallbackCidVersion is used only as a fallback when a repo's
+	// Import.CidVersion is unset. It stays CIDv0 so existing repositories keep
+	// producing the exact same CIDs, which eases migration. New repositories
+	// are initialized with the unixfs-v1-2025 profile (CIDv1); new code and
+	// installations should use CIDv1 (unixfs-v1-2025 or later) unless a legacy
+	// dataset requires the CIDv0 "Qm..." format. See ipfs/kubo#4143 and
+	// https://specs.ipfs.tech/ipips/ipip-0499/.
+	LegacyFallbackCidVersion      = 0
+	LegacyFallbackUnixFSRawLeaves = false
+	LegacyFallbackUnixFSChunker   = "size-262144"
+	LegacyFallbackHashFunction    = "sha2-256"
+	DefaultFastProvideRoot        = true
+	DefaultFastProvideWait        = false
+	DefaultFastProvideDAG         = false
 
 	DefaultUnixFSHAMTDirectorySizeThreshold = 262144 // 256KiB - https://github.com/ipfs/boxo/blob/6c5a07602aed248acc86598f30ab61923a54a83e/ipld/unixfs/io/directory.go#L26
 
@@ -45,15 +52,42 @@ const (
 	DAGLayoutBalanced = "balanced" // balanced DAG layout (default)
 	DAGLayoutTrickle  = "trickle"  // trickle DAG layout
 
-	DefaultUnixFSHAMTDirectorySizeEstimation = HAMTSizeEstimationLinks // legacy behavior
-	DefaultUnixFSDAGLayout                   = DAGLayoutBalanced       // balanced DAG layout
-	DefaultUnixFSIncludeEmptyDirs            = true                    // include empty directories
+	LegacyFallbackUnixFSHAMTDirectorySizeEstimation = HAMTSizeEstimationLinks // legacy behavior
+	LegacyFallbackUnixFSDAGLayout                   = DAGLayoutBalanced       // balanced DAG layout
+	DefaultUnixFSIncludeEmptyDirs                   = true                    // include empty directories
 )
 
 var (
-	DefaultUnixFSFileMaxLinks           = int64(helpers.DefaultLinksPerBlock)
-	DefaultUnixFSDirectoryMaxLinks      = int64(0)
-	DefaultUnixFSHAMTDirectoryMaxFanout = int64(uio.DefaultShardWidth)
+	LegacyFallbackUnixFSFileMaxLinks           = int64(helpers.DefaultLinksPerBlock)
+	LegacyFallbackUnixFSDirectoryMaxLinks      = int64(0)
+	LegacyFallbackUnixFSHAMTDirectoryMaxFanout = int64(uio.DefaultShardWidth)
+)
+
+// Aliases kept for external users of this package. The values are the fallback
+// applied when the matching Import field is unset, not what `ipfs init` writes:
+// a new repository gets the unixfs-v1-2025 profile instead.
+const (
+	// Deprecated: use LegacyFallbackCidVersion.
+	DefaultCidVersion = LegacyFallbackCidVersion
+	// Deprecated: use LegacyFallbackUnixFSRawLeaves.
+	DefaultUnixFSRawLeaves = LegacyFallbackUnixFSRawLeaves
+	// Deprecated: use LegacyFallbackUnixFSChunker.
+	DefaultUnixFSChunker = LegacyFallbackUnixFSChunker
+	// Deprecated: use LegacyFallbackHashFunction.
+	DefaultHashFunction = LegacyFallbackHashFunction
+	// Deprecated: use LegacyFallbackUnixFSHAMTDirectorySizeEstimation.
+	DefaultUnixFSHAMTDirectorySizeEstimation = LegacyFallbackUnixFSHAMTDirectorySizeEstimation
+	// Deprecated: use LegacyFallbackUnixFSDAGLayout.
+	DefaultUnixFSDAGLayout = LegacyFallbackUnixFSDAGLayout
+)
+
+var (
+	// Deprecated: use LegacyFallbackUnixFSFileMaxLinks.
+	DefaultUnixFSFileMaxLinks = LegacyFallbackUnixFSFileMaxLinks
+	// Deprecated: use LegacyFallbackUnixFSDirectoryMaxLinks.
+	DefaultUnixFSDirectoryMaxLinks = LegacyFallbackUnixFSDirectoryMaxLinks
+	// Deprecated: use LegacyFallbackUnixFSHAMTDirectoryMaxFanout.
+	DefaultUnixFSHAMTDirectoryMaxFanout = LegacyFallbackUnixFSHAMTDirectoryMaxFanout
 )
 
 // Import configures the default options for ingesting data. This affects commands
@@ -76,12 +110,30 @@ type Import struct {
 	FastProvideWait                   Flag
 }
 
+// HasImplicitCIDProfile reports whether any CID-profile Import field is unset,
+// meaning the repo relies on implicit defaults that can change between Kubo
+// releases (and with them the CIDs it produces). Applying the unixfs-v1-2025 or
+// unixfs-v0-2015 profile sets every field explicitly. See IPIP-499:
+// https://specs.ipfs.tech/ipips/ipip-0499/
+func (i *Import) HasImplicitCIDProfile() bool {
+	return i.CidVersion.IsDefault() ||
+		i.UnixFSRawLeaves == Default ||
+		i.UnixFSChunker.IsDefault() ||
+		i.HashFunction.IsDefault() ||
+		i.UnixFSFileMaxLinks.IsDefault() ||
+		i.UnixFSDirectoryMaxLinks.IsDefault() ||
+		i.UnixFSHAMTDirectoryMaxFanout.IsDefault() ||
+		i.UnixFSHAMTDirectorySizeThreshold.IsDefault() ||
+		i.UnixFSHAMTDirectorySizeEstimation.IsDefault() ||
+		i.UnixFSDAGLayout.IsDefault()
+}
+
 // ValidateImportConfig validates the Import configuration according to UnixFS spec requirements.
 // See: https://specs.ipfs.tech/unixfs/#hamt-structure-and-parameters
 func ValidateImportConfig(cfg *Import) error {
 	// Validate CidVersion
 	if !cfg.CidVersion.IsDefault() {
-		cidVer := cfg.CidVersion.WithDefault(DefaultCidVersion)
+		cidVer := cfg.CidVersion.WithDefault(LegacyFallbackCidVersion)
 		if cidVer != 0 && cidVer != 1 {
 			return fmt.Errorf("Import.CidVersion must be 0 or 1, got %d", cidVer)
 		}
@@ -89,7 +141,7 @@ func ValidateImportConfig(cfg *Import) error {
 
 	// Validate UnixFSFileMaxLinks
 	if !cfg.UnixFSFileMaxLinks.IsDefault() {
-		maxLinks := cfg.UnixFSFileMaxLinks.WithDefault(DefaultUnixFSFileMaxLinks)
+		maxLinks := cfg.UnixFSFileMaxLinks.WithDefault(LegacyFallbackUnixFSFileMaxLinks)
 		if maxLinks <= 0 {
 			return fmt.Errorf("Import.UnixFSFileMaxLinks must be positive, got %d", maxLinks)
 		}
@@ -97,7 +149,7 @@ func ValidateImportConfig(cfg *Import) error {
 
 	// Validate UnixFSDirectoryMaxLinks
 	if !cfg.UnixFSDirectoryMaxLinks.IsDefault() {
-		maxLinks := cfg.UnixFSDirectoryMaxLinks.WithDefault(DefaultUnixFSDirectoryMaxLinks)
+		maxLinks := cfg.UnixFSDirectoryMaxLinks.WithDefault(LegacyFallbackUnixFSDirectoryMaxLinks)
 		if maxLinks < 0 {
 			return fmt.Errorf("Import.UnixFSDirectoryMaxLinks must be non-negative, got %d", maxLinks)
 		}
@@ -105,7 +157,7 @@ func ValidateImportConfig(cfg *Import) error {
 
 	// Validate UnixFSHAMTDirectoryMaxFanout if set
 	if !cfg.UnixFSHAMTDirectoryMaxFanout.IsDefault() {
-		fanout := cfg.UnixFSHAMTDirectoryMaxFanout.WithDefault(DefaultUnixFSHAMTDirectoryMaxFanout)
+		fanout := cfg.UnixFSHAMTDirectoryMaxFanout.WithDefault(LegacyFallbackUnixFSHAMTDirectoryMaxFanout)
 
 		// Valid values are powers of 2 between 8 and 1024: 8, 16, 32, 64, 128, 256, 512, 1024
 		if fanout < 8 || !isPowerOfTwo(fanout) || fanout > 1024 {
@@ -131,7 +183,7 @@ func ValidateImportConfig(cfg *Import) error {
 
 	// Validate UnixFSChunker format
 	if !cfg.UnixFSChunker.IsDefault() {
-		chunker := cfg.UnixFSChunker.WithDefault(DefaultUnixFSChunker)
+		chunker := cfg.UnixFSChunker.WithDefault(LegacyFallbackUnixFSChunker)
 		if !isValidChunker(chunker) {
 			return fmt.Errorf("Import.UnixFSChunker invalid format: %q (expected \"size-<bytes>\", \"rabin-<min>-<avg>-<max>\", or \"buzhash\")", chunker)
 		}
@@ -139,7 +191,7 @@ func ValidateImportConfig(cfg *Import) error {
 
 	// Validate HashFunction
 	if !cfg.HashFunction.IsDefault() {
-		hashFunc := cfg.HashFunction.WithDefault(DefaultHashFunction)
+		hashFunc := cfg.HashFunction.WithDefault(LegacyFallbackHashFunction)
 		hashCode, ok := mh.Names[strings.ToLower(hashFunc)]
 		if !ok {
 			return fmt.Errorf("Import.HashFunction unrecognized: %q", hashFunc)
@@ -148,11 +200,18 @@ func ValidateImportConfig(cfg *Import) error {
 		if !verifcid.DefaultAllowlist.IsAllowed(hashCode) {
 			return fmt.Errorf("Import.HashFunction %q is not allowed for use in IPFS", hashFunc)
 		}
+
+		// CIDv0 is sha2-256 only, so this pair cannot be honored as written.
+		// An unset CidVersion is not a conflict: a non-sha2-256 hash then
+		// selects CIDv1, the way `ipfs add --hash` does.
+		if !cfg.CidVersion.IsDefault() && cfg.CidVersion.WithDefault(LegacyFallbackCidVersion) == 0 && hashCode != mh.SHA2_256 {
+			return fmt.Errorf("Import.HashFunction=%q requires Import.CidVersion=1 (CIDv0 only supports sha2-256)", hashFunc)
+		}
 	}
 
 	// Validate UnixFSHAMTDirectorySizeEstimation
 	if !cfg.UnixFSHAMTDirectorySizeEstimation.IsDefault() {
-		est := cfg.UnixFSHAMTDirectorySizeEstimation.WithDefault(DefaultUnixFSHAMTDirectorySizeEstimation)
+		est := cfg.UnixFSHAMTDirectorySizeEstimation.WithDefault(LegacyFallbackUnixFSHAMTDirectorySizeEstimation)
 		switch est {
 		case HAMTSizeEstimationLinks, HAMTSizeEstimationBlock, HAMTSizeEstimationDisabled:
 			// valid
@@ -164,7 +223,7 @@ func ValidateImportConfig(cfg *Import) error {
 
 	// Validate UnixFSDAGLayout
 	if !cfg.UnixFSDAGLayout.IsDefault() {
-		layout := cfg.UnixFSDAGLayout.WithDefault(DefaultUnixFSDAGLayout)
+		layout := cfg.UnixFSDAGLayout.WithDefault(LegacyFallbackUnixFSDAGLayout)
 		switch layout {
 		case DAGLayoutBalanced, DAGLayoutTrickle:
 			// valid
@@ -229,7 +288,7 @@ func isValidChunker(chunker string) bool {
 
 // HAMTSizeEstimationMode returns the boxo SizeEstimationMode based on the config value.
 func (i *Import) HAMTSizeEstimationMode() uio.SizeEstimationMode {
-	switch i.UnixFSHAMTDirectorySizeEstimation.WithDefault(DefaultUnixFSHAMTDirectorySizeEstimation) {
+	switch i.UnixFSHAMTDirectorySizeEstimation.WithDefault(LegacyFallbackUnixFSHAMTDirectorySizeEstimation) {
 	case HAMTSizeEstimationLinks:
 		return uio.SizeEstimationLinks
 	case HAMTSizeEstimationBlock:
@@ -245,7 +304,7 @@ func (i *Import) HAMTSizeEstimationMode() uio.SizeEstimationMode {
 // The returned function creates a Splitter for the configured chunking strategy.
 // The chunker string is parsed once when this method is called, not on each use.
 func (i *Import) UnixFSSplitterFunc() chunk.SplitterGen {
-	chunkerStr := i.UnixFSChunker.WithDefault(DefaultUnixFSChunker)
+	chunkerStr := i.UnixFSChunker.WithDefault(LegacyFallbackUnixFSChunker)
 
 	// Parse size-based chunker (most common case) and return optimized generator
 	if sizeStr, ok := strings.CutPrefix(chunkerStr, "size-"); ok {
@@ -275,8 +334,8 @@ func (i *Import) MFSRootOptions() ([]mfs.Option, error) {
 	return []mfs.Option{
 		mfs.WithCidBuilder(cidBuilder),
 		mfs.WithChunker(i.UnixFSSplitterFunc()),
-		mfs.WithMaxLinks(int(i.UnixFSDirectoryMaxLinks.WithDefault(DefaultUnixFSDirectoryMaxLinks))),
-		mfs.WithMaxHAMTFanout(int(i.UnixFSHAMTDirectoryMaxFanout.WithDefault(DefaultUnixFSHAMTDirectoryMaxFanout))),
+		mfs.WithMaxLinks(int(i.UnixFSDirectoryMaxLinks.WithDefault(LegacyFallbackUnixFSDirectoryMaxLinks))),
+		mfs.WithMaxHAMTFanout(int(i.UnixFSHAMTDirectoryMaxFanout.WithDefault(LegacyFallbackUnixFSHAMTDirectoryMaxFanout))),
 		mfs.WithHAMTShardingSize(int(i.UnixFSHAMTDirectorySizeThreshold.WithDefault(DefaultUnixFSHAMTDirectorySizeThreshold))),
 		mfs.WithSizeEstimationMode(sizeEstimationMode),
 		// Bound under-lock DAG reads so a locally-missing directory node fails
@@ -292,10 +351,13 @@ func (i *Import) MFSRootOptions() ([]mfs.Option, error) {
 // respects kubo defaults even when they differ from boxo's internal
 // CIDv0/sha2-256 default (see https://github.com/ipfs/kubo/issues/4143).
 func (i *Import) UnixFSCidBuilder() (cid.Builder, error) {
-	cidVer := int(i.CidVersion.WithDefault(DefaultCidVersion))
-	hashFunc := i.HashFunction.WithDefault(DefaultHashFunction)
+	cidVer := int(i.CidVersion.WithDefault(LegacyFallbackCidVersion))
+	hashFunc := i.HashFunction.WithDefault(LegacyFallbackHashFunction)
 
-	if hashFunc != DefaultHashFunction && cidVer == 0 {
+	// A non-sha2-256 hash requires CIDv1, so it selects the version whenever
+	// CidVersion is unset. Pinning CidVersion=0 next to such a hash is rejected
+	// by ValidateImportConfig rather than silently overridden here.
+	if hashFunc != LegacyFallbackHashFunction && cidVer == 0 {
 		cidVer = 1
 	}
 

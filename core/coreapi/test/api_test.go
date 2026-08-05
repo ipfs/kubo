@@ -73,6 +73,11 @@ func (NodeProvider) MakeAPISwarm(t *testing.T, ctx context.Context, fullIdentity
 		// For provider tests, avoid that content gets
 		// auto-provided without calling "provide" (unless pinned).
 		c.Provide.Strategy = config.NewOptionalString("roots")
+		// Run conformance against a repo on the modern default import profile,
+		// matching a freshly initialized node.
+		if err := config.Profiles[config.ProfileUnixFSv12025].Transform(&c); err != nil {
+			return nil, err
+		}
 
 		ds := syncds.MutexWrap(datastore.NewMapDatastore())
 		r := &repo.Mock{

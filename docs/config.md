@@ -4017,11 +4017,15 @@ These options implement [IPIP-499: UnixFS CID Profiles](https://specs.ipfs.tech/
 
 Note that using CLI flags will override the options defined here.
 
+`ipfs init` and `ipfs daemon --init` write the [`unixfs-v1-2025`](#unixfs-v1-2025-profile) profile into a new repository, so a new node imports data as CIDv1 with raw leaves, 1 MiB chunks, and the rest of that profile's values. The `Default` listed under each option below is the fallback used when the field is absent, which is what an older repository created before this change relies on. Run `ipfs init --profile unixfs-v0-2015` to start a new repository on those legacy values instead.
+
 ### `Import.CidVersion`
 
 The default CID version. Commands affected: `ipfs add`.
 
 Must be either 0 or 1. CIDv0 uses SHA2-256 only, while CIDv1 supports multiple hash functions.
+
+New repositories get `1` (CIDv1) from the [`unixfs-v1-2025`](#unixfs-v1-2025-profile) profile, as described above.
 
 Default: `0`
 
@@ -4030,6 +4034,8 @@ Type: `optionalInteger`
 ### `Import.UnixFSRawLeaves`
 
 The default UnixFS raw leaves option. Commands affected: `ipfs add`, `ipfs files write`.
+
+Raw leaves are stored as raw blocks, which are always CIDv1. Pairing them with `CidVersion=0` is allowed and produces a mixed DAG: a `Qm...` dag-pb root over `bafk...` raw leaves, the same shape `ipfs add --nocopy` writes. Asking for `--cid-version=0` on `ipfs add` forces dag-pb leaves instead, ignoring this setting.
 
 Default: `false` if `CidVersion=0`; `true` if `CidVersion=1`
 
@@ -4068,6 +4074,8 @@ The default hash function. Commands affected: `ipfs add`, `ipfs block put`, `ipf
 Must be a valid multihash name (e.g., `sha2-256`, `blake3`) and must be allowed for use in IPFS according to security constraints.
 
 Run `ipfs cid hashes --supported` to see the full list of allowed hash functions.
+
+Anything other than `sha2-256` requires CIDv1. Leave `CidVersion` unset and the hash selects CIDv1 on its own; pin `CidVersion=0` next to such a hash and the node refuses to start, since CIDv0 cannot carry it.
 
 Default: `sha2-256`
 
@@ -4248,6 +4256,8 @@ Accepted values:
 
 - `balanced` (default): Balanced DAG layout with uniform leaf depth.
 - `trickle`: Trickle DAG layout optimized for streaming.
+
+`ipfs add --trickle` and `ipfs add --trickle=false` override this per command.
 
 Commands affected: `ipfs add`
 

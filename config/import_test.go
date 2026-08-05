@@ -107,6 +107,91 @@ func TestValidateImportConfig_CidVersion(t *testing.T) {
 	}
 }
 
+// TestValidateImportConfig_CidVersionRawLeaves guards a combination that looks
+// wrong but is not: a CIDv0 dag-pb root over raw (CIDv1) leaves. It is what
+// `ipfs add --nocopy` writes on a CIDv0 repo, and repos configured that way
+// before the Import profiles existed must keep starting.
+func TestValidateImportConfig_CidVersionRawLeaves(t *testing.T) {
+	tests := []struct {
+		name       string
+		setVersion bool
+		cidVer     int64
+		rawLeaves  Flag
+	}{
+		{name: "cidv1 with raw leaves", setVersion: true, cidVer: 1, rawLeaves: True},
+		{name: "cidv0 without raw leaves", setVersion: true, cidVer: 0, rawLeaves: False},
+		{name: "cidv0 with raw leaves", setVersion: true, cidVer: 0, rawLeaves: True},
+		{name: "raw leaves with unset version", setVersion: false, rawLeaves: True},
+		{name: "defaults", setVersion: false, rawLeaves: Default},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Import{UnixFSRawLeaves: tt.rawLeaves}
+			if tt.setVersion {
+				cfg.CidVersion = *NewOptionalInteger(tt.cidVer)
+			}
+
+			if err := ValidateImportConfig(cfg); err != nil {
+				t.Errorf("ValidateImportConfig() unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+// TestValidateImportConfig_CidVersionHashFunction covers the one pairing that
+// cannot be honored as written: CIDv0 is defined as sha2-256 dag-pb. An unset
+// CidVersion is not a conflict, because a non-sha2-256 hash then selects CIDv1.
+func TestValidateImportConfig_CidVersionHashFunction(t *testing.T) {
+	tests := []struct {
+		name       string
+		setVersion bool
+		cidVer     int64
+		hashFunc   string
+		wantErr    bool
+	}{
+		{name: "cidv0 with sha2-256", setVersion: true, cidVer: 0, hashFunc: "sha2-256", wantErr: false},
+		{name: "cidv0 with blake3 is rejected", setVersion: true, cidVer: 0, hashFunc: "blake3", wantErr: true},
+		{name: "cidv1 with blake3", setVersion: true, cidVer: 1, hashFunc: "blake3", wantErr: false},
+		{name: "unset version with blake3 selects cidv1", setVersion: false, hashFunc: "blake3", wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Import{HashFunction: *NewOptionalString(tt.hashFunc)}
+			if tt.setVersion {
+				cfg.CidVersion = *NewOptionalInteger(tt.cidVer)
+			}
+
+			err := ValidateImportConfig(cfg)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("ValidateImportConfig() expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ValidateImportConfig() unexpected error: %v", err)
+			}
+
+			// Every accepted pairing must yield a builder whose version can
+			// carry the hash, so `ipfs add` and MFS agree on it.
+			builder, err := cfg.UnixFSCidBuilder()
+			if err != nil {
+				t.Fatalf("UnixFSCidBuilder() unexpected error: %v", err)
+			}
+			c, err := builder.Sum([]byte("test"))
+			if err != nil {
+				t.Fatalf("builder.Sum failed: %v", err)
+			}
+			wantMhType := mh.Names[strings.ToLower(tt.hashFunc)]
+			if c.Prefix().MhType != wantMhType {
+				t.Errorf("multihash type = 0x%x, want 0x%x (%s)", c.Prefix().MhType, wantMhType, tt.hashFunc)
+			}
+		})
+	}
+}
+
 func TestValidateImportConfig_UnixFSFileMaxLinks(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -484,7 +569,7 @@ func TestValidateImportConfig_DAGLayout(t *testing.T) {
 }
 
 func TestImport_UnixFSCidBuilder(t *testing.T) {
-	defaultMhType := mh.Names[strings.ToLower(DefaultHashFunction)]
+	defaultMhType := mh.Names[strings.ToLower(LegacyFallbackHashFunction)]
 
 	tests := []struct {
 		name       string
@@ -547,7 +632,7 @@ func TestImport_UnixFSCidBuilder(t *testing.T) {
 
 // TestImport_UnixFSCidBuilderDefaults verifies that UnixFSCidBuilder always
 // returns an explicit builder even when no config is set, so that MFS
-// respects kubo's DefaultCidVersion rather than relying on boxo's internal
+// respects kubo's LegacyFallbackCidVersion rather than relying on boxo's internal
 // CIDv0 default (relevant for https://github.com/ipfs/kubo/issues/4143).
 func TestImport_UnixFSCidBuilderDefaults(t *testing.T) {
 	cfg := &Import{}
@@ -563,12 +648,12 @@ func TestImport_UnixFSCidBuilderDefaults(t *testing.T) {
 		t.Fatalf("builder.Sum failed: %v", err)
 	}
 	pref := c.Prefix()
-	if pref.Version != uint64(DefaultCidVersion) {
-		t.Errorf("CID version = %d, want DefaultCidVersion (%d)", pref.Version, DefaultCidVersion)
+	if pref.Version != uint64(LegacyFallbackCidVersion) {
+		t.Errorf("CID version = %d, want LegacyFallbackCidVersion (%d)", pref.Version, LegacyFallbackCidVersion)
 	}
-	wantMhType := mh.Names[strings.ToLower(DefaultHashFunction)]
+	wantMhType := mh.Names[strings.ToLower(LegacyFallbackHashFunction)]
 	if pref.MhType != wantMhType {
-		t.Errorf("multihash type = 0x%x, want 0x%x (DefaultHashFunction=%s)", pref.MhType, wantMhType, DefaultHashFunction)
+		t.Errorf("multihash type = 0x%x, want 0x%x (LegacyFallbackHashFunction=%s)", pref.MhType, wantMhType, LegacyFallbackHashFunction)
 	}
 }
 

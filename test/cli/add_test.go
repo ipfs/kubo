@@ -39,22 +39,20 @@ func TestAdd(t *testing.T) {
 		shortStringCidV1Sha512      = "bafkrgqbqt3gerhas23vuzrapkdeqf4vu2dwxp3srdj6hvg6nhsug2tgyn6mj3u23yx7utftq3i2ckw2fwdh5qmhid5qf3t35yvkc5e5ottlw6"
 	)
 
-	t.Run("produced cid version: implicit default (CIDv0)", func(t *testing.T) {
+	t.Run("produced cid version: implicit default (CIDv1)", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
 		cidStr := node.IPFSAddStr(shortString)
-		require.Equal(t, shortStringCidV0, cidStr)
+		require.Equal(t, shortStringCidV1, cidStr)
 	})
 
-	t.Run("produced cid version: follows user-set configuration Import.CidVersion=0", func(t *testing.T) {
+	t.Run("produced cid version: unixfs-v0-2015 profile yields CIDv0", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init()
-		node.UpdateConfig(func(cfg *config.Config) {
-			cfg.Import.CidVersion = *config.NewOptionalInteger(0)
-		})
-		node.StartDaemon()
+		// Use the profile rather than setting individual knobs, so the CIDv0
+		// baseline stays correct if new import options are added later.
+		node := harness.NewT(t).NewNode().Init("--profile=unixfs-v0-2015").StartDaemon()
 		defer node.StopDaemon()
 
 		cidStr := node.IPFSAddStr(shortString)
@@ -87,15 +85,13 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, shortStringCidV1, cidStr)
 	})
 
-	t.Run("produced cid version: command flag overrides configuration in Import.CidVersion", func(t *testing.T) {
+	t.Run("produced cid version: --cid-version=0 forces CIDv0 and disables default raw leaves", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init()
-		node.UpdateConfig(func(cfg *config.Config) {
-			cfg.Import.CidVersion = *config.NewOptionalInteger(1)
-		})
-		node.StartDaemon()
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
 		defer node.StopDaemon()
 
+		// Default repo is CIDv1 with raw leaves; --cid-version=0 forces CIDv0
+		// dag-pb, disabling the raw leaves inherited from config.
 		cidStr := node.IPFSAddStr(shortString, "--cid-version", "0")
 		require.Equal(t, shortStringCidV0, cidStr)
 	})
@@ -116,6 +112,32 @@ func TestAdd(t *testing.T) {
 		require.Equal(t, shortStringCidV1NoRawLeaves, cidStr)
 	})
 
+	t.Run("legacy repo with only Import.UnixFSRawLeaves set keeps working", func(t *testing.T) {
+		t.Parallel()
+		// Before the import profiles existed, raw leaves on top of the implicit
+		// CIDv0 default were a single config knob. Such a repo must keep
+		// starting and keep producing the CIDs it always did: a dag-pb root
+		// over raw leaves, which for a single-block file is the raw leaf itself.
+		node := harness.NewT(t).NewNode().Init()
+		node.IPFS("config", "--json", "Import", "{}")
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.UnixFSRawLeaves = config.True
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		require.Equal(t, shortStringCidV1, node.IPFSAddStr(shortString))
+
+		// The same pairing spelled out explicitly, including on the CLI.
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Import.CidVersion = *config.NewOptionalInteger(0)
+		})
+		node.StopDaemon()
+		node.StartDaemon()
+		require.Equal(t, shortStringCidV1, node.IPFSAddStr(shortString))
+		require.Equal(t, shortStringCidV1, node.IPFSAddStr(shortString, "--cid-version=0", "--raw-leaves"))
+	})
+
 	t.Run("ipfs add --pin-name=foo", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
@@ -123,10 +145,10 @@ func TestAdd(t *testing.T) {
 
 		pinName := "test-pin-name"
 		cidStr := node.IPFSAddStr(shortString, "--pin-name", pinName)
-		require.Equal(t, shortStringCidV0, cidStr)
+		require.Equal(t, shortStringCidV1, cidStr)
 
 		pinList := node.IPFS("pin", "ls", "--names").Stdout.Trimmed()
-		require.Contains(t, pinList, shortStringCidV0)
+		require.Contains(t, pinList, shortStringCidV1)
 		require.Contains(t, pinList, pinName)
 	})
 
@@ -427,7 +449,7 @@ func TestAddFastProvide(t *testing.T) {
 
 	const (
 		shortString      = "hello world"
-		shortStringCidV0 = "Qmf412jQZiuVUtdgnB36FXFX7xg5V6KEbSJ4dpQuhkLyfD" // cidv0 - dag-pb - sha2-256
+		shortStringCidV1 = "bafkreifzjut3te2nhyekklss27nh3k72ysco7y32koao5eei66wof36n5e" // cidv1 - raw - sha2-256 (default profile)
 	)
 
 	t.Run("fast-provide-root disabled via config: verify skipped in logs", func(t *testing.T) {
@@ -448,7 +470,7 @@ func TestAddFastProvide(t *testing.T) {
 		defer node.StopDaemon()
 
 		cidStr := node.IPFSAddStr(shortString)
-		require.Equal(t, shortStringCidV0, cidStr)
+		require.Equal(t, shortStringCidV1, cidStr)
 
 		// Verify fast-provide-root was disabled
 		daemonLog := node.Daemon.Stderr.String()
@@ -470,7 +492,7 @@ func TestAddFastProvide(t *testing.T) {
 		defer node.StopDaemon()
 
 		cidStr := node.IPFSAddStr(shortString)
-		require.Equal(t, shortStringCidV0, cidStr)
+		require.Equal(t, shortStringCidV1, cidStr)
 
 		daemonLog := node.Daemon.Stderr
 		// Should see async mode started
@@ -541,7 +563,7 @@ func TestAddFastProvide(t *testing.T) {
 		defer node.StopDaemon()
 
 		cidStr := node.IPFSAddStr(shortString)
-		require.Equal(t, shortStringCidV0, cidStr)
+		require.Equal(t, shortStringCidV1, cidStr)
 
 		daemonLog := node.Daemon.Stderr.String()
 		require.Contains(t, daemonLog, "fast-provide-root: skipped")
@@ -565,7 +587,7 @@ func TestAddFastProvide(t *testing.T) {
 		defer node.StopDaemon()
 
 		cidStr := node.IPFSAddStr(shortString, "--fast-provide-root=true")
-		require.Equal(t, shortStringCidV0, cidStr)
+		require.Equal(t, shortStringCidV1, cidStr)
 
 		daemonLog := node.Daemon.Stderr
 		// Flag should enable it despite config saying false
@@ -590,7 +612,7 @@ func TestAddFastProvide(t *testing.T) {
 		defer node.StopDaemon()
 
 		cidStr := node.IPFSAddStr(shortString, "--fast-provide-root=false")
-		require.Equal(t, shortStringCidV0, cidStr)
+		require.Equal(t, shortStringCidV1, cidStr)
 
 		daemonLog := node.Daemon.Stderr.String()
 		// Flag should disable it despite config saying true

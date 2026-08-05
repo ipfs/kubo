@@ -18,7 +18,7 @@ func NewFileSystem(ipfs *core.IpfsNode, mounts config.Mounts, imp config.Import)
 		StoreMode:  mounts.StoreMode.WithDefault(config.DefaultStoreMode),
 		DAG:        ipfs.DAG,
 		RepoPath:   ipfs.Repo.Path(),
-		Blksize:    fusemnt.BlksizeFromChunker(imp.UnixFSChunker.WithDefault(config.DefaultUnixFSChunker)),
+		Blksize:    fusemnt.BlksizeFromChunker(imp.UnixFSChunker.WithDefault(config.LegacyFallbackUnixFSChunker)),
 		// This mount writes ipfs.FilesRoot, the same MFS root the `ipfs files`
 		// commands use, so guard its writes with the pin lock too. GC already
 		// protects that root's blocks via corerepo.BestEffortRoots.

@@ -439,9 +439,10 @@ func TestFilesChroot(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()
 
-		// Add a file to get a file CID
+		// A multi-block file (2 MiB, over the default 1 MiB chunk size) has a
+		// dag-pb file node as its root, so chroot reaches the directory check.
 		node.StartDaemon()
-		fileCid := node.IPFSAddStr("hello world")
+		fileCid := node.IPFSAddStr(strings.Repeat("x", 2<<20))
 		node.StopDaemon()
 
 		// Try to set file as root - should fail with non-zero exit
