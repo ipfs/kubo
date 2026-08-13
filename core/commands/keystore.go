@@ -26,6 +26,7 @@ import (
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	migrations "github.com/ipfs/kubo/repo/fsrepo/migrations"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations/atomicfile"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	mbase "github.com/multiformats/go-multibase"
@@ -277,38 +278,65 @@ elsewhere. For example, using openssl to get a PEM with public key:
 				outPath = filepath.Clean(outPath)
 			}
 
-			// create file with owner-only permissions to protect private key material
-			file, err := os.OpenFile(outPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+			return writeExportedKey(outPath, outReader, exportFormat)
+		},
+	},
+}
+
+func writeExportedKey(outPath string, outReader io.Reader, exportFormat string) error {
+	writeKey := func(w io.Writer) error {
+		switch exportFormat {
+		case keyFormatPemCleartextOption:
+			privKeyBytes, err := io.ReadAll(outReader)
 			if err != nil {
 				return err
 			}
-			defer file.Close()
 
-			switch exportFormat {
-			case keyFormatPemCleartextOption:
-				privKeyBytes, err := io.ReadAll(outReader)
-				if err != nil {
-					return err
-				}
-
-				err = pem.Encode(file, &pem.Block{
-					Type:  "PRIVATE KEY",
-					Bytes: privKeyBytes,
-				})
-				if err != nil {
-					return fmt.Errorf("encoding PEM block: %w", err)
-				}
-
-			case keyFormatLibp2pCleartextOption:
-				_, err = io.Copy(file, outReader)
-				if err != nil {
-					return err
-				}
+			if err := pem.Encode(w, &pem.Block{
+				Type:  "PRIVATE KEY",
+				Bytes: privKeyBytes,
+			}); err != nil {
+				return fmt.Errorf("encoding PEM block: %w", err)
 			}
+		case keyFormatLibp2pCleartextOption:
+			if _, err := io.Copy(w, outReader); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unrecognized export format: %s", exportFormat)
+		}
+		return nil
+	}
 
-			return nil
-		},
-	},
+	info, err := os.Lstat(outPath)
+	if err == nil && info.Mode()&os.ModeCharDevice != 0 {
+		file, err := os.OpenFile(outPath, os.O_TRUNC|os.O_WRONLY, 0)
+		if err != nil {
+			return err
+		}
+		if err := writeKey(file); err != nil {
+			_ = file.Close()
+			return err
+		}
+		return file.Close()
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	file, err := atomicfile.New(outPath, 0o600)
+	if err != nil {
+		return err
+	}
+	if err := writeKey(file); err != nil {
+		_ = file.Abort()
+		return err
+	}
+	if err := file.Close(); err != nil {
+		_ = file.Abort()
+		return err
+	}
+	return nil
 }
 
 var keyImportCmd = &cmds.Command{

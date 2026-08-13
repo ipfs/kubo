@@ -5,12 +5,67 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/asn1"
+	"errors"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
+	"testing/iotest"
 
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestWriteExportedKeyDoesNotFollowSymlinkToCharacterDevice(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix symlink and character-device semantics are not applicable on Windows")
+	}
+
+	path := filepath.Join(t.TempDir(), "key")
+	require.NoError(t, os.Symlink(os.DevNull, path))
+
+	exportedKey := []byte("private key")
+	require.NoError(t, writeExportedKey(path, strings.NewReader(string(exportedKey)), keyFormatLibp2pCleartextOption))
+
+	info, err := os.Lstat(path)
+	require.NoError(t, err)
+	assert.True(t, info.Mode().IsRegular(), "atomic export should replace the symlink itself")
+
+	contents, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, exportedKey, contents)
+}
+
+func TestWriteExportedKeyPreservesExistingFileOnReadError(t *testing.T) {
+	t.Parallel()
+
+	readErr := errors.New("read failed")
+	for _, format := range []string{keyFormatLibp2pCleartextOption, keyFormatPemCleartextOption} {
+		t.Run(format, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "existing.key")
+			existingContents := []byte("existing contents")
+			require.NoError(t, os.WriteFile(path, existingContents, 0o644))
+
+			err := writeExportedKey(path, iotest.ErrReader(readErr), format)
+			require.ErrorIs(t, err, readErr)
+
+			contents, err := os.ReadFile(path)
+			require.NoError(t, err)
+			assert.Equal(t, existingContents, contents)
+
+			info, err := os.Stat(path)
+			require.NoError(t, err)
+			assert.Equal(t, os.FileMode(0o644), info.Mode().Perm())
+
+			tempFiles, err := filepath.Glob(filepath.Join(dir, ".tmp-existing.key*"))
+			require.NoError(t, err)
+			assert.Empty(t, tempFiles)
+		})
+	}
+}
 
 func TestSecp256k1PKCS8RoundTrip(t *testing.T) {
 	t.Parallel()
