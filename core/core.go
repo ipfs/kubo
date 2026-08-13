@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/ipfs/boxo/filestore"
@@ -126,9 +127,55 @@ type IpfsNode struct {
 
 	stop func() error
 
+	// extraMFSRoots holds live MFS roots that are not FilesRoot, such as the
+	// per-key roots the writable /ipns FUSE mount creates. Garbage collection
+	// includes them in its live set (see corerepo.BestEffortRoots) so their
+	// blocks are not collected while the mount is active. Guarded by its mutex.
+	extraMFSRootsMu sync.Mutex
+	extraMFSRoots   map[*mfs.Root]struct{}
+
 	// Flags
 	IsOnline bool `optional:"true"` // Online is set when networking is enabled.
 	IsDaemon bool `optional:"true"` // Daemon is set when running on a long-running daemon.
+}
+
+// RegisterMFSRoot adds an MFS root to the set that garbage collection treats as
+// live, in addition to FilesRoot. Used by writable FUSE mounts so GC does not
+// collect blocks reachable only from a mounted root. Safe for concurrent use;
+// UnregisterMFSRoot removes it when the mount goes away.
+func (n *IpfsNode) RegisterMFSRoot(r *mfs.Root) {
+	if r == nil {
+		return
+	}
+	n.extraMFSRootsMu.Lock()
+	defer n.extraMFSRootsMu.Unlock()
+	if n.extraMFSRoots == nil {
+		n.extraMFSRoots = make(map[*mfs.Root]struct{})
+	}
+	n.extraMFSRoots[r] = struct{}{}
+}
+
+// UnregisterMFSRoot removes a root previously added with RegisterMFSRoot.
+func (n *IpfsNode) UnregisterMFSRoot(r *mfs.Root) {
+	n.extraMFSRootsMu.Lock()
+	defer n.extraMFSRootsMu.Unlock()
+	delete(n.extraMFSRoots, r)
+}
+
+// MFSRoots returns a snapshot of the extra live MFS roots registered with
+// RegisterMFSRoot. The caller must not hold any GC or MFS lock, and must
+// tolerate a root being closed concurrently (walk it best-effort).
+func (n *IpfsNode) MFSRoots() []*mfs.Root {
+	n.extraMFSRootsMu.Lock()
+	defer n.extraMFSRootsMu.Unlock()
+	if len(n.extraMFSRoots) == 0 {
+		return nil
+	}
+	roots := make([]*mfs.Root, 0, len(n.extraMFSRoots))
+	for r := range n.extraMFSRoots {
+		roots = append(roots, r)
+	}
+	return roots
 }
 
 // Mounts defines what the node's mount state is. This should

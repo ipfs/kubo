@@ -274,6 +274,16 @@ func Files(strategy string) func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo 
 			return nil, fmt.Errorf("failed to build MFS options from Import config: %w", err)
 		}
 
+		// Keep dag here an online (network-backed) DAGService. "ipfs files cp
+		// /ipfs/<cid> /path" stores a lazy pointer: only the referenced root is
+		// fetched, and its children are pulled from the network on demand when
+		// the tree is later traversed ("files ls -l", or "stat"/"read" of a
+		// subpath). Do NOT swap in an offline/local-only DAGService to avoid an
+		// under-lock bitswap hang, that turns those lazy lookups into "block not
+		// found locally" errors. The GC-vs-MFS wedge that tempts that change
+		// (ipfs/kubo#10842) is fixed on the GC side instead: MFS mutations hold
+		// the pin lock and GC snapshots the MFS root under the GC lock, so live
+		// MFS blocks are never collected out from under an in-flight write.
 		root, err := mfs.NewRoot(ctx, dag, nd, pf, prov, mfsOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize MFS root from %s stored at %s: %w. "+
