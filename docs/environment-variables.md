@@ -23,6 +23,7 @@
   - [`HTTPS_PROXY`](#https_proxy)
   - [`HTTP_PROXY`](#http_proxy)
   - [`NO_PROXY`](#no_proxy)
+  - [`GOMEMLIMIT`](#gomemlimit)
   - [`LIBP2P_TCP_REUSEPORT`](#libp2p_tcp_reuseport)
   - [`LIBP2P_TCP_MUX`](#libp2p_tcp_mux)
   - [`LIBP2P_MUX_PREFS`](#libp2p_mux_prefs)
@@ -276,6 +277,14 @@ Example:
 ```console
 NO_PROXY="localhost,127.0.0.1,.internal" HTTPS_PROXY=http://proxy.local:8080 ipfs daemon
 ```
+
+## `GOMEMLIMIT`
+
+Soft memory limit for the Go runtime, recognized by every Go program. As the Kubo daemon's memory use approaches this value, the garbage collector runs more often and returns free memory to the OS sooner. The limit is soft: memory that is still in use cannot be freed, so the process can exceed it under load.
+
+On devices with limited RAM, set it to about half of total memory and pair it with OS-level limits; see [Kubo on low-memory devices](production/low-memory.md) for a worked setup and the [Go garbage collector guide](https://go.dev/doc/gc-guide) for the mechanics.
+
+Default: not set (no limit)
 
 ## `LIBP2P_TCP_REUSEPORT`
 
