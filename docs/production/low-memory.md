@@ -18,10 +18,13 @@ MemoryMax=7G
 Restart=on-failure
 ```
 
-Cap concurrent DHT announcement work:
+Cap concurrent DHT announcement work, and turn off the services that spend resources on other peers:
 
 ```console
 $ ipfs config --json Provide.DHT.MaxWorkers 4
+$ ipfs config Routing.Type autoclient
+$ ipfs config AutoNAT.ServiceMode disabled
+$ ipfs config --json Swarm.RelayService.Enabled false
 ```
 
 Then reload and restart:
@@ -62,6 +65,10 @@ If the device has swap, add `MemorySwapMax=0` to keep the daemon from pushing th
 
 ### Kubo configuration
 
+Run the node as a DHT client. With the default [`Routing.Type`](../config.md#routingtype) of `auto`, a publicly reachable node becomes a DHT server: it stores other peers' provider records in its datastore and answers their lookups, which adds network, CPU, and storage load unrelated to your own content. Setting `Routing.Type` to `autoclient` (or `dhtclient`) removes that duty; the node still announces its own content and retrieves normally.
+
+Two more services exist to help other peers and can go on constrained hardware: [`AutoNAT.ServiceMode`](../config.md#autonatservicemode) set to `disabled` stops answering other peers' reachability dial-back requests, and [`Swarm.RelayService.Enabled`](../config.md#swarmrelayserviceenabled) set to `false` stops relaying traffic between third parties. Neither affects this node's own connectivity: it still uses AutoNAT as a client and public relays when it needs them.
+
 On a node that announces a lot of content, the DHT announcement subsystem is the main memory consumer that Kubo configuration controls. [`Provide.DHT.MaxWorkers`](../config.md#providedhtmaxworkers) caps its concurrency; the next section explains why this matters on low-memory devices.
 
 Leave [`Swarm.ResourceMgr.MaxMemory`](../config.md#swarmresourcemgrmaxmemory) unset unless you know what you are doing. It does not limit the Kubo process; it scales the [libp2p resource manager](../libp2p-resource-management.md) limits, including how many inbound connections the node accepts. Setting it too low cripples connectivity: the daemon keeps running and looks online, but the resource manager refuses new connections with `cannot reserve inbound connection: resource limit exceeded` errors, logged as "Protected from exceeding resource limits". Inspect current usage against the limits with `ipfs swarm resources`.
@@ -70,7 +77,13 @@ Leave [`Swarm.ResourceMgr.MaxMemory`](../config.md#swarmresourcemgrmaxmemory) un
 
 Keep [`Provide.DHT.SweepEnabled`](../config.md#providedhtsweepenabled) at its default `true` on low-power devices. Sweep mode spreads announcement work smoothly across the reprovide cycle instead of completing it in bursts, which avoids the resource spikes of the legacy provider.
 
-With sweep mode, the daemon announces content region by region across the DHT keyspace, and each active worker holds one region's keys in memory while it works. After downtime, many regions are due at once and the daemon puts every worker to work, so peak memory scales with [`Provide.DHT.MaxWorkers`](../config.md#providedhtmaxworkers) times the region size. On a node providing millions of CIDs, a high worker count can consume several GiB during this catch-up phase. `4` workers keep the peak small and still reprovide millions of CIDs within the daily cycle.
+With sweep mode, the daemon announces content region by region across the DHT keyspace, and each active worker holds one region's keys in memory while it works. After downtime, many regions are due at once and the daemon puts every worker to work, so peak memory scales with [`Provide.DHT.MaxWorkers`](../config.md#providedhtmaxworkers) times the region size. On a node providing millions of CIDs, a high worker count can consume several GiB during this catch-up phase; `4` workers keep the peak small on an 8 GiB device.
+
+Size the workload with two rates. The sustained rate is what your node actually announces: read `Total CIDs provided` from `ipfs stats provide` twice, 24 hours apart. As a reference, an 8 GiB board with NVMe storage and 4 workers sustains roughly 300k records per hour. The required rate is your CID count divided by [`Provide.DHT.Interval`](../config.md#providedhtinterval) (default 22h). Keep the required rate below the sustained rate, with margin. The hard floor is record expiry: provider records on the Amino DHT expire after 48 hours ([`amino.DefaultProvideValidity`](https://github.com/libp2p/go-libp2p-kad-dht/blob/v0.34.0/amino/defaults.go#L40-L43)), so a full pass over the pinset must always complete faster than that, or some content periodically becomes undiscoverable.
+
+Worked example, 10 million CIDs on an 8 GiB device: the default 22h interval requires ~455k records per hour, above the reference rate, so the cycle slips. Raising `Provide.DHT.MaxWorkers` to `6` and `Provide.DHT.Interval` to `32h` lowers the requirement to ~313k per hour, within reach of the sustained rate, and a full pass stays well inside the 48h expiry (the floor for 10M CIDs is ~208k per hour). After a change, let a full cycle finish and use the [Verify](#verify) checks to confirm the reprovide queue is not growing.
+
+Do not enable [`Routing.AcceleratedDHTClient`](../config.md#routingaccelerateddhtclient) to speed announcements up on a low-memory device. It crawls the entire DHT on an hourly schedule, and those crawls cause the memory and traffic spikes this guide exists to prevent. Adjust workers and interval as above instead.
 
 The number of announced CIDs itself is the biggest lever. [`Provide.Strategy`](../config.md#providestrategy) selects what gets announced: `pinned+mfs+entities` announces file and directory roots instead of every block, which typically shrinks the workload by orders of magnitude. Read the trade-offs in the strategy documentation before changing it.
 

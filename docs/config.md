@@ -4565,7 +4565,7 @@ Reduces daemon overhead on the system by disabling optional swarm services.
 > [!NOTE]
 > This profile is provided for legacy reasons.
 > With modern Kubo setting the above should not be necessary.
-> For memory tuning on constrained hardware (systemd limits, `GOMEMLIMIT`), see [Kubo on low-memory devices](production/low-memory.md).
+> For running on constrained hardware, see [Kubo on low-memory devices](production/low-memory.md): it covers these settings individually, plus memory limits (systemd, `GOMEMLIMIT`) and DHT announcement sizing.
 
 ### `announce-off` profile
 
