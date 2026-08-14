@@ -162,11 +162,35 @@ func (n *Node) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) sy
 // Open creates a DagReader that is reused across sequential Read
 // calls, avoiding re-traversal of the DAG from the root on each read.
 func (n *Node) Open(ctx context.Context, _ uint32) (fs.FileHandle, uint32, syscall.Errno) {
+	// A UnixFS directory can link to a block of any codec, and there is no
+	// DAG to walk in one that is not dag-pb. fillAttr reports those as a file
+	// the size of the block, so hand back exactly those bytes; otherwise stat
+	// promises content that every read refuses to deliver.
+	switch n.nd.(type) {
+	case *mdag.ProtoNode, *mdag.RawNode:
+	default:
+		return &rawFileHandle{data: n.nd.RawData()}, fuse.FOPEN_KEEP_CACHE, 0
+	}
+
 	r, err := uio.NewDagReader(ctx, n.nd, n.ipfs.DAG)
 	if err != nil {
 		return nil, 0, fusemnt.ReadErrno(err)
 	}
 	return &roFileHandle{r: r}, fuse.FOPEN_KEEP_CACHE, 0
+}
+
+// rawFileHandle serves a block's own bytes. Used for entries whose codec
+// carries no UnixFS metadata, where the block is all there is to read.
+type rawFileHandle struct {
+	data []byte
+}
+
+func (fh *rawFileHandle) Read(_ context.Context, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+	if off < 0 || off >= int64(len(fh.data)) {
+		return fuse.ReadResultData(nil), 0
+	}
+	end := min(off+int64(len(dest)), int64(len(fh.data)))
+	return fuse.ReadResultData(fh.data[off:end]), 0
 }
 
 // roFileHandle holds a DagReader for the lifetime of an open file.

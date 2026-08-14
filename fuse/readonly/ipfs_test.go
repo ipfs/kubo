@@ -278,6 +278,10 @@ func TestLookupOfUnreadableChild(t *testing.T) {
 		require.False(t, info.IsDir())
 		require.EqualValues(t, len(child.RawData()), info.Size(),
 			"a block this mount cannot decode should report its own size")
+
+		got, err := os.ReadFile(gopath.Join(mntDir, dir, "obj"))
+		require.NoError(t, err, "a size stat reports has to be a size reads can deliver")
+		require.Equal(t, child.RawData(), got)
 	})
 
 	t.Run("missing block", func(t *testing.T) {
