@@ -19,6 +19,8 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ipfs/boxo/mfs"
+
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
@@ -148,8 +150,15 @@ func TestRenameOntoNamespaceRoot(t *testing.T) {
 
 	require.Error(t, os.Rename(src, mnt.Dir+"/keepme"))
 
-	got, err := os.ReadFile(src)
+	// Ask MFS, not the mount. The kernel still has the entry cached, so a
+	// read through the mount answers from the handle it already holds and
+	// succeeds for a second either way, whether or not the file is still
+	// in the tree.
+	_, err := mfs.Lookup(mnt.Root.Roots[nd.Identity.String()], "/keepme")
 	require.NoError(t, err, "the file must survive a rename that could not be carried out")
+
+	got, err := os.ReadFile(src)
+	require.NoError(t, err)
 	require.Equal(t, content, got)
 }
 
