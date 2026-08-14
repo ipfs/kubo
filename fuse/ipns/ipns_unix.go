@@ -143,6 +143,19 @@ func (r *Root) Statfs(_ context.Context, out *fuse.StatfsOut) syscall.Errno {
 	return 0
 }
 
+// fillEntryAttr copies a node's attributes into the lookup reply. Without it
+// the reply carries zeroes, and since every later lookup refreshes the
+// kernel's cache with the same zeroes, a key directory keeps showing up with
+// no permissions and no link count.
+func fillEntryAttr(ctx context.Context, node fs.NodeGetattrer, out *fuse.EntryOut) {
+	var attr fuse.AttrOut
+	if errno := node.Getattr(ctx, nil, &attr); errno != 0 {
+		log.Warnf("ipns: attributes for lookup reply: %s", errno)
+		return
+	}
+	out.Attr = attr.Attr
+}
+
 func (r *Root) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
@@ -150,10 +163,12 @@ func (r *Root) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 	}
 
 	if lnk, ok := r.LocalLinks[name]; ok {
+		fillEntryAttr(ctx, lnk, out)
 		return r.NewInode(ctx, lnk, fs.StableAttr{Mode: syscall.S_IFLNK}), 0
 	}
 
 	if dir, ok := r.LocalDirs[name]; ok {
+		fillEntryAttr(ctx, dir, out)
 		return r.NewInode(ctx, dir, fs.StableAttr{Mode: syscall.S_IFDIR}), 0
 	}
 
@@ -169,6 +184,7 @@ func (r *Root) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 	}
 
 	lnk := &Link{Target: r.IpfsRoot + "/" + strings.TrimPrefix(resolved.String(), "/ipfs/")}
+	fillEntryAttr(ctx, lnk, out)
 	return r.NewInode(ctx, lnk, fs.StableAttr{Mode: syscall.S_IFLNK}), 0
 }
 
