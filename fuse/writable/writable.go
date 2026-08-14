@@ -351,6 +351,17 @@ func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbe
 		return fs.ToErrno(err)
 	}
 
+	// Flush the destination before the source. AddChild only updates the
+	// target directory in memory, so without this the new link is lost if the
+	// daemon stops before something else flushes it; flushing it first means
+	// an interrupted rename leaves the entry under both names rather than
+	// under neither.
+	if targetDir.MFSDir != d.MFSDir {
+		if err := targetDir.MFSDir.Flush(); err != nil {
+			return fs.ToErrno(err)
+		}
+	}
+
 	// Both names change identity here, so both give up their inode numbers.
 	// POSIX would keep the source's number on the destination, but the entry
 	// that lands there is a new *mfs.File: MFS marks the unlinked one as
