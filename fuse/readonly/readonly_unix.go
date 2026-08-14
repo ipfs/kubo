@@ -317,8 +317,12 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 		}
 		nd, err := n.ipfs.DAG.Get(ctx, lnk.Cid)
 		if err != nil {
-			log.Warn("error fetching directory child node: ", err)
-			return err
+			// Listing the rest of the directory is more use than failing all
+			// of it because one block is missing. Reporting no type leaves
+			// the entry as DT_UNKNOWN, which tells the caller to stat it.
+			log.Warnf("fuse readdir: child %q: %s", name, err)
+			entries = append(entries, fuse.DirEntry{Name: name, Ino: fusemnt.InoFromCid(lnk.Cid)})
+			return nil
 		}
 
 		var mode uint32

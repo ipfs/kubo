@@ -301,6 +301,44 @@ func TestLookupOfUnreadableChild(t *testing.T) {
 	})
 }
 
+// A listing has to survive one child whose block is missing. The other
+// entries are still worth having, and the caller finds out what is wrong with
+// the bad one by stat'ing it.
+func TestReaddirWithUnreadableChild(t *testing.T) {
+	offline, err := core.NewNode(t.Context(), &core.BuildCfg{})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = offline.Close() })
+	_, mntDir := setupIpfsTest(t, offline)
+
+	good := dag.NodeWithData(ft.FilePBData([]byte("here"), 4))
+	gone := dag.NodeWithData(ft.FilePBData([]byte("gone"), 4))
+	// AddChild only links a node, it does not store it, and an entry whose
+	// block was never stored is missing in the same way as one that was.
+	require.NoError(t, offline.DAG.Add(t.Context(), good))
+	require.NoError(t, offline.DAG.Add(t.Context(), gone))
+
+	db, err := uio.NewDirectory(offline.DAG)
+	require.NoError(t, err)
+	require.NoError(t, db.AddChild(t.Context(), "good", good))
+	require.NoError(t, db.AddChild(t.Context(), "gone", gone))
+	dirNode, err := db.GetNode()
+	require.NoError(t, err)
+	require.NoError(t, offline.DAG.Add(t.Context(), dirNode))
+	require.NoError(t, offline.DAG.Remove(t.Context(), gone.Cid()))
+
+	entries, err := os.ReadDir(gopath.Join(mntDir, dirNode.Cid().String()))
+	require.NoError(t, err, "one missing block should not fail the whole listing")
+
+	var names []string
+	for _, e := range entries {
+		names = append(names, e.Name())
+	}
+	// The unreadable name is reported with no type and no inode number, which
+	// readdirplus and Go's dirent parsing then drop; what matters is that the
+	// readable half of the directory is still there.
+	require.Contains(t, names, "good")
+}
+
 // Test reading a directory that contains both dag-pb and raw-leaf children.
 // This is the typical layout produced by `ipfs add --raw-leaves`: the
 // directory node is dag-pb, while file leaves are raw blocks.
