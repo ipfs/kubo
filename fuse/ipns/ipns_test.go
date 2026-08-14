@@ -82,7 +82,16 @@ func setupIpnsTest(t *testing.T, nd *core.IpfsNode, cfgs ...config.Mounts) (*cor
 	key, err := coreAPI.Key().Self(nd.Context())
 	require.NoError(t, err)
 
-	root, err := CreateRoot(nd.Context(), coreAPI, nd.Blockstore, map[string]iface.Key{"local": key}, "", "", nd.Repo.Path(), cfg, config.Import{})
+	// Settle the repo path before the mount starts serving. Statfs reads it
+	// from a FUSE handler goroutine, so a test that assigns it afterwards
+	// races the server. The in-memory test repo reports no path, and Statfs
+	// needs a real directory to stat.
+	repoPath := nd.Repo.Path()
+	if repoPath == "" {
+		repoPath = t.TempDir()
+	}
+
+	root, err := CreateRoot(nd.Context(), coreAPI, nd.Blockstore, map[string]iface.Key{"local": key}, "", "", repoPath, cfg, config.Import{})
 	require.NoError(t, err)
 
 	mntDir := t.TempDir()
@@ -242,11 +251,6 @@ func TestMultipleDirs(t *testing.T) {
 // files onto a volume that reports zero free space.
 func TestStatfs(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil)
-
-	// The in-memory test repo returns "" for Path(), so point RepoPath
-	// at a real directory to exercise the syscall path.
-	repoDir := t.TempDir()
-	mnt.Root.RepoPath = repoDir
 
 	fusetest.AssertStatfsNonZero(t, mnt.Dir)
 }
