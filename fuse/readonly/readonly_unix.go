@@ -118,7 +118,7 @@ func (r *Root) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 		return nil, syscall.ENOENT
 	}
 
-	child := &Node{ipfs: r.ipfs, nd: fnd}
+	child := &Node{ipfs: r.ipfs, nd: fnd, cid: cidLnk.Cid}
 	stable := stableAttrFor(child, cidLnk.Cid)
 
 	// Fill attrs in the lookup response so the kernel doesn't cache zeros.
@@ -136,8 +136,13 @@ func (*Root) Readdir(_ context.Context) (fs.DirStream, syscall.Errno) {
 // Node is the core object representing a filesystem tree node.
 type Node struct {
 	fs.Inode
-	ipfs   *core.IpfsNode
-	nd     ipld.Node
+	ipfs *core.IpfsNode
+	nd   ipld.Node
+	// cid is the CID this entry resolved to. It is kept separately because
+	// nd is rebuilt by decoding the block, which loses the CID version and
+	// codec the caller asked for: a v1 dag-pb path would otherwise report
+	// its v0 form through the ipfs.cid xattr.
+	cid    cid.Cid
 	cached *ft.FSNode
 }
 
@@ -293,7 +298,7 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 		return nil, syscall.EIO
 	}
 
-	child := &Node{ipfs: n.ipfs, nd: nd}
+	child := &Node{ipfs: n.ipfs, nd: nd, cid: link.Cid}
 	stable := stableAttrFor(child, link.Cid)
 
 	child.fillAttr(&out.Attr)
@@ -379,7 +384,7 @@ func (n *Node) Getxattr(_ context.Context, attr string, dest []byte) (uint32, sy
 	if attr != fusemnt.XattrCID {
 		return 0, fs.ENOATTR
 	}
-	data := []byte(n.nd.Cid().String())
+	data := []byte(n.cid.String())
 	if len(dest) == 0 {
 		return uint32(len(data)), 0
 	}
