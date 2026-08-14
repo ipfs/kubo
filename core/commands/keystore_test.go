@@ -100,6 +100,39 @@ func TestWriteExportedKeyFollowsDanglingSymlink(t *testing.T) {
 	assert.Equal(t, exportedKeyContents, string(contents))
 }
 
+// A relative symlink points at a file next to itself, and the directory it
+// lives in may be reached through a symlink of its own, such as a keys
+// directory that points at another volume. The key belongs where the system
+// resolves the link, not where joining the target onto the path as typed
+// happens to land.
+func TestWriteExportedKeyFollowsRelativeSymlinkThroughLinkedDir(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix symlink semantics are not applicable on Windows")
+	}
+
+	dir := t.TempDir()
+	volume := filepath.Join(dir, "volume")
+	require.NoError(t, os.MkdirAll(filepath.Join(volume, "keys"), 0o755))
+	require.NoError(t, os.Symlink("../target.key", filepath.Join(volume, "keys", "link.key")))
+	require.NoError(t, os.Symlink(filepath.Join(volume, "keys"), filepath.Join(dir, "keys")))
+
+	// Named like the link target, but one directory up from where the link
+	// resolves, so a lexical join lands on it.
+	bystander := filepath.Join(dir, "target.key")
+	require.NoError(t, os.WriteFile(bystander, []byte("unrelated"), 0o644))
+
+	require.NoError(t, exportKey(t, filepath.Join(dir, "keys", "link.key")))
+
+	contents, err := os.ReadFile(filepath.Join(volume, "target.key"))
+	require.NoError(t, err)
+	assert.Equal(t, exportedKeyContents, string(contents))
+
+	contents, err = os.ReadFile(bystander)
+	require.NoError(t, err)
+	assert.Equal(t, "unrelated", string(contents), "the export must not replace a file the link does not point at")
+}
+
 // Targets that can neither be replaced by rename nor written as a stream are
 // refused instead of failing halfway through writing the key.
 func TestWriteExportedKeyRefusesUnsupportedTarget(t *testing.T) {

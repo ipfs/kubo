@@ -382,10 +382,10 @@ func writeExportedKey(outPath string, outReader io.Reader, exportFormat string) 
 }
 
 // resolveSymlink returns the path a chain of symlinks ends at.
-// filepath.EvalSymlinks cannot be used here: it fails when the last link
-// points at a file that does not exist yet, and such a link still says where
-// the key belongs. A path that cannot be inspected is returned unchanged, so
-// that the caller's write reports the problem.
+// filepath.EvalSymlinks cannot be used on the path as a whole: it fails when
+// the last link points at a file that does not exist yet, and such a link
+// still says where the key belongs. A path that cannot be inspected is
+// returned unchanged, so that the caller's write reports the problem.
 func resolveSymlink(path string) (string, error) {
 	for range maxSymlinkHops {
 		info, err := os.Lstat(path)
@@ -397,7 +397,15 @@ func resolveSymlink(path string) (string, error) {
 			return "", err
 		}
 		if !filepath.IsAbs(target) {
-			target = filepath.Join(filepath.Dir(path), target)
+			// A relative target starts at the directory the link lives in,
+			// with that directory's own links resolved. Joining it onto the
+			// path as typed would collapse ".." through them and name a file
+			// the kernel never points at.
+			dir, err := filepath.EvalSymlinks(filepath.Dir(path))
+			if err != nil {
+				return "", err
+			}
+			target = filepath.Join(dir, target)
 		}
 		path = target
 	}
