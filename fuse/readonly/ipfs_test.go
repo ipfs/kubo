@@ -36,6 +36,7 @@ import (
 	importer "github.com/ipfs/boxo/ipld/unixfs/importer"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/path"
+	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-test/random"
 	options "github.com/ipfs/kubo/core/coreiface/options"
@@ -201,6 +202,48 @@ func TestInodeNumbersFromCID(t *testing.T) {
 		"repeated lookups of one path should agree")
 	require.Equal(t, direct, ino(gopath.Join(mntDir, dir.RootCid().String(), "child")),
 		"the same content reached through another path is the same object")
+}
+
+// TestSameBlockUnderTwoCodecs reads one block through both a dag-pb and a raw
+// CID. They name different files, since the raw CID is the block itself and
+// the dag-pb CID is the UnixFS file inside it, so they have to be numbered
+// apart: go-fuse serves two entries that agree on their whole identity from
+// one node, and the first one read would then answer for both.
+func TestSameBlockUnderTwoCodecs(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	api, err := coreapi.NewCoreAPI(nd)
+	require.NoError(t, err)
+
+	content := []byte("one block, two codecs")
+	added, err := api.Unixfs().Add(t.Context(), files.NewBytesFile(content),
+		options.Unixfs.CidVersion(1), options.Unixfs.RawLeaves(false))
+	require.NoError(t, err)
+
+	pbCid := added.RootCid()
+	rawCid := cid.NewCidV1(cid.Raw, pbCid.Hash())
+
+	block, err := nd.Blockstore.Get(t.Context(), pbCid)
+	require.NoError(t, err)
+
+	stat := func(c cid.Cid) (uint64, []byte) {
+		t.Helper()
+		p := gopath.Join(mntDir, c.String())
+		info, err := os.Stat(p)
+		require.NoError(t, err)
+		st, ok := info.Sys().(*syscall.Stat_t)
+		require.True(t, ok)
+		data, err := os.ReadFile(p)
+		require.NoError(t, err)
+		return st.Ino, data
+	}
+
+	pbIno, pbData := stat(pbCid)
+	rawIno, rawData := stat(rawCid)
+
+	require.NotEqual(t, pbIno, rawIno, "two CIDs for one block should be numbered apart")
+	require.Equal(t, content, pbData, "the dag-pb CID should read as the UnixFS file")
+	require.Equal(t, block.RawData(), rawData, "the raw CID should read as the block itself")
 }
 
 // Test reading a directory that contains both dag-pb and raw-leaf children.

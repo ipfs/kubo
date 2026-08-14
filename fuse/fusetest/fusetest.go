@@ -56,6 +56,9 @@ func TestMount(t *testing.T, root fs.InodeEmbedder, opts *fs.Options) string {
 	if opts.RootStableAttr == nil {
 		opts.RootStableAttr = &fs.StableAttr{Ino: fusemnt.RootIno}
 	}
+	if opts.FirstAutomaticIno == 0 {
+		opts.FirstAutomaticIno = fusemnt.AutomaticIno
+	}
 	server, err := fs.Mount(mntDir, root, opts)
 	MountError(t, err)
 	t.Cleanup(func() { _ = server.Unmount() })

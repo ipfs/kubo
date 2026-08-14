@@ -376,16 +376,19 @@ func (fh *roFileHandle) Release(_ context.Context) syscall.Errno {
 	return fs.ToErrno(fh.r.Close())
 }
 
-// stableAttrFor describes a node to go-fuse: which object it is (Ino,
-// derived from c, the CID the entry resolved to) and what kind of object.
+// stableAttrFor describes a node to go-fuse: which object it is (Ino and Gen,
+// both derived from c, the CID the entry resolved to) and what kind of object.
 //
-// No generation is set, unlike the writable mounts: /ipfs content never
-// changes under a CID, so a node go-fuse already holds for that CID is
-// still accurate and is reused rather than rebuilt.
+// Ino and Gen together are the identity go-fuse matches a lookup against, so
+// both are needed to tell two CIDs apart; see fusemnt.InoGenFromCid. They are
+// derived rather than counted because /ipfs content never changes under a CID:
+// a node go-fuse already holds for that CID is still accurate and is reused
+// rather than rebuilt.
 func stableAttrFor(n *Node, c cid.Cid) fs.StableAttr {
-	ino := fusemnt.InoFromCid(c)
+	ino, gen := fusemnt.InoGenFromCid(c)
+	attr := fs.StableAttr{Ino: ino, Gen: gen} // Mode 0 is S_IFREG
 	if _, ok := n.nd.(*mdag.RawNode); ok {
-		return fs.StableAttr{Ino: ino} // S_IFREG
+		return attr
 	}
 	if n.cached == nil {
 		_ = n.loadData()
@@ -393,12 +396,12 @@ func stableAttrFor(n *Node, c cid.Cid) fs.StableAttr {
 	if n.cached != nil {
 		switch n.cached.Type() {
 		case ft.TDirectory, ft.THAMTShard:
-			return fs.StableAttr{Mode: syscall.S_IFDIR, Ino: ino}
+			attr.Mode = syscall.S_IFDIR
 		case ft.TSymlink:
-			return fs.StableAttr{Mode: syscall.S_IFLNK, Ino: ino}
+			attr.Mode = syscall.S_IFLNK
 		}
 	}
-	return fs.StableAttr{Ino: ino} // S_IFREG
+	return attr
 }
 
 // Interface checks.

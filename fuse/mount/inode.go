@@ -5,11 +5,10 @@
 package mount
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
-	"hash/fnv"
 
 	"github.com/ipfs/go-cid"
-	mh "github.com/multiformats/go-multihash"
 )
 
 // RootIno is the inode number reported for a mount point. go-fuse leaves the
@@ -24,31 +23,51 @@ const RootIno = 1
 const FirstIno = 2
 
 // AutomaticIno is where go-fuse starts numbering nodes a filesystem did not
-// number itself (fs.Options.FirstAutomaticIno). Mounts keep their own numbers
-// below it, so a node that slips through unnumbered can never be mistaken for
-// one that was numbered. Staying in the lower half also keeps the numbers
-// readable by 32-bit callers of stat and getdents for any realistic tree.
+// number itself. Mounts keep their own numbers below it, so a node that slips
+// through unnumbered can never be mistaken for one that was numbered.
+// NewMount pins fs.Options.FirstAutomaticIno to it rather than relying on
+// go-fuse's default, which is the same value but free to change.
 const AutomaticIno = 1 << 63
 
 // InoFromCid derives an inode number for a node on an immutable mount, where
 // the CID is the identity of the content and nothing else has to be tracked.
-//
-// The first eight bytes of the multihash digest are already uniformly
-// distributed, so they are taken as they are. Two paths that resolve to the
-// same CID get the same number on purpose: on a content-addressed tree they
-// are the same object, and go-fuse then serves both from one node, which
-// keeps a single page cache for the content behind both names.
+// Two paths that resolve to the same CID get the same number on purpose: on a
+// content-addressed tree they are the same object, and go-fuse then serves
+// both from one node, which keeps a single page cache for the content behind
+// both names.
 func InoFromCid(c cid.Cid) uint64 {
-	if dec, err := mh.Decode(c.Hash()); err == nil && dec.Code != mh.IDENTITY && len(dec.Digest) >= 8 {
-		return boundIno(binary.BigEndian.Uint64(dec.Digest[:8]))
-	}
-	// An identity multihash carries the content itself rather than a digest
-	// of it, so its leading bytes would give one number to every file that
-	// starts alike. Digests shorter than eight bytes have too little to take.
-	// Both cases fall back to hashing the whole CID.
-	h := fnv.New64a()
-	_, _ = h.Write([]byte(c.KeyString()))
-	return boundIno(h.Sum64())
+	ino, _ := InoGenFromCid(c)
+	return ino
+}
+
+// InoGenFromCid derives both halves of a node's identity on an immutable
+// mount: the inode number reported to userspace, and the generation that goes
+// with it in fs.StableAttr.
+//
+// go-fuse matches a lookup against the nodes it already holds by the whole of
+// StableAttr, so two CIDs that agree on all of it are served as one object,
+// and whichever was looked up first answers for both. The inode number alone
+// cannot carry that identity: it is 63 bits, which two of the files a busy
+// mount serves are liable to share, and a mount serves whatever content it is
+// asked for, including content chosen to collide. The generation adds another
+// 64 bits, out of reach of both.
+//
+// Both numbers come from a hash of the codec together with the multihash. The
+// codec has to be in there because the same block reached as raw and as
+// dag-pb is decoded differently and is not the same file; the CID version is
+// left out because a CIDv0 and a CIDv1 dag-pb of the same content are.
+func InoGenFromCid(c cid.Cid) (ino, gen uint64) {
+	var codec [binary.MaxVarintLen64]byte
+	n := binary.PutUvarint(codec[:], c.Type())
+
+	h := sha256.New()
+	_, _ = h.Write(codec[:n])
+	_, _ = h.Write(c.Hash())
+
+	var sum [sha256.Size]byte
+	h.Sum(sum[:0])
+
+	return boundIno(binary.BigEndian.Uint64(sum[:8])), binary.BigEndian.Uint64(sum[8:16])
 }
 
 // boundIno moves a derived number into the range a mount may report,
