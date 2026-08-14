@@ -116,6 +116,7 @@ type Dir struct {
 // (dedup scanners, file managers) treat as "unsupported".
 func (d *Dir) fillAttr(a *fuse.Attr) {
 	a.Mode = uint32(fusemnt.DefaultDirModeRW.Perm())
+	a.Nlink = fusemnt.Nlink
 	a.Blocks = 1
 	a.Blksize = d.Cfg.Blksize
 	if m, err := d.MFSDir.Mode(); err == nil && m != 0 {
@@ -440,6 +441,7 @@ type FileInode struct {
 
 func (fi *FileInode) fillAttr(a *fuse.Attr) {
 	size, _ := fi.MFSFile.Size()
+	a.Nlink = fusemnt.Nlink
 	a.Size = uint64(size)
 	a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
 	a.Blksize = fi.Cfg.Blksize
@@ -746,6 +748,7 @@ func (s *Symlink) Readlink(_ context.Context) ([]byte, syscall.Errno) {
 
 func (s *Symlink) fillAttr(a *fuse.Attr) {
 	a.Mode = uint32(fusemnt.SymlinkMode.Perm())
+	a.Nlink = fusemnt.Nlink
 	a.Size = uint64(len(s.Target))
 	a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
 	a.Blksize = s.Cfg.Blksize

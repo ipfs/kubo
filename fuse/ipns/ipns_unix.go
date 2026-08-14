@@ -124,6 +124,7 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, gcLocker bstore.GCLocke
 // Getattr returns the root directory attributes.
 func (r *Root) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr.Mode = uint32(fusemnt.NamespaceRootMode.Perm())
+	out.Attr.Nlink = fusemnt.Nlink
 	return 0
 }
 

@@ -62,6 +62,7 @@ func (r *Root) Statfs(_ context.Context, out *fuse.StatfsOut) syscall.Errno {
 
 func (*Root) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr.Mode = uint32(fusemnt.NamespaceRootMode.Perm())
+	out.Attr.Nlink = fusemnt.Nlink
 	out.SetTimeout(immutableAttrCacheTime)
 	return 0
 }
@@ -186,6 +187,7 @@ type roFileHandle struct {
 // which clobbers the UnixFS-derived values set below.
 func (n *Node) fillAttr(a *fuse.Attr) {
 	a.Blksize = fusemnt.DefaultBlksize
+	a.Nlink = fusemnt.Nlink
 
 	if rawnd, ok := n.nd.(*mdag.RawNode); ok {
 		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
