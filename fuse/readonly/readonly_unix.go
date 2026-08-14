@@ -203,6 +203,16 @@ func (n *Node) fillAttr(a *fuse.Attr) {
 		}
 	}
 
+	// A UnixFS directory can link to a block of any codec, and loadData only
+	// reads UnixFS metadata out of dag-pb. Report anything else as a file of
+	// the block's own size, which is what reads of it return.
+	if n.cached == nil {
+		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
+		a.Size = uint64(len(n.nd.RawData()))
+		a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
+		return
+	}
+
 	switch n.cached.Type() {
 	case ft.TDirectory, ft.THAMTShard:
 		a.Mode = uint32(fusemnt.DefaultDirModeRO.Perm())
@@ -248,8 +258,13 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 		return nil, syscall.EIO
 	}
 
+	// A block we cannot read is not an entry we can serve: every attribute
+	// of it, down to its type, comes from the block itself.
 	nd, err := n.ipfs.DAG.Get(ctx, link.Cid)
-	if err != nil && !ipld.IsNotFound(err) {
+	if err != nil {
+		if ipld.IsNotFound(err) {
+			return nil, syscall.ENOENT
+		}
 		log.Errorf("fuse lookup %q: %s", name, err)
 		return nil, syscall.EIO
 	}

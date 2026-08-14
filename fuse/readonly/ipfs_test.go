@@ -37,11 +37,13 @@ import (
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/path"
 	cid "github.com/ipfs/go-cid"
+	cbor "github.com/ipfs/go-ipld-cbor"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-test/random"
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/fuse/fusetest"
 	fusemnt "github.com/ipfs/kubo/fuse/mount"
+	mh "github.com/multiformats/go-multihash"
 	"github.com/stretchr/testify/require"
 )
 
@@ -244,6 +246,55 @@ func TestSameBlockUnderTwoCodecs(t *testing.T) {
 	require.NotEqual(t, pbIno, rawIno, "two CIDs for one block should be numbered apart")
 	require.Equal(t, content, pbData, "the dag-pb CID should read as the UnixFS file")
 	require.Equal(t, block.RawData(), rawData, "the raw CID should read as the block itself")
+}
+
+// TestLookupOfUnreadableChild covers the two children a UnixFS directory can
+// hold that this mount cannot read as a UnixFS file: one in a codec it does
+// not decode, and one whose block is not in the blockstore. A stat of either
+// used to dereference the UnixFS metadata it never got and take the whole
+// daemon down with it.
+func TestLookupOfUnreadableChild(t *testing.T) {
+	dirWithChild := func(t *testing.T, nd *core.IpfsNode, name string, child ipld.Node) string {
+		t.Helper()
+		db, err := uio.NewDirectory(nd.DAG)
+		require.NoError(t, err)
+		require.NoError(t, db.AddChild(t.Context(), name, child))
+		dir, err := db.GetNode()
+		require.NoError(t, err)
+		require.NoError(t, nd.DAG.Add(t.Context(), dir))
+		return dir.Cid().String()
+	}
+
+	t.Run("dag-cbor child", func(t *testing.T) {
+		nd, mntDir := setupIpfsTest(t, nil)
+
+		child, err := cbor.WrapObject(map[string]string{"hello": "world"}, mh.SHA2_256, -1)
+		require.NoError(t, err)
+		require.NoError(t, nd.DAG.Add(t.Context(), child))
+
+		dir := dirWithChild(t, nd, "obj", child)
+		info, err := os.Stat(gopath.Join(mntDir, dir, "obj"))
+		require.NoError(t, err)
+		require.False(t, info.IsDir())
+		require.EqualValues(t, len(child.RawData()), info.Size(),
+			"a block this mount cannot decode should report its own size")
+	})
+
+	t.Run("missing block", func(t *testing.T) {
+		// An offline node, so that a block nobody has is reported missing
+		// rather than waited for.
+		offline, err := core.NewNode(t.Context(), &core.BuildCfg{})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = offline.Close() })
+		_, mntDir := setupIpfsTest(t, offline)
+
+		child := dag.NodeWithData(ft.FilePBData([]byte("gone"), 4))
+		dir := dirWithChild(t, offline, "gone", child)
+		require.NoError(t, offline.DAG.Remove(t.Context(), child.Cid()))
+
+		_, err = os.Stat(gopath.Join(mntDir, dir, "gone"))
+		require.Error(t, err, "a child whose block is missing should not resolve")
+	})
 }
 
 // Test reading a directory that contains both dag-pb and raw-leaf children.
