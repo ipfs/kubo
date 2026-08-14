@@ -134,6 +134,25 @@ func TestIpnsLocalLink(t *testing.T) {
 	require.Equal(t, nd.Identity.String(), target)
 }
 
+// TestRenameOntoNamespaceRoot moves a file from a key directory onto the
+// /ipns root, which holds no files and cannot take it. The move has to fail
+// with the file still where it was: the mount used to unlink the source
+// before finding out it had nowhere to put it, and the file was gone.
+func TestRenameOntoNamespaceRoot(t *testing.T) {
+	nd, mnt := setupIpnsTest(t, nil)
+	keyDir := mnt.Dir + "/" + nd.Identity.String()
+
+	src := keyDir + "/keepme"
+	content := []byte("still here")
+	require.NoError(t, os.WriteFile(src, content, 0o644))
+
+	require.Error(t, os.Rename(src, mnt.Dir+"/keepme"))
+
+	got, err := os.ReadFile(src)
+	require.NoError(t, err, "the file must survive a rename that could not be carried out")
+	require.Equal(t, content, got)
+}
+
 // TestNamespaceRootMode verifies that the /ipns root has execute-only
 // mode (not listable, only traversable).
 func TestNamespaceRootMode(t *testing.T) {

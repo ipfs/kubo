@@ -328,6 +328,14 @@ func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbe
 		return fs.ToErrno(err)
 	}
 
+	// Refuse a destination we cannot write to before touching MFS. The /ipns
+	// root is not a Dir, so `mv /ipns/<key>/f /ipns/f` lands here, and
+	// unlinking the source first would delete it with nowhere to put it.
+	targetDir, ok := newParent.EmbeddedInode().Operations().(*Dir)
+	if !ok {
+		return syscall.EINVAL
+	}
+
 	// Unlink the source first. For same-directory renames, this clears
 	// the old name from the directory's entry cache before AddChild
 	// repopulates it with the new name. Without this ordering, Flush
@@ -336,10 +344,6 @@ func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbe
 		return fs.ToErrno(err)
 	}
 
-	targetDir, ok := newParent.EmbeddedInode().Operations().(*Dir)
-	if !ok {
-		return syscall.EINVAL
-	}
 	if err := targetDir.MFSDir.Unlink(newName); err != nil && err != os.ErrNotExist {
 		return fs.ToErrno(err)
 	}
