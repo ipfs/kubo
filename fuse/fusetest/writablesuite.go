@@ -484,6 +484,11 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		require.NotEqual(t, first.Ino, recreated.Ino,
 			"a name that was removed and created again should get a new inode number")
 		VerifyFile(t, path, []byte("second"))
+
+		// A directory listing reports an inode number per entry of its own,
+		// and tools that read it (ls -i, find) never learn of the one stat
+		// would give them. The two have to agree.
+		assertDirEntryInos(t, dir)
 	})
 
 	// Renaming moves a file, it does not replace it, so the inode number goes
