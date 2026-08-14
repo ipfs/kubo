@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	_ "embed"
 	"io"
 	"net/http"
@@ -355,26 +356,73 @@ func TestKeyExportFilePermissions(t *testing.T) {
 
 	node := harness.NewT(t).NewNode().Init()
 
+	originalID := node.IPFS("key", "gen", "--type=ed25519", "testkey").Stdout.Trimmed()
+
+	for _, f := range keyExportFormats {
+		t.Run(f.name, func(t *testing.T) {
+			export := func(path string) {
+				node.IPFS("key", "export", "testkey", "-o", path, "-f", f.name)
+			}
+
+			exportPath := filepath.Join(t.TempDir(), "testkey."+f.ext)
+			export(exportPath)
+
+			info, err := os.Stat(exportPath)
+			require.NoError(t, err)
+			assert.Equal(t, os.FileMode(0o600), info.Mode().Perm(),
+				"exported key file should have owner-only permissions")
+
+			existingExportPath := filepath.Join(t.TempDir(), "existing-testkey."+f.ext)
+			existingContents := []byte("existing contents")
+			require.NoError(t, os.WriteFile(existingExportPath, existingContents, 0o644))
+			require.NoError(t, os.Chmod(existingExportPath, 0o644))
+
+			oldFile, err := os.Open(existingExportPath)
+			require.NoError(t, err)
+			defer oldFile.Close()
+
+			export(existingExportPath)
+
+			info, err = os.Stat(existingExportPath)
+			require.NoError(t, err)
+			assert.Equal(t, os.FileMode(0o600), info.Mode().Perm(),
+				"overwritten key file should have owner-only permissions")
+
+			oldFileContents, err := io.ReadAll(oldFile)
+			require.NoError(t, err)
+			assert.True(t, bytes.Equal(existingContents, oldFileContents),
+				"a file descriptor opened before export must not expose the private key")
+
+			importedID := node.IPFS("key", "import", "imported-overwrite-"+f.ext, "-f", f.name, existingExportPath).Stdout.Trimmed()
+			assert.Equal(t, originalID, importedID, "overwritten export must contain the complete private key")
+		})
+	}
+}
+
+func TestKeyExportToSpecialFile(t *testing.T) {
+	t.Parallel()
+
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix special-file semantics are not applicable on Windows")
+	}
+
+	node := harness.NewT(t).NewNode().Init()
 	node.IPFS("key", "gen", "--type=ed25519", "testkey")
 
-	t.Run("libp2p-protobuf-cleartext format", func(t *testing.T) {
-		exportPath := filepath.Join(t.TempDir(), "testkey.key")
-		node.IPFS("key", "export", "testkey", "-o", exportPath)
-
-		info, err := os.Stat(exportPath)
-		require.NoError(t, err)
-		assert.Equal(t, os.FileMode(0o600), info.Mode().Perm(),
-			"exported key file should have owner-only permissions")
+	t.Run("discards the key when exporting to /dev/null", func(t *testing.T) {
+		node.IPFS("key", "export", "testkey", "-o", os.DevNull)
 	})
 
-	t.Run("pem-pkcs8-cleartext format", func(t *testing.T) {
-		exportPath := filepath.Join(t.TempDir(), "testkey.pem")
-		node.IPFS("key", "export", "testkey", "-o", exportPath, "-f", "pem-pkcs8-cleartext")
+	t.Run("streams the key when exporting to /dev/stdout", func(t *testing.T) {
+		res := node.IPFS("key", "export", "testkey", "-o", "/dev/stdout", "-f", "pem-pkcs8-cleartext")
+		assert.Contains(t, res.Stdout.String(), "-----BEGIN PRIVATE KEY-----")
+	})
 
-		info, err := os.Stat(exportPath)
-		require.NoError(t, err)
-		assert.Equal(t, os.FileMode(0o600), info.Mode().Perm(),
-			"exported PEM key file should have owner-only permissions")
+	t.Run("refuses to export to a directory", func(t *testing.T) {
+		dir := t.TempDir()
+		res := node.RunIPFS("key", "export", "testkey", "-o", dir)
+		assert.NotEqual(t, 0, res.ExitCode(), "exporting to a directory must fail")
+		assert.Contains(t, res.Stderr.String(), dir)
 	})
 }
 

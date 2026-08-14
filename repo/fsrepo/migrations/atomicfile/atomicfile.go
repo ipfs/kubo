@@ -13,10 +13,19 @@ type File struct {
 	path string
 }
 
+// maxTempBaseLen leaves room for the ".tmp-" prefix and the up to 10 digits
+// os.CreateTemp appends, within the 255 byte file name limit. Without it a
+// target with a long name has no temporary file to be written through.
+const maxTempBaseLen = 255 - len(".tmp-") - 10
+
 // New creates a new atomic file writer
 func New(path string, mode os.FileMode) (*File, error) {
 	dir := filepath.Dir(path)
-	tempFile, err := os.CreateTemp(dir, ".tmp-"+filepath.Base(path))
+	base := filepath.Base(path)
+	if len(base) > maxTempBaseLen {
+		base = base[:maxTempBaseLen]
+	}
+	tempFile, err := os.CreateTemp(dir, ".tmp-"+base)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +50,12 @@ func (f *File) Close() error {
 		_ = os.Remove(f.File.Name())
 		return closeErr
 	}
-	return os.Rename(f.File.Name(), f.path)
+	if err := os.Rename(f.File.Name(), f.path); err != nil {
+		// The temporary file may hold sensitive data, do not leave it behind.
+		_ = os.Remove(f.File.Name())
+		return err
+	}
+	return nil
 }
 
 // Abort removes the temporary file without replacing the target
