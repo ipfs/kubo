@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"errors"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -18,24 +19,123 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWriteExportedKeyDoesNotFollowSymlinkToCharacterDevice(t *testing.T) {
+const exportedKeyContents = "private key"
+
+func exportKey(t *testing.T, path string) error {
+	t.Helper()
+	return writeExportedKey(path, strings.NewReader(exportedKeyContents), keyFormatLibp2pCleartextOption)
+}
+
+// Exporting to /dev/null, a terminal or a pipe writes to the device itself,
+// including when the path given is a symlink to one.
+func TestWriteExportedKeyToCharacterDevice(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("Unix symlink and character-device semantics are not applicable on Windows")
 	}
 
-	path := filepath.Join(t.TempDir(), "key")
-	require.NoError(t, os.Symlink(os.DevNull, path))
+	require.NoError(t, exportKey(t, os.DevNull))
 
-	exportedKey := []byte("private key")
-	require.NoError(t, writeExportedKey(path, strings.NewReader(string(exportedKey)), keyFormatLibp2pCleartextOption))
+	path := filepath.Join(t.TempDir(), "link")
+	require.NoError(t, os.Symlink(os.DevNull, path))
+	require.NoError(t, exportKey(t, path))
 
 	info, err := os.Lstat(path)
 	require.NoError(t, err)
-	assert.True(t, info.Mode().IsRegular(), "atomic export should replace the symlink itself")
+	assert.Equal(t, os.ModeSymlink, info.Mode()&os.ModeSymlink, "symlink to a device must survive the export")
+}
 
-	contents, err := os.ReadFile(path)
+// A path that points at a regular file through a symlink, such as a backup
+// directory symlinked into a mounted volume, is written where the link points.
+func TestWriteExportedKeyFollowsSymlinkToRegularFile(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix symlink semantics are not applicable on Windows")
+	}
+
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target.key")
+	require.NoError(t, os.WriteFile(target, []byte("old"), 0o644))
+	link := filepath.Join(dir, "link.key")
+	require.NoError(t, os.Symlink(target, link))
+
+	require.NoError(t, exportKey(t, link))
+
+	info, err := os.Lstat(link)
 	require.NoError(t, err)
-	assert.Equal(t, exportedKey, contents)
+	assert.Equal(t, os.ModeSymlink, info.Mode()&os.ModeSymlink, "the symlink must survive the export")
+
+	contents, err := os.ReadFile(target)
+	require.NoError(t, err)
+	assert.Equal(t, exportedKeyContents, string(contents))
+
+	info, err = os.Stat(target)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(exportedKeyFileMode), info.Mode().Perm())
+}
+
+// A symlink is often created before the file it points at, for example to send
+// the key to a volume that is not mounted yet. The key belongs where the link
+// points, and the link itself must survive.
+func TestWriteExportedKeyFollowsDanglingSymlink(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix symlink semantics are not applicable on Windows")
+	}
+
+	dir := t.TempDir()
+	target := filepath.Join(dir, "volume", "target.key")
+	require.NoError(t, os.Mkdir(filepath.Dir(target), 0o755))
+	link := filepath.Join(dir, "link.key")
+	require.NoError(t, os.Symlink(target, link))
+
+	require.NoError(t, exportKey(t, link))
+
+	info, err := os.Lstat(link)
+	require.NoError(t, err)
+	assert.Equal(t, os.ModeSymlink, info.Mode()&os.ModeSymlink, "the symlink must survive the export")
+
+	contents, err := os.ReadFile(target)
+	require.NoError(t, err)
+	assert.Equal(t, exportedKeyContents, string(contents))
+}
+
+// Targets that can neither be replaced by rename nor written as a stream are
+// refused instead of failing halfway through writing the key.
+func TestWriteExportedKeyRefusesUnsupportedTarget(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	err := exportKey(t, dir)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), dir)
+
+	if runtime.GOOS != "windows" {
+		// Not t.TempDir(): its name is long enough to overrun the 104 byte
+		// socket path limit on macOS.
+		socketDir, err := os.MkdirTemp("", "s")
+		require.NoError(t, err)
+		defer os.RemoveAll(socketDir)
+
+		socket := filepath.Join(socketDir, "socket")
+		listener, err := net.Listen("unix", socket)
+		require.NoError(t, err)
+		defer listener.Close()
+
+		err = exportKey(t, socket)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), socket)
+	}
+}
+
+// Failures name the file the user asked for.
+func TestWriteExportedKeyErrorNamesTarget(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "missing-dir", "key")
+	err := exportKey(t, path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), path)
 }
 
 func TestWriteExportedKeyPreservesExistingFileOnReadError(t *testing.T) {

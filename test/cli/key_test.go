@@ -399,7 +399,9 @@ func TestKeyExportFilePermissions(t *testing.T) {
 	}
 }
 
-func TestKeyExportToNonRegularFile(t *testing.T) {
+func TestKeyExportToSpecialFile(t *testing.T) {
+	t.Parallel()
+
 	if runtime.GOOS == "windows" {
 		t.Skip("Unix special-file semantics are not applicable on Windows")
 	}
@@ -407,7 +409,21 @@ func TestKeyExportToNonRegularFile(t *testing.T) {
 	node := harness.NewT(t).NewNode().Init()
 	node.IPFS("key", "gen", "--type=ed25519", "testkey")
 
-	node.IPFS("key", "export", "testkey", "-o", os.DevNull)
+	t.Run("discards the key when exporting to /dev/null", func(t *testing.T) {
+		node.IPFS("key", "export", "testkey", "-o", os.DevNull)
+	})
+
+	t.Run("streams the key when exporting to /dev/stdout", func(t *testing.T) {
+		res := node.IPFS("key", "export", "testkey", "-o", "/dev/stdout", "-f", "pem-pkcs8-cleartext")
+		assert.Contains(t, res.Stdout.String(), "-----BEGIN PRIVATE KEY-----")
+	})
+
+	t.Run("refuses to export to a directory", func(t *testing.T) {
+		dir := t.TempDir()
+		res := node.RunIPFS("key", "export", "testkey", "-o", dir)
+		assert.NotEqual(t, 0, res.ExitCode(), "exporting to a directory must fail")
+		assert.Contains(t, res.Stderr.String(), dir)
+	})
 }
 
 func TestKeyGenFixedSize(t *testing.T) {
