@@ -218,6 +218,25 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		require.True(t, os.IsNotExist(err))
 	})
 
+	// A rename may only replace a directory when that directory is empty.
+	// MFS removes a directory and everything under it without complaint, so
+	// the mount has to check: `mv -T src dst` used to take dst's contents
+	// with it. mv(1) does its own checking, so drive rename(2) directly.
+	t.Run("RenameOntoNonEmptyDirectory", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		src := filepath.Join(dir, "rename_src")
+		dst := filepath.Join(dir, "rename_dst")
+		require.NoError(t, os.Mkdir(src, 0o755))
+		require.NoError(t, os.Mkdir(dst, 0o755))
+		moved := WriteFileOrFail(t, 50, filepath.Join(src, "moved"))
+		keep := WriteFileOrFail(t, 50, filepath.Join(dst, "keep"))
+
+		require.ErrorIs(t, syscall.Rename(src, dst), syscall.ENOTEMPTY)
+
+		VerifyFile(t, filepath.Join(dst, "keep"), keep)
+		VerifyFile(t, filepath.Join(src, "moved"), moved)
+	})
+
 	t.Run("RemoveNonEmptyDirectory", func(t *testing.T) {
 		dir := mount(t, writable.Config{})
 		sub := filepath.Join(dir, "nonempty")

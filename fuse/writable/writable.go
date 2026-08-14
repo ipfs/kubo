@@ -9,6 +9,7 @@ package writable
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"sync"
@@ -362,6 +363,24 @@ func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbe
 		return syscall.EINVAL
 	}
 
+	// A rename may only replace a directory when that directory is empty.
+	// MFS removes a directory and everything under it without complaint, so
+	// without this `mv -T src dst` would take the whole of dst with it. The
+	// kernel refuses the mismatched pairs (a directory onto a file, a file
+	// onto a directory) before the request reaches us; it cannot know whether
+	// the destination is empty, because only MFS can answer that.
+	if dst, err := targetDir.MFSDir().Child(newName); err == nil {
+		if dstDir, ok := dst.(*mfs.Directory); ok {
+			names, err := dstDir.ListNames(ctx)
+			if err != nil {
+				return fs.ToErrno(err)
+			}
+			if len(names) > 0 {
+				return syscall.ENOTEMPTY
+			}
+		}
+	}
+
 	// Unlink the source first. For same-directory renames, this clears
 	// the old name from the directory's entry cache before AddChild
 	// repopulates it with the new name. Without this ordering, Flush
@@ -370,7 +389,7 @@ func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbe
 		return fs.ToErrno(err)
 	}
 
-	if err := targetDir.MFSDir().Unlink(newName); err != nil && err != os.ErrNotExist {
+	if err := targetDir.MFSDir().Unlink(newName); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fs.ToErrno(err)
 	}
 
