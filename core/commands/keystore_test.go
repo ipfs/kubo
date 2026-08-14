@@ -181,6 +181,8 @@ func TestWriteExportedKeyPreservesExistingFileOnReadError(t *testing.T) {
 			path := filepath.Join(dir, "existing.key")
 			existingContents := []byte("existing contents")
 			require.NoError(t, os.WriteFile(path, existingContents, 0o644))
+			// os.WriteFile applies the umask, the assertion below does not.
+			require.NoError(t, os.Chmod(path, 0o644))
 
 			err := writeExportedKey(path, iotest.ErrReader(readErr), format)
 			require.ErrorIs(t, err, readErr)
