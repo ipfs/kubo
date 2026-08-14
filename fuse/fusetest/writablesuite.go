@@ -24,6 +24,7 @@ import (
 	"time"
 
 	racedet "github.com/ipfs/go-detect-race"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 	"github.com/ipfs/kubo/fuse/writable"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
@@ -456,10 +457,11 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		var first unix.Stat_t
 		require.NoError(t, unix.Stat(path, &first))
 		require.NotZero(t, first.Ino, "file should report an inode number")
-		// go-fuse numbers whatever the filesystem leaves to it from 1<<63 up,
-		// handing out a new number for every node it builds. A number in that
-		// range means the mount is not numbering its own entries.
-		require.Less(t, first.Ino, uint64(1<<63),
+		// go-fuse numbers whatever the filesystem leaves to it from
+		// AutomaticIno up, handing out a new number for every node it builds.
+		// A number in that range means the mount is not numbering its own
+		// entries.
+		require.Less(t, first.Ino, uint64(fusemnt.AutomaticIno),
 			"inode number should come from the mount, not go-fuse's automatic range")
 
 		// Outlast the entry timeout of the writable mounts (one second) so
@@ -482,6 +484,56 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		require.NotEqual(t, first.Ino, recreated.Ino,
 			"a name that was removed and created again should get a new inode number")
 		VerifyFile(t, path, []byte("second"))
+	})
+
+	// Renaming moves a file, it does not replace it, so the inode number goes
+	// with it. Backup tools that track files by identity (tar
+	// --listed-incremental, file watchers) re-copy a file whose number
+	// changed, and a directory rename must not renumber what is inside it.
+	t.Run("InodeNumbersAcrossRename", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+
+		src := filepath.Join(dir, "before")
+		require.NoError(t, os.WriteFile(src, []byte("payload"), 0o644))
+
+		subdir := filepath.Join(dir, "olddir")
+		require.NoError(t, os.Mkdir(subdir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(subdir, "child"), []byte("payload"), 0o644))
+
+		ino := func(path string) uint64 {
+			t.Helper()
+			var st unix.Stat_t
+			require.NoError(t, unix.Stat(path, &st))
+			return st.Ino
+		}
+
+		fileBefore := ino(src)
+		dirBefore := ino(subdir)
+		childBefore := ino(filepath.Join(subdir, "child"))
+
+		dst := filepath.Join(dir, "after")
+		moved := filepath.Join(dir, "newdir")
+		require.NoError(t, os.Rename(src, dst))
+		require.NoError(t, os.Rename(subdir, moved))
+
+		require.Equal(t, fileBefore, ino(dst), "a renamed file keeps its inode number")
+		require.Equal(t, dirBefore, ino(moved), "a renamed directory keeps its inode number")
+
+		// The kernel answered those from the directory entries it moved
+		// itself. Outlasting the entry timeout makes it ask the mount, which
+		// is where a renamed entry used to come back as a different file.
+		time.Sleep(1500 * time.Millisecond)
+
+		require.Equal(t, fileBefore, ino(dst), "and keeps it once the kernel asks again")
+		require.Equal(t, dirBefore, ino(moved), "and so does the directory")
+		require.Equal(t, childBefore, ino(filepath.Join(moved, "child")),
+			"an entry inside a renamed directory keeps its inode number")
+
+		// The renamed directory is a live MFS handle, not the one that was
+		// unlinked: writes through it have to reach the tree.
+		child := filepath.Join(moved, "child")
+		require.NoError(t, os.WriteFile(child, []byte("rewritten"), 0o644))
+		VerifyFile(t, child, []byte("rewritten"))
 	})
 
 	// rsync default save: create temp file, write, rename over target.

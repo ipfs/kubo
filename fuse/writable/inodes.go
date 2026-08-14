@@ -35,15 +35,27 @@ type entryKey struct {
 // changed while writing".
 //
 // A number is allocated the first time an entry is looked up and survives
-// the kernel forgetting the entry and looking it up again. Numbers are never
-// reused. Removing or renaming an entry drops its number for good, so a name
-// that is created again gets a new one. That is what keeps go-fuse from
-// matching the new entry to the removed entry's Inode, which still holds a
-// handle on the object that went away.
+// the kernel forgetting the entry and looking it up again. A rename carries
+// the number over to the new name. Numbers are never reused: removing an
+// entry retires its number, so a name that is created again is a new file
+// with a new number, which is what a program watching the name expects.
 //
-// The table only grows while a mount is up, by one entry per name looked up
-// and not since removed, and it starts empty on every mount. Inode numbers
-// therefore mean nothing outside the mount that issued them.
+// Only mutations that arrive through the mount retire a number. `ipfs files
+// rm` on a mounted MFS goes straight to the same tree, so a name removed that
+// way and created again keeps the number the deleted file had. Nothing is
+// served wrong (each lookup still reads the live entry), but an observer
+// watching st_ino alone does not see the replacement.
+//
+// The table only grows while a mount is up and starts empty on every mount,
+// so inode numbers mean nothing outside the mount that issued them. It holds
+// one entry per name looked up and not since removed through the mount, which
+// includes every name a directory listing walks past, and on /ipns every
+// external name that resolves.
+//
+// A lookup that is in flight while the name it is resolving is removed can
+// leave its entry behind, since the allocation is not serialized against the
+// removal. The entry is then either inherited by the next file of that name
+// or held until unmount.
 type inodeTable struct {
 	mu      sync.Mutex
 	next    uint64
@@ -59,15 +71,16 @@ func newInodeTable() *inodeTable {
 // stable describes a node to go-fuse: which file it is (Ino), what kind of
 // file (Mode), and which incarnation of it (Gen).
 //
-// Every node gets a generation of its own, which stops go-fuse from matching
-// a lookup against a node it already holds for the same entry. Matching would
-// be tempting, since the inode numbers now say the two are the same file, but
-// the node go-fuse kept has a *mfs.File or *mfs.Directory captured when it was
-// built, and boxo replaces those whenever a directory flush clears its child
-// cache. Reusing the node would mean operating on a handle MFS has moved on
-// from: `rm -r` unlinks entries that stay in the tree, and writes go nowhere.
-// A fresh node per lookup re-reads the handle, which is what the mount did
-// before it numbered its own inodes, and all that changes is the number.
+// Every node gets a generation of its own. go-fuse matches a lookup against
+// the nodes it holds by all three fields together, so a fresh generation is
+// what makes it build a new node rather than hand back one it already has for
+// this entry. It has to: the node it kept has a *mfs.File or *mfs.Directory
+// captured when it was built, and boxo replaces those whenever a directory
+// flush clears its child cache. Reusing the node would mean operating on a
+// handle MFS has moved on from, where `rm -r` unlinks entries that stay in
+// the tree and writes go nowhere. A fresh node per lookup re-reads the
+// handle, which is what the mount did before it numbered its own inodes, and
+// all that changes is the number.
 func (t *inodeTable) stable(parent uint64, name string, mode uint32) fs.StableAttr {
 	return fs.StableAttr{
 		Ino:  t.get(parent, name),
@@ -124,4 +137,33 @@ func (t *inodeTable) drop(parent uint64, name string) {
 	defer t.mu.Unlock()
 
 	delete(t.entries, entryKey{parent: parent, name: name})
+}
+
+// move carries an entry's inode number over to the name it was renamed to and
+// retires the number the destination held. Call it while both names are gone
+// from MFS, between unlinking them and adding the entry back under the new
+// name.
+//
+// The source keeps its number rather than being renumbered: two live entries
+// can never share one, because numbers are only ever handed out fresh, and
+// keeping it is what lets a program tell that the file it was watching moved
+// instead of being replaced. A directory keeps its number for the same
+// reason, and because its children are keyed by it: renumbering the directory
+// would renumber everything under it and strand the old keys.
+func (t *inodeTable) move(oldParent uint64, oldName string, newParent uint64, newName string) {
+	oldKey := entryKey{parent: oldParent, name: oldName}
+	newKey := entryKey{parent: newParent, name: newName}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	ino, ok := t.entries[oldKey]
+	delete(t.entries, oldKey)
+	if !ok {
+		// The source was never looked up, so it has no number to carry over
+		// and the destination must not keep the one it had.
+		delete(t.entries, newKey)
+		return
+	}
+	t.entries[newKey] = ino
 }

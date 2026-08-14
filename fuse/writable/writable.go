@@ -136,6 +136,13 @@ func (d *Dir) dropChildIno(name string) {
 	d.Cfg.inodes.drop(d.StableAttr().Ino, name)
 }
 
+// moveChildIno carries the inode number of this directory's entry over to the
+// name it is being renamed to, and retires the number of whatever that name
+// held before.
+func (d *Dir) moveChildIno(oldName string, target *Dir, newName string) {
+	d.Cfg.inodes.move(d.StableAttr().Ino, oldName, target.StableAttr().Ino, newName)
+}
+
 // fillAttr fills stat attributes for a directory. Blocks and Blksize
 // are set explicitly because go-fuse's setBlocks otherwise auto-fills
 // them from Size with a 4 KiB page-based fallback. For directories
@@ -347,6 +354,14 @@ func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbe
 	if err := targetDir.MFSDir.Unlink(newName); err != nil && err != os.ErrNotExist {
 		return fs.ToErrno(err)
 	}
+
+	// The entry keeps its inode number: a rename moves a file, it does not
+	// replace it, and programs that track a file by identity have to see the
+	// same one afterwards. Whatever the new name held before is gone and
+	// gives its number up. Both names are absent from MFS at this point, so
+	// a lookup racing with the rename gets ENOENT rather than either number.
+	d.moveChildIno(oldName, targetDir, newName)
+
 	if err := targetDir.MFSDir.AddChild(newName, nd); err != nil {
 		return fs.ToErrno(err)
 	}
@@ -361,15 +376,6 @@ func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbe
 			return fs.ToErrno(err)
 		}
 	}
-
-	// Both names change identity here, so both give up their inode numbers.
-	// POSIX would keep the source's number on the destination, but the entry
-	// that lands there is a new *mfs.File: MFS marks the unlinked one as
-	// gone and silently drops writes made through it. Renumbering makes the
-	// next lookup build a node on the live entry instead of reusing the dead
-	// one, at the cost of st_ino changing across a rename.
-	d.dropChildIno(oldName)
-	targetDir.dropChildIno(newName)
 
 	return fs.ToErrno(d.MFSDir.Flush())
 }
