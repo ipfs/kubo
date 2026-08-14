@@ -119,7 +119,7 @@ func (r *Root) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 	}
 
 	child := &Node{ipfs: r.ipfs, nd: fnd}
-	stable := stableAttrFor(child)
+	stable := stableAttrFor(child, cidLnk.Cid)
 
 	// Fill attrs in the lookup response so the kernel doesn't cache zeros.
 	child.fillAttr(&out.Attr)
@@ -255,7 +255,7 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 	}
 
 	child := &Node{ipfs: n.ipfs, nd: nd}
-	stable := stableAttrFor(child)
+	stable := stableAttrFor(child, link.Cid)
 
 	child.fillAttr(&out.Attr)
 	out.SetEntryTimeout(immutableAttrCacheTime)
@@ -304,7 +304,9 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 				}
 			}
 		}
-		entries = append(entries, fuse.DirEntry{Name: name, Mode: mode})
+		// Ino has to match what Lookup reports for the same name, or d_ino
+		// from getdents disagrees with st_ino from stat.
+		entries = append(entries, fuse.DirEntry{Name: name, Mode: mode, Ino: fusemnt.InoFromCid(lnk.Cid)})
 		return nil
 	})
 	if err != nil {
@@ -374,10 +376,16 @@ func (fh *roFileHandle) Release(_ context.Context) syscall.Errno {
 	return fs.ToErrno(fh.r.Close())
 }
 
-// stableAttrFor returns the StableAttr (file type bits) for a Node.
-func stableAttrFor(n *Node) fs.StableAttr {
+// stableAttrFor describes a node to go-fuse: which object it is (Ino,
+// derived from c, the CID the entry resolved to) and what kind of object.
+//
+// No generation is set, unlike the writable mounts: /ipfs content never
+// changes under a CID, so a node go-fuse already holds for that CID is
+// still accurate and is reused rather than rebuilt.
+func stableAttrFor(n *Node, c cid.Cid) fs.StableAttr {
+	ino := fusemnt.InoFromCid(c)
 	if _, ok := n.nd.(*mdag.RawNode); ok {
-		return fs.StableAttr{} // S_IFREG
+		return fs.StableAttr{Ino: ino} // S_IFREG
 	}
 	if n.cached == nil {
 		_ = n.loadData()
@@ -385,12 +393,12 @@ func stableAttrFor(n *Node) fs.StableAttr {
 	if n.cached != nil {
 		switch n.cached.Type() {
 		case ft.TDirectory, ft.THAMTShard:
-			return fs.StableAttr{Mode: syscall.S_IFDIR}
+			return fs.StableAttr{Mode: syscall.S_IFDIR, Ino: ino}
 		case ft.TSymlink:
-			return fs.StableAttr{Mode: syscall.S_IFLNK}
+			return fs.StableAttr{Mode: syscall.S_IFLNK, Ino: ino}
 		}
 	}
-	return fs.StableAttr{} // S_IFREG
+	return fs.StableAttr{Ino: ino} // S_IFREG
 }
 
 // Interface checks.

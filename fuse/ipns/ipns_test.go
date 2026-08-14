@@ -11,7 +11,9 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -140,6 +142,40 @@ func TestNamespaceRootMode(t *testing.T) {
 	info, err := os.Stat(mnt.Dir)
 	require.NoError(t, err)
 	require.Equal(t, os.FileMode(0o111), info.Mode().Perm())
+}
+
+// TestKeyDirAttrs verifies that a key directory served by the /ipns root
+// reports the same attributes as any other directory on a writable mount: a
+// stable inode number of its own, a link count, and real permissions. The
+// root answers these lookups itself rather than through writable.Dir, so the
+// reply used to carry nothing but zeroes.
+func TestKeyDirAttrs(t *testing.T) {
+	nd, mnt := setupIpnsTest(t, nil)
+	keyDir := mnt.Dir + "/" + nd.Identity.String()
+
+	stat := func() (uint64, os.FileInfo) {
+		t.Helper()
+		info, err := os.Stat(keyDir)
+		require.NoError(t, err)
+		st, ok := info.Sys().(*syscall.Stat_t)
+		require.True(t, ok)
+		return st.Ino, info
+	}
+
+	ino, info := stat()
+	require.NotZero(t, ino, "key directory should report an inode number")
+	require.Less(t, ino, uint64(fusemnt.AutomaticIno),
+		"inode number should come from the mount, not go-fuse's automatic range")
+	require.True(t, info.IsDir())
+	require.Equal(t, os.FileMode(0o755), info.Mode().Perm())
+	require.EqualValues(t, fusemnt.Nlink, info.Sys().(*syscall.Stat_t).Nlink)
+
+	// Outlast the mount's one second entry timeout so the kernel has to look
+	// the entry up again.
+	time.Sleep(1500 * time.Millisecond)
+
+	again, _ := stat()
+	require.Equal(t, ino, again, "inode number should survive a re-lookup")
 }
 
 // TestFilePersistence verifies that file data survives unmount and remount.

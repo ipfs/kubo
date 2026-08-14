@@ -438,6 +438,52 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		VerifyFile(t, path, newData)
 	})
 
+	// A file's inode number has to outlive the kernel dropping its directory
+	// entry and looking it up again, which happens once EntryTimeout passes.
+	// When it does not, a program that compares a file's identity over time
+	// concludes the file was swapped underneath it: vim abandons a save with
+	// "E949: File changed while writing".
+	t.Run("InodeNumbers", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+
+		var mnt unix.Stat_t
+		require.NoError(t, unix.Stat(dir, &mnt))
+		require.NotZero(t, mnt.Ino, "mount point should report an inode number")
+
+		path := filepath.Join(dir, "stable")
+		require.NoError(t, os.WriteFile(path, []byte("first"), 0o644))
+
+		var first unix.Stat_t
+		require.NoError(t, unix.Stat(path, &first))
+		require.NotZero(t, first.Ino, "file should report an inode number")
+		// go-fuse numbers whatever the filesystem leaves to it from 1<<63 up,
+		// handing out a new number for every node it builds. A number in that
+		// range means the mount is not numbering its own entries.
+		require.Less(t, first.Ino, uint64(1<<63),
+			"inode number should come from the mount, not go-fuse's automatic range")
+
+		// Outlast the entry timeout of the writable mounts (one second) so
+		// the kernel has to ask for the entry again.
+		time.Sleep(1500 * time.Millisecond)
+
+		var again unix.Stat_t
+		require.NoError(t, unix.Stat(path, &again))
+		require.Equal(t, first.Ino, again.Ino, "inode number should survive a re-lookup")
+
+		// A name that is removed and created again names a different file, so
+		// it must not inherit the old number. go-fuse matches nodes by inode
+		// number, and would hand back the removed entry's node; MFS has that
+		// one marked as unlinked and drops writes made through it.
+		require.NoError(t, os.Remove(path))
+		require.NoError(t, os.WriteFile(path, []byte("second"), 0o644))
+
+		var recreated unix.Stat_t
+		require.NoError(t, unix.Stat(path, &recreated))
+		require.NotEqual(t, first.Ino, recreated.Ino,
+			"a name that was removed and created again should get a new inode number")
+		VerifyFile(t, path, []byte("second"))
+	})
+
 	// rsync default save: create temp file, write, rename over target.
 	t.Run("RsyncPattern", func(t *testing.T) {
 		dir := mount(t, writable.Config{})

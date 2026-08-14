@@ -163,6 +163,46 @@ func TestBareFileCID(t *testing.T) {
 	})
 }
 
+// TestInodeNumbersFromCID verifies that /ipfs entries are numbered from the
+// CID they resolve to, so a file keeps one inode number no matter which path
+// reaches it or how often the kernel looks it up.
+func TestInodeNumbersFromCID(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	api, err := coreapi.NewCoreAPI(nd)
+	require.NoError(t, err)
+
+	content := []byte("inode numbering test content")
+	file, err := api.Unixfs().Add(t.Context(), files.NewBytesFile(content))
+	require.NoError(t, err)
+
+	dir, err := api.Unixfs().Add(t.Context(), files.NewMapDirectory(map[string]files.Node{
+		"child": files.NewBytesFile(content),
+	}))
+	require.NoError(t, err)
+
+	ino := func(path string) uint64 {
+		t.Helper()
+		info, err := os.Stat(path)
+		require.NoError(t, err)
+		st, ok := info.Sys().(*syscall.Stat_t)
+		require.True(t, ok)
+		return st.Ino
+	}
+
+	direct := ino(gopath.Join(mntDir, file.RootCid().String()))
+	require.NotZero(t, direct, "file should report an inode number")
+	// Numbers at or above this point are the ones go-fuse hands out when a
+	// filesystem does not number a node itself.
+	require.Less(t, direct, uint64(fusemnt.AutomaticIno),
+		"inode number should be derived from the CID, not left to go-fuse")
+
+	require.Equal(t, direct, ino(gopath.Join(mntDir, file.RootCid().String())),
+		"repeated lookups of one path should agree")
+	require.Equal(t, direct, ino(gopath.Join(mntDir, dir.RootCid().String(), "child")),
+		"the same content reached through another path is the same object")
+}
+
 // Test reading a directory that contains both dag-pb and raw-leaf children.
 // This is the typical layout produced by `ipfs add --raw-leaves`: the
 // directory node is dag-pb, while file leaves are raw blocks.

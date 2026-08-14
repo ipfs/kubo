@@ -62,6 +62,12 @@ type Config struct {
 	// instead of the per-operation context, which the kernel cancels once the
 	// operation returns. nil falls back to context.Background (e.g. tests).
 	MountCtx context.Context
+
+	// inodes numbers the entries of the mount this Config belongs to. One
+	// table serves every directory of a mount, including the several roots
+	// the /ipns mount creates, so that two entries never share a number.
+	// NewDir fills it in. See inodeTable.
+	inodes *inodeTable
 }
 
 // openContext returns the context to bind a long-lived file descriptor's
@@ -99,6 +105,9 @@ func NewDir(d *mfs.Directory, cfg *Config) *Dir {
 	if cfg.Blksize == 0 {
 		cfg.Blksize = fusemnt.DefaultBlksize
 	}
+	// The /ipns mount calls NewDir once per key, all sharing one Config, so
+	// the table has to be created once and then left alone.
+	cfg.InitInodes()
 	return &Dir{MFSDir: d, Cfg: cfg}
 }
 
@@ -107,6 +116,24 @@ type Dir struct {
 	fs.Inode
 	MFSDir *mfs.Directory
 	Cfg    *Config
+}
+
+// childIno returns the inode number to report for the named entry of this
+// directory. See inodeTable for why the numbers cannot be left to go-fuse.
+func (d *Dir) childIno(name string) uint64 {
+	return d.Cfg.inodes.get(d.StableAttr().Ino, name)
+}
+
+// childAttr describes the named entry of this directory to go-fuse. mode
+// carries the file type bits only (0 means a regular file).
+func (d *Dir) childAttr(name string, mode uint32) fs.StableAttr {
+	return d.Cfg.inodes.stable(d.StableAttr().Ino, name, mode)
+}
+
+// dropChildIno retires the inode number of an entry that is no longer in this
+// directory, so that a later entry of the same name is numbered separately.
+func (d *Dir) dropChildIno(name string) {
+	d.Cfg.inodes.drop(d.StableAttr().Ino, name)
 }
 
 // fillAttr fills stat attributes for a directory. Blocks and Blksize
@@ -182,17 +209,17 @@ func (d *Dir) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.
 	case mfs.TDir:
 		child := &Dir{MFSDir: mfsNode.(*mfs.Directory), Cfg: d.Cfg}
 		child.fillAttr(&out.Attr)
-		return d.NewInode(ctx, child, fs.StableAttr{Mode: syscall.S_IFDIR}), 0
+		return d.NewInode(ctx, child, d.childAttr(name, syscall.S_IFDIR)), 0
 	case mfs.TFile:
 		mfsFile := mfsNode.(*mfs.File)
 		if target := SymlinkTarget(mfsFile); target != "" {
 			child := &Symlink{Target: target, MFSFile: mfsFile, Cfg: d.Cfg}
 			child.fillAttr(&out.Attr)
-			return d.NewInode(ctx, child, fs.StableAttr{Mode: syscall.S_IFLNK}), 0
+			return d.NewInode(ctx, child, d.childAttr(name, syscall.S_IFLNK)), 0
 		}
 		child := &FileInode{MFSFile: mfsFile, Cfg: d.Cfg}
 		child.fillAttr(&out.Attr)
-		return d.NewInode(ctx, child, fs.StableAttr{}), 0
+		return d.NewInode(ctx, child, d.childAttr(name, 0)), 0
 	default:
 		log.Errorf("unexpected MFS node type %d under directory", mfsNode.Type())
 		return nil, syscall.EIO
@@ -219,7 +246,11 @@ func (d *Dir) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 				}
 			}
 		}
-		entries[i] = fuse.DirEntry{Name: node.Name, Mode: mode}
+		// Ino must match what Lookup reports for the same name, or d_ino
+		// from getdents disagrees with st_ino from stat and tools that
+		// trust the cheaper of the two (ls -i, find) see two identities
+		// for one file.
+		entries[i] = fuse.DirEntry{Name: node.Name, Mode: mode, Ino: d.childIno(node.Name)}
 	}
 	return fs.NewListDirStream(entries), 0
 }
@@ -241,7 +272,7 @@ func (d *Dir) Mkdir(ctx context.Context, name string, _ uint32, out *fuse.EntryO
 	// Fill the response attrs so the kernel doesn't cache zero values
 	// until AttrTimeout expires. Matches Dir.Create and FileInode.Setattr.
 	child.fillAttr(&out.Attr)
-	return d.NewInode(ctx, child, fs.StableAttr{Mode: syscall.S_IFDIR}), 0
+	return d.NewInode(ctx, child, d.childAttr(name, syscall.S_IFDIR)), 0
 }
 
 func (d *Dir) Unlink(ctx context.Context, name string) syscall.Errno {
@@ -249,6 +280,7 @@ func (d *Dir) Unlink(ctx context.Context, name string) syscall.Errno {
 	if err := d.MFSDir.Unlink(name); err != nil {
 		return fs.ToErrno(err)
 	}
+	d.dropChildIno(name)
 	return fs.ToErrno(d.MFSDir.Flush())
 }
 
@@ -274,6 +306,7 @@ func (d *Dir) Rmdir(ctx context.Context, name string) syscall.Errno {
 	if err := d.MFSDir.Unlink(name); err != nil {
 		return fs.ToErrno(err)
 	}
+	d.dropChildIno(name)
 	return fs.ToErrno(d.MFSDir.Flush())
 }
 
@@ -313,6 +346,15 @@ func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbe
 	if err := targetDir.MFSDir.AddChild(newName, nd); err != nil {
 		return fs.ToErrno(err)
 	}
+
+	// Both names change identity here, so both give up their inode numbers.
+	// POSIX would keep the source's number on the destination, but the entry
+	// that lands there is a new *mfs.File: MFS marks the unlinked one as
+	// gone and silently drops writes made through it. Renumbering makes the
+	// next lookup build a node on the live entry instead of reusing the dead
+	// one, at the cost of st_ino changing across a rename.
+	d.dropChildIno(oldName)
+	targetDir.dropChildIno(newName)
 
 	return fs.ToErrno(d.MFSDir.Flush())
 }
@@ -365,7 +407,7 @@ func (d *Dir) Create(ctx context.Context, name string, flags uint32, _ uint32, o
 	// after open. Matches FileInode.Setattr and Dir.Mkdir.
 	fileInode.fillAttr(&out.Attr)
 
-	inode := d.NewInode(ctx, fileInode, fs.StableAttr{})
+	inode := d.NewInode(ctx, fileInode, d.childAttr(name, 0))
 	return inode, &FileHandle{inode: inode, fd: fd, cfg: d.Cfg}, 0, 0
 }
 
@@ -429,7 +471,7 @@ func (d *Dir) Symlink(ctx context.Context, target, name string, out *fuse.EntryO
 
 	sym := &Symlink{Target: target, MFSFile: mfsFile, Cfg: d.Cfg}
 	sym.fillAttr(&out.Attr)
-	return d.NewInode(ctx, sym, fs.StableAttr{Mode: syscall.S_IFLNK}), 0
+	return d.NewInode(ctx, sym, d.childAttr(name, syscall.S_IFLNK)), 0
 }
 
 // FileInode is the FUSE adapter for MFS file inodes.
