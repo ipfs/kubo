@@ -48,7 +48,11 @@ func TestZshCompletion(t *testing.T) {
 		completionFile := h.WriteToTemp(res.Stdout.String())
 		res = h.Runner.Run(harness.RunRequest{
 			Path: "zsh",
-			Args: []string{"-c", fmt.Sprintf("autoload -Uz compinit && compinit && source %s && echo -E $_comps[ipfs]", completionFile)},
+			// compinit -i skips insecure (group/other-writable) fpath dirs instead of
+			// prompting about them; the prompt aborts in non-interactive shells (no tty),
+			// e.g. on GitHub-hosted runners. This test validates kubo's generated
+			// completion script, not the host's fpath hygiene.
+			Args: []string{"-c", fmt.Sprintf("autoload -Uz compinit && compinit -i && source %s && echo -E $_comps[ipfs]", completionFile)},
 		})
 
 		assert.NoError(t, res.Err)
