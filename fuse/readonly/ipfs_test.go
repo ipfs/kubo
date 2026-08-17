@@ -45,6 +45,7 @@ import (
 	fusemnt "github.com/ipfs/kubo/fuse/mount"
 	mh "github.com/multiformats/go-multihash"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
 )
 
 func testMount(t *testing.T, root fs.InodeEmbedder) string {
@@ -278,6 +279,10 @@ func TestLookupOfUnreadableChild(t *testing.T) {
 		require.False(t, info.IsDir())
 		require.EqualValues(t, len(child.RawData()), info.Size(),
 			"a block this mount cannot decode should report its own size")
+
+		got, err := os.ReadFile(gopath.Join(mntDir, dir, "obj"))
+		require.NoError(t, err, "a size stat reports has to be a size reads can deliver")
+		require.Equal(t, child.RawData(), got)
 	})
 
 	t.Run("missing block", func(t *testing.T) {
@@ -295,6 +300,66 @@ func TestLookupOfUnreadableChild(t *testing.T) {
 		_, err = os.Stat(gopath.Join(mntDir, dir, "gone"))
 		require.Error(t, err, "a child whose block is missing should not resolve")
 	})
+}
+
+// A listing has to survive one child whose block is missing. The other
+// entries are still worth having, and the caller finds out what is wrong with
+// the bad one by stat'ing it.
+func TestReaddirWithUnreadableChild(t *testing.T) {
+	offline, err := core.NewNode(t.Context(), &core.BuildCfg{})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = offline.Close() })
+	_, mntDir := setupIpfsTest(t, offline)
+
+	good := dag.NodeWithData(ft.FilePBData([]byte("here"), 4))
+	gone := dag.NodeWithData(ft.FilePBData([]byte("gone"), 4))
+	// AddChild only links a node, it does not store it, and an entry whose
+	// block was never stored is missing in the same way as one that was.
+	require.NoError(t, offline.DAG.Add(t.Context(), good))
+	require.NoError(t, offline.DAG.Add(t.Context(), gone))
+
+	db, err := uio.NewDirectory(offline.DAG)
+	require.NoError(t, err)
+	require.NoError(t, db.AddChild(t.Context(), "good", good))
+	require.NoError(t, db.AddChild(t.Context(), "gone", gone))
+	dirNode, err := db.GetNode()
+	require.NoError(t, err)
+	require.NoError(t, offline.DAG.Add(t.Context(), dirNode))
+	require.NoError(t, offline.DAG.Remove(t.Context(), gone.Cid()))
+
+	entries, err := os.ReadDir(gopath.Join(mntDir, dirNode.Cid().String()))
+	require.NoError(t, err, "one missing block should not fail the whole listing")
+
+	var names []string
+	for _, e := range entries {
+		names = append(names, e.Name())
+	}
+	// The unreadable name is reported with no type and no inode number, which
+	// readdirplus and Go's dirent parsing then drop; what matters is that the
+	// readable half of the directory is still there.
+	require.Contains(t, names, "good")
+}
+
+// The ipfs.cid xattr has to answer with the CID the caller used to get here.
+// The mount rebuilds the node by decoding the block, which loses the version
+// and codec of the path it came from.
+func TestXattrCIDMatchesPath(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	api, err := coreapi.NewCoreAPI(nd)
+	require.NoError(t, err)
+
+	added, err := api.Unixfs().Add(t.Context(),
+		files.NewBytesFile([]byte("xattr cid version")),
+		options.Unixfs.CidVersion(1),
+		options.Unixfs.RawLeaves(false))
+	require.NoError(t, err)
+	want := added.RootCid().String()
+
+	dest := make([]byte, 256)
+	sz, err := unix.Getxattr(gopath.Join(mntDir, want), fusemnt.XattrCID, dest)
+	require.NoError(t, err)
+	require.Equal(t, want, string(dest[:sz]))
 }
 
 // Test reading a directory that contains both dag-pb and raw-leaf children.
@@ -624,7 +689,7 @@ func TestXattrCID(t *testing.T) {
 
 	t.Run("file", func(t *testing.T) {
 		obj, _ := randObj(t, nd, 100)
-		node := &Node{ipfs: nd, nd: obj}
+		node := &Node{ipfs: nd, nd: obj, cid: obj.Cid()}
 
 		dest := make([]byte, 256)
 		sz, errno := node.Listxattr(t.Context(), dest)
@@ -656,7 +721,7 @@ func TestXattrCID(t *testing.T) {
 		if err := nd.DAG.Add(nd.Context(), dirNode); err != nil {
 			t.Fatal(err)
 		}
-		node := &Node{ipfs: nd, nd: dirNode}
+		node := &Node{ipfs: nd, nd: dirNode, cid: dirNode.Cid()}
 
 		dest := make([]byte, 256)
 		sz, errno := node.Listxattr(t.Context(), dest)
@@ -986,7 +1051,7 @@ func TestUnknownXattr(t *testing.T) {
 	nd, _ := setupIpfsTest(t, nil)
 
 	obj, _ := randObj(t, nd, 100)
-	node := &Node{ipfs: nd, nd: obj}
+	node := &Node{ipfs: nd, nd: obj, cid: obj.Cid()}
 
 	dest := make([]byte, 256)
 	_, errno := node.Getxattr(t.Context(), "user.bogus", dest)

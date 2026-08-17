@@ -218,6 +218,25 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		require.True(t, os.IsNotExist(err))
 	})
 
+	// A rename may only replace a directory when that directory is empty.
+	// MFS removes a directory and everything under it without complaint, so
+	// the mount has to check: `mv -T src dst` used to take dst's contents
+	// with it. mv(1) does its own checking, so drive rename(2) directly.
+	t.Run("RenameOntoNonEmptyDirectory", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		src := filepath.Join(dir, "rename_src")
+		dst := filepath.Join(dir, "rename_dst")
+		require.NoError(t, os.Mkdir(src, 0o755))
+		require.NoError(t, os.Mkdir(dst, 0o755))
+		moved := WriteFileOrFail(t, 50, filepath.Join(src, "moved"))
+		keep := WriteFileOrFail(t, 50, filepath.Join(dst, "keep"))
+
+		require.ErrorIs(t, syscall.Rename(src, dst), syscall.ENOTEMPTY)
+
+		VerifyFile(t, filepath.Join(dst, "keep"), keep)
+		VerifyFile(t, filepath.Join(src, "moved"), moved)
+	})
+
 	t.Run("RemoveNonEmptyDirectory", func(t *testing.T) {
 		dir := mount(t, writable.Config{})
 		sub := filepath.Join(dir, "nonempty")
@@ -539,6 +558,56 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		child := filepath.Join(moved, "child")
 		require.NoError(t, os.WriteFile(child, []byte("rewritten"), 0o644))
 		VerifyFile(t, child, []byte("rewritten"))
+	})
+
+	// A rename leaves the kernel holding the entry it moved, and that entry
+	// carries the MFS handle the rename unlinked. Writing through the new
+	// name straight away has to reach the tree; it used to be accepted and
+	// then dropped, and the file read back with its old contents once the
+	// entry cache expired.
+	t.Run("WriteAfterRename", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+
+		src := filepath.Join(dir, "before")
+		dst := filepath.Join(dir, "after")
+		require.NoError(t, os.WriteFile(src, []byte("one"), 0o644))
+		require.NoError(t, os.Rename(src, dst))
+		require.NoError(t, os.WriteFile(dst, []byte("two"), 0o644))
+
+		// Outlast the entry timeout so the kernel asks the mount again
+		// instead of answering from the node it moved.
+		time.Sleep(1500 * time.Millisecond)
+		VerifyFile(t, dst, []byte("two"))
+
+		// Same for a directory: an entry created under the new name has to
+		// land there, and the old name must not come back.
+		oldDir := filepath.Join(dir, "olddir2")
+		newDir := filepath.Join(dir, "newdir2")
+		require.NoError(t, os.Mkdir(oldDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(oldDir, "kept"), []byte("kept"), 0o644))
+		require.NoError(t, os.Rename(oldDir, newDir))
+		require.NoError(t, os.WriteFile(filepath.Join(newDir, "fresh"), []byte("fresh"), 0o644))
+
+		time.Sleep(1500 * time.Millisecond)
+		VerifyFile(t, filepath.Join(newDir, "fresh"), []byte("fresh"))
+		VerifyFile(t, filepath.Join(newDir, "kept"), []byte("kept"))
+		_, err := os.Stat(oldDir)
+		require.True(t, os.IsNotExist(err), "the name a rename moved away from must stay gone")
+
+		// And an entry the kernel had already looked up before the rename.
+		// Its handle hangs off the directory the rename replaced, a level
+		// below the entry that moved.
+		oldParent := filepath.Join(dir, "oldparent")
+		newParent := filepath.Join(dir, "newparent")
+		require.NoError(t, os.Mkdir(oldParent, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(oldParent, "child"), []byte("one"), 0o644))
+		VerifyFile(t, filepath.Join(oldParent, "child"), []byte("one")) // make the kernel hold it
+
+		require.NoError(t, os.Rename(oldParent, newParent))
+		require.NoError(t, os.WriteFile(filepath.Join(newParent, "child"), []byte("two"), 0o644))
+
+		time.Sleep(1500 * time.Millisecond)
+		VerifyFile(t, filepath.Join(newParent, "child"), []byte("two"))
 	})
 
 	// rsync default save: create temp file, write, rename over target.

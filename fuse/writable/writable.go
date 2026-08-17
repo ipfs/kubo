@@ -9,9 +9,11 @@ package writable
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -108,15 +110,33 @@ func NewDir(d *mfs.Directory, cfg *Config) *Dir {
 	// The /ipns mount calls NewDir once per key, all sharing one Config, so
 	// the table has to be created once and then left alone.
 	cfg.InitInodes()
-	return &Dir{MFSDir: d, Cfg: cfg}
+	return newDir(d, cfg)
 }
 
 // Dir is the FUSE adapter for MFS directories.
+//
+// The MFS handle is held in an atomic because a rename replaces it: see
+// rebind. Reads of it are serialized by nothing else, and the FUSE server
+// dispatches every request in its own goroutine.
 type Dir struct {
 	fs.Inode
-	MFSDir *mfs.Directory
+	mfsDir atomic.Pointer[mfs.Directory]
 	Cfg    *Config
 }
+
+func newDir(md *mfs.Directory, cfg *Config) *Dir {
+	d := &Dir{Cfg: cfg}
+	d.mfsDir.Store(md)
+	return d
+}
+
+// MFSDir returns the MFS directory this node currently stands for.
+func (d *Dir) MFSDir() *mfs.Directory { return d.mfsDir.Load() }
+
+// rebind points this node at another MFS directory. A rename gives the entry
+// a new *mfs.Directory, and the node the kernel keeps has to follow it; see
+// Dir.Rename.
+func (d *Dir) rebind(md *mfs.Directory) { d.mfsDir.Store(md) }
 
 // childIno returns the inode number to report for the named entry of this
 // directory. See inodeTable for why the numbers cannot be left to go-fuse.
@@ -153,10 +173,10 @@ func (d *Dir) fillAttr(a *fuse.Attr) {
 	a.Nlink = fusemnt.Nlink
 	a.Blocks = 1
 	a.Blksize = d.Cfg.Blksize
-	if m, err := d.MFSDir.Mode(); err == nil && m != 0 {
+	if m, err := d.MFSDir().Mode(); err == nil && m != 0 {
 		a.Mode = files.ModePermsToUnixPerms(m)
 	}
-	if t, err := d.MFSDir.ModTime(); err == nil && !t.IsZero() {
+	if t, err := d.MFSDir().ModTime(); err == nil && !t.IsZero() {
 		a.SetTimes(nil, &t, nil)
 	}
 }
@@ -193,12 +213,12 @@ func (d *Dir) Statfs(_ context.Context, out *fuse.StatfsOut) syscall.Errno {
 func (d *Dir) Setattr(ctx context.Context, _ fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
 	defer d.Cfg.pinLock(ctx)()
 	if mode, ok := in.GetMode(); ok && d.Cfg.StoreMode {
-		if err := d.MFSDir.SetMode(files.UnixPermsToModePerms(mode)); err != nil {
+		if err := d.MFSDir().SetMode(files.UnixPermsToModePerms(mode)); err != nil {
 			return fs.ToErrno(err)
 		}
 	}
 	if mtime, ok := in.GetMTime(); ok && d.Cfg.StoreMtime {
-		if err := d.MFSDir.SetModTime(mtime); err != nil {
+		if err := d.MFSDir().SetModTime(mtime); err != nil {
 			return fs.ToErrno(err)
 		}
 	}
@@ -207,24 +227,24 @@ func (d *Dir) Setattr(ctx context.Context, _ fs.FileHandle, in *fuse.SetAttrIn, 
 }
 
 func (d *Dir) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
-	mfsNode, err := d.MFSDir.Child(name)
+	mfsNode, err := d.MFSDir().Child(name)
 	if err != nil {
 		return nil, syscall.ENOENT
 	}
 
 	switch mfsNode.Type() {
 	case mfs.TDir:
-		child := &Dir{MFSDir: mfsNode.(*mfs.Directory), Cfg: d.Cfg}
+		child := newDir(mfsNode.(*mfs.Directory), d.Cfg)
 		child.fillAttr(&out.Attr)
 		return d.NewInode(ctx, child, d.childAttr(name, syscall.S_IFDIR)), 0
 	case mfs.TFile:
 		mfsFile := mfsNode.(*mfs.File)
 		if target := SymlinkTarget(mfsFile); target != "" {
-			child := &Symlink{Target: target, MFSFile: mfsFile, Cfg: d.Cfg}
+			child := newSymlink(target, mfsFile, d.Cfg)
 			child.fillAttr(&out.Attr)
 			return d.NewInode(ctx, child, d.childAttr(name, syscall.S_IFLNK)), 0
 		}
-		child := &FileInode{MFSFile: mfsFile, Cfg: d.Cfg}
+		child := newFileInode(mfsFile, d.Cfg)
 		child.fillAttr(&out.Attr)
 		return d.NewInode(ctx, child, d.childAttr(name, 0)), 0
 	default:
@@ -234,7 +254,7 @@ func (d *Dir) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.
 }
 
 func (d *Dir) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
-	nodes, err := d.MFSDir.List(ctx)
+	nodes, err := d.MFSDir().List(ctx)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
@@ -247,7 +267,7 @@ func (d *Dir) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 			mode = syscall.S_IFDIR
 		case node.Type == int(mfs.TFile):
 			// MFS represents symlinks as TFile; check the DAG node.
-			if child, err := d.MFSDir.Child(node.Name); err == nil {
+			if child, err := d.MFSDir().Child(node.Name); err == nil {
 				if f, ok := child.(*mfs.File); ok && SymlinkTarget(f) != "" {
 					mode = syscall.S_IFLNK
 				}
@@ -271,11 +291,11 @@ func (d *Dir) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 // Fixing this requires a boxo MFS API change.
 func (d *Dir) Mkdir(ctx context.Context, name string, _ uint32, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	defer d.Cfg.pinLock(ctx)()
-	mfsDir, err := d.MFSDir.Mkdir(name)
+	mfsDir, err := d.MFSDir().Mkdir(name)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
-	child := &Dir{MFSDir: mfsDir, Cfg: d.Cfg}
+	child := newDir(mfsDir, d.Cfg)
 	// Fill the response attrs so the kernel doesn't cache zero values
 	// until AttrTimeout expires. Matches Dir.Create and FileInode.Setattr.
 	child.fillAttr(&out.Attr)
@@ -284,16 +304,16 @@ func (d *Dir) Mkdir(ctx context.Context, name string, _ uint32, out *fuse.EntryO
 
 func (d *Dir) Unlink(ctx context.Context, name string) syscall.Errno {
 	defer d.Cfg.pinLock(ctx)()
-	if err := d.MFSDir.Unlink(name); err != nil {
+	if err := d.MFSDir().Unlink(name); err != nil {
 		return fs.ToErrno(err)
 	}
 	d.dropChildIno(name)
-	return fs.ToErrno(d.MFSDir.Flush())
+	return fs.ToErrno(d.MFSDir().Flush())
 }
 
 func (d *Dir) Rmdir(ctx context.Context, name string) syscall.Errno {
 	defer d.Cfg.pinLock(ctx)()
-	child, err := d.MFSDir.Child(name)
+	child, err := d.MFSDir().Child(name)
 	if err != nil {
 		return fs.ToErrno(err)
 	}
@@ -310,11 +330,11 @@ func (d *Dir) Rmdir(ctx context.Context, name string) syscall.Errno {
 		return syscall.ENOTEMPTY
 	}
 
-	if err := d.MFSDir.Unlink(name); err != nil {
+	if err := d.MFSDir().Unlink(name); err != nil {
 		return fs.ToErrno(err)
 	}
 	d.dropChildIno(name)
-	return fs.ToErrno(d.MFSDir.Flush())
+	return fs.ToErrno(d.MFSDir().Flush())
 }
 
 // Rename moves an entry across MFS directories.
@@ -325,7 +345,7 @@ func (d *Dir) Rmdir(ctx context.Context, name string) syscall.Errno {
 // semantics (boxo/mfs does not currently expose an atomic rename).
 func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbedder, newName string, _ uint32) syscall.Errno {
 	defer d.Cfg.pinLock(ctx)()
-	child, err := d.MFSDir.Child(oldName)
+	child, err := d.MFSDir().Child(oldName)
 	if err != nil {
 		return fs.ToErrno(err)
 	}
@@ -343,15 +363,33 @@ func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbe
 		return syscall.EINVAL
 	}
 
+	// A rename may only replace a directory when that directory is empty.
+	// MFS removes a directory and everything under it without complaint, so
+	// without this `mv -T src dst` would take the whole of dst with it. The
+	// kernel refuses the mismatched pairs (a directory onto a file, a file
+	// onto a directory) before the request reaches us; it cannot know whether
+	// the destination is empty, because only MFS can answer that.
+	if dst, err := targetDir.MFSDir().Child(newName); err == nil {
+		if dstDir, ok := dst.(*mfs.Directory); ok {
+			names, err := dstDir.ListNames(ctx)
+			if err != nil {
+				return fs.ToErrno(err)
+			}
+			if len(names) > 0 {
+				return syscall.ENOTEMPTY
+			}
+		}
+	}
+
 	// Unlink the source first. For same-directory renames, this clears
 	// the old name from the directory's entry cache before AddChild
 	// repopulates it with the new name. Without this ordering, Flush
 	// would sync the stale cache entry back into the DAG.
-	if err := d.MFSDir.Unlink(oldName); err != nil {
+	if err := d.MFSDir().Unlink(oldName); err != nil {
 		return fs.ToErrno(err)
 	}
 
-	if err := targetDir.MFSDir.Unlink(newName); err != nil && err != os.ErrNotExist {
+	if err := targetDir.MFSDir().Unlink(newName); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fs.ToErrno(err)
 	}
 
@@ -362,7 +400,7 @@ func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbe
 	// a lookup racing with the rename gets ENOENT rather than either number.
 	d.moveChildIno(oldName, targetDir, newName)
 
-	if err := targetDir.MFSDir.AddChild(newName, nd); err != nil {
+	if err := targetDir.MFSDir().AddChild(newName, nd); err != nil {
 		return fs.ToErrno(err)
 	}
 
@@ -371,31 +409,81 @@ func (d *Dir) Rename(ctx context.Context, oldName string, newParent fs.InodeEmbe
 	// daemon stops before something else flushes it; flushing it first means
 	// an interrupted rename leaves the entry under both names rather than
 	// under neither.
-	if targetDir.MFSDir != d.MFSDir {
-		if err := targetDir.MFSDir.Flush(); err != nil {
+	if targetDir.MFSDir() != d.MFSDir() {
+		if err := targetDir.MFSDir().Flush(); err != nil {
 			return fs.ToErrno(err)
 		}
 	}
 
-	return fs.ToErrno(d.MFSDir.Flush())
+	if err := d.MFSDir().Flush(); err != nil {
+		return fs.ToErrno(err)
+	}
+
+	// go-fuse moves the node the kernel already has to the new name once we
+	// return (rawBridge.Rename calls MvChild), and that node still holds the
+	// MFS handle unlinked above. MFS marks such a handle gone: a write
+	// through it is accepted and then dropped, and a directory flush through
+	// it re-adds the name the rename moved away from. Point the node at the
+	// entry that exists now, for as long as the kernel keeps using it.
+	rebindMovedChild(d.GetChild(oldName), targetDir, newName)
+	return 0
+}
+
+// rebindMovedChild points a renamed node at the MFS entry now living under
+// its new name. moved is the node the kernel is about to carry over, or nil
+// when it never looked the old name up and so has nothing to carry.
+func rebindMovedChild(moved *fs.Inode, targetDir *Dir, newName string) {
+	if moved == nil {
+		return
+	}
+	fresh, err := targetDir.MFSDir().Child(newName)
+	if err != nil {
+		log.Errorf("rename: reading back %q: %s", newName, err)
+		return
+	}
+	switch ops := moved.Operations().(type) {
+	case *Dir:
+		md, ok := fresh.(*mfs.Directory)
+		if !ok {
+			return
+		}
+		ops.rebind(md)
+		// Whatever the kernel looked up underneath this directory holds a
+		// handle that hangs off the one it was reached through, so a write
+		// to a file already opened under the old name would bubble up into
+		// the directory that is gone. Follow them down; the kernel only
+		// keeps what it has been asked for, so this walks a live subtree,
+		// not the whole tree.
+		for name, child := range moved.Children() {
+			rebindMovedChild(child, ops, name)
+		}
+	case *FileInode:
+		if mf, ok := fresh.(*mfs.File); ok {
+			ops.rebind(mf)
+		}
+	case *Symlink:
+		if mf, ok := fresh.(*mfs.File); ok {
+			ops.rebind(mf)
+		}
+	}
 }
 
 func (d *Dir) Create(ctx context.Context, name string, flags uint32, _ uint32, out *fuse.EntryOut) (*fs.Inode, fs.FileHandle, uint32, syscall.Errno) {
 	defer d.Cfg.pinLock(ctx)()
 	node := dag.NodeWithData(ft.FilePBData(nil, 0))
-	if err := node.SetCidBuilder(d.MFSDir.GetCidBuilder()); err != nil {
+	if err := node.SetCidBuilder(d.MFSDir().GetCidBuilder()); err != nil {
 		return nil, nil, 0, fs.ToErrno(err)
 	}
 
-	if err := d.MFSDir.AddChild(name, node); err != nil {
+	if err := d.MFSDir().AddChild(name, node); err != nil {
 		return nil, nil, 0, fs.ToErrno(err)
 	}
 
-	if err := d.MFSDir.Flush(); err != nil {
+	if err := d.MFSDir().Flush(); err != nil {
 		return nil, nil, 0, fs.ToErrno(err)
 	}
 
-	mfsNode, err := d.MFSDir.Child(name)
+	mfsNode, err := d.MFSDir().Child(name)
 	if err != nil {
 		return nil, nil, 0, fs.ToErrno(err)
 	}
@@ -409,7 +497,7 @@ func (d *Dir) Create(ctx context.Context, name string, flags uint32, _ uint32, o
 	if !ok {
 		return nil, nil, 0, syscall.EIO
 	}
-	fileInode := &FileInode{MFSFile: mfsFile, Cfg: d.Cfg}
+	fileInode := newFileInode(mfsFile, d.Cfg)
 
 	accessMode := flags & syscall.O_ACCMODE
 	fd, err := mfsFile.Open(d.Cfg.openContext(), mfs.Flags{
@@ -451,7 +539,7 @@ func (d *Dir) Getxattr(_ context.Context, attr string, dest []byte) (uint32, sys
 	if attr != fusemnt.XattrCID {
 		return 0, fs.ENOATTR
 	}
-	nd, err := d.MFSDir.GetNode()
+	nd, err := d.MFSDir().GetNode()
 	if err != nil {
 		return 0, fs.ToErrno(err)
 	}
@@ -473,24 +561,24 @@ func (d *Dir) Symlink(ctx context.Context, target, name string, out *fuse.EntryO
 		return nil, fs.ToErrno(err)
 	}
 	nd := dag.NodeWithData(data)
-	if err := nd.SetCidBuilder(d.MFSDir.GetCidBuilder()); err != nil {
+	if err := nd.SetCidBuilder(d.MFSDir().GetCidBuilder()); err != nil {
 		return nil, fs.ToErrno(err)
 	}
-	if err := d.MFSDir.AddChild(name, nd); err != nil {
+	if err := d.MFSDir().AddChild(name, nd); err != nil {
 		return nil, fs.ToErrno(err)
 	}
-	if err := d.MFSDir.Flush(); err != nil {
+	if err := d.MFSDir().Flush(); err != nil {
 		return nil, fs.ToErrno(err)
 	}
 
 	// Retrieve the mfs.File so Setattr can persist mtime.
-	mfsNode, err := d.MFSDir.Child(name)
+	mfsNode, err := d.MFSDir().Child(name)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
 	mfsFile, _ := mfsNode.(*mfs.File)
 
-	sym := &Symlink{Target: target, MFSFile: mfsFile, Cfg: d.Cfg}
+	sym := newSymlink(target, mfsFile, d.Cfg)
 	sym.fillAttr(&out.Attr)
 	return d.NewInode(ctx, sym, d.childAttr(name, syscall.S_IFLNK)), 0
 }
@@ -498,21 +586,33 @@ func (d *Dir) Symlink(ctx context.Context, target, name string, out *fuse.EntryO
 // FileInode is the FUSE adapter for MFS file inodes.
 type FileInode struct {
 	fs.Inode
-	MFSFile *mfs.File
+	mfsFile atomic.Pointer[mfs.File]
 	Cfg     *Config
 }
 
+func newFileInode(mf *mfs.File, cfg *Config) *FileInode {
+	fi := &FileInode{Cfg: cfg}
+	fi.mfsFile.Store(mf)
+	return fi
+}
+
+// MFSFile returns the MFS file this node currently stands for.
+func (fi *FileInode) MFSFile() *mfs.File { return fi.mfsFile.Load() }
+
+// rebind points this node at another MFS file. See Dir.Rename.
+func (fi *FileInode) rebind(mf *mfs.File) { fi.mfsFile.Store(mf) }
+
 func (fi *FileInode) fillAttr(a *fuse.Attr) {
-	size, _ := fi.MFSFile.Size()
+	size, _ := fi.MFSFile().Size()
 	a.Nlink = fusemnt.Nlink
 	a.Size = uint64(size)
 	a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
 	a.Blksize = fi.Cfg.Blksize
 	a.Mode = uint32(fusemnt.DefaultFileModeRW.Perm())
-	if m, err := fi.MFSFile.Mode(); err == nil && m != 0 {
+	if m, err := fi.MFSFile().Mode(); err == nil && m != 0 {
 		a.Mode = files.ModePermsToUnixPerms(m)
 	}
-	if t, _ := fi.MFSFile.ModTime(); !t.IsZero() {
+	if t, _ := fi.MFSFile().ModTime(); !t.IsZero() {
 		a.SetTimes(nil, &t, nil)
 	}
 }
@@ -535,7 +635,7 @@ func (fi *FileInode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uin
 	// snapshot of the file at open time, and writers proceed through
 	// MFS independently. Cfg.DAG is required by NewDir.
 	if accessMode == syscall.O_RDONLY {
-		nd, err := fi.MFSFile.GetNode()
+		nd, err := fi.MFSFile().GetNode()
 		if err != nil {
 			return nil, 0, fs.ToErrno(err)
 		}
@@ -551,7 +651,7 @@ func (fi *FileInode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uin
 		Write: accessMode == syscall.O_WRONLY || accessMode == syscall.O_RDWR,
 		Sync:  true,
 	}
-	fd, err := fi.MFSFile.Open(fi.Cfg.openContext(), mfsFlags)
+	fd, err := fi.MFSFile().Open(fi.Cfg.openContext(), mfsFlags)
 	if err != nil {
 		return nil, 0, fs.ToErrno(err)
 	}
@@ -570,7 +670,7 @@ func (fi *FileInode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uin
 	// O_APPEND is handled in FileHandle.Write by seeking to end.
 
 	if mfsFlags.Write && fi.Cfg.StoreMtime {
-		if err := fi.MFSFile.SetModTime(time.Now()); err != nil {
+		if err := fi.MFSFile().SetModTime(time.Now()); err != nil {
 			fd.Close()
 			return nil, 0, fs.ToErrno(err)
 		}
@@ -611,7 +711,7 @@ func (fi *FileInode) Setattr(ctx context.Context, fh fs.FileHandle, in *fuse.Set
 			// desclock; the FUSE kernel timeout (30s) bounds the wait.
 			// This descriptor is transient (truncate, flush, close below),
 			// so the per-operation context bounds it.
-			fd, err := fi.MFSFile.Open(ctx, mfs.Flags{Write: true, Sync: true})
+			fd, err := fi.MFSFile().Open(ctx, mfs.Flags{Write: true, Sync: true})
 			if err != nil {
 				return fs.ToErrno(err)
 			}
@@ -629,12 +729,12 @@ func (fi *FileInode) Setattr(ctx context.Context, fh fs.FileHandle, in *fuse.Set
 		}
 	}
 	if mode, ok := in.GetMode(); ok && fi.Cfg.StoreMode {
-		if err := fi.MFSFile.SetMode(files.UnixPermsToModePerms(mode)); err != nil {
+		if err := fi.MFSFile().SetMode(files.UnixPermsToModePerms(mode)); err != nil {
 			return fs.ToErrno(err)
 		}
 	}
 	if mtime, ok := in.GetMTime(); ok && fi.Cfg.StoreMtime {
-		if err := fi.MFSFile.SetModTime(mtime); err != nil {
+		if err := fi.MFSFile().SetModTime(mtime); err != nil {
 			return fs.ToErrno(err)
 		}
 	}
@@ -663,7 +763,7 @@ func (fi *FileInode) Getxattr(_ context.Context, attr string, dest []byte) (uint
 	if attr != fusemnt.XattrCID {
 		return 0, fs.ENOATTR
 	}
-	nd, err := fi.MFSFile.GetNode()
+	nd, err := fi.MFSFile().GetNode()
 	if err != nil {
 		return 0, fs.ToErrno(err)
 	}
@@ -801,9 +901,22 @@ func (fh *FileHandle) Fsync(ctx context.Context, _ uint32) syscall.Errno {
 type Symlink struct {
 	fs.Inode
 	Target  string
-	MFSFile *mfs.File // backing MFS node for mtime persistence
+	mfsFile atomic.Pointer[mfs.File] // backing MFS node for mtime persistence
 	Cfg     *Config
 }
+
+func newSymlink(target string, mf *mfs.File, cfg *Config) *Symlink {
+	s := &Symlink{Target: target, Cfg: cfg}
+	s.mfsFile.Store(mf)
+	return s
+}
+
+// MFSFile returns the MFS file this symlink currently stands for. It is nil
+// when the entry was created without one.
+func (s *Symlink) MFSFile() *mfs.File { return s.mfsFile.Load() }
+
+// rebind points this symlink at another MFS file. See Dir.Rename.
+func (s *Symlink) rebind(mf *mfs.File) { s.mfsFile.Store(mf) }
 
 func (s *Symlink) Readlink(_ context.Context) ([]byte, syscall.Errno) {
 	return []byte(s.Target), 0
@@ -815,8 +928,8 @@ func (s *Symlink) fillAttr(a *fuse.Attr) {
 	a.Size = uint64(len(s.Target))
 	a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
 	a.Blksize = s.Cfg.Blksize
-	if s.MFSFile != nil {
-		if t, err := s.MFSFile.ModTime(); err == nil && !t.IsZero() {
+	if s.MFSFile() != nil {
+		if t, err := s.MFSFile().ModTime(); err == nil && !t.IsZero() {
 			a.SetTimes(nil, &t, nil)
 		}
 	}
@@ -835,9 +948,9 @@ func (s *Symlink) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut)
 // Mode is always 0777 per POSIX convention (access control uses the
 // target's mode), so chmod requests are silently accepted but not stored.
 func (s *Symlink) Setattr(_ context.Context, _ fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
-	if s.MFSFile != nil {
+	if s.MFSFile() != nil {
 		if mtime, ok := in.GetMTime(); ok && s.Cfg.StoreMtime {
-			if err := s.MFSFile.SetModTime(mtime); err != nil {
+			if err := s.MFSFile().SetModTime(mtime); err != nil {
 				return fs.ToErrno(err)
 			}
 		}

@@ -19,6 +19,8 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ipfs/boxo/mfs"
+
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
@@ -80,7 +82,16 @@ func setupIpnsTest(t *testing.T, nd *core.IpfsNode, cfgs ...config.Mounts) (*cor
 	key, err := coreAPI.Key().Self(nd.Context())
 	require.NoError(t, err)
 
-	root, err := CreateRoot(nd.Context(), coreAPI, nd.Blockstore, map[string]iface.Key{"local": key}, "", "", nd.Repo.Path(), cfg, config.Import{})
+	// Settle the repo path before the mount starts serving. Statfs reads it
+	// from a FUSE handler goroutine, so a test that assigns it afterwards
+	// races the server. The in-memory test repo reports no path, and Statfs
+	// needs a real directory to stat.
+	repoPath := nd.Repo.Path()
+	if repoPath == "" {
+		repoPath = t.TempDir()
+	}
+
+	root, err := CreateRoot(nd.Context(), coreAPI, nd.Blockstore, map[string]iface.Key{"local": key}, "", "", repoPath, cfg, config.Import{})
 	require.NoError(t, err)
 
 	mntDir := t.TempDir()
@@ -148,8 +159,15 @@ func TestRenameOntoNamespaceRoot(t *testing.T) {
 
 	require.Error(t, os.Rename(src, mnt.Dir+"/keepme"))
 
-	got, err := os.ReadFile(src)
+	// Ask MFS, not the mount. The kernel still has the entry cached, so a
+	// read through the mount answers from the handle it already holds and
+	// succeeds for a second either way, whether or not the file is still
+	// in the tree.
+	_, err := mfs.Lookup(mnt.Root.Roots[nd.Identity.String()], "/keepme")
 	require.NoError(t, err, "the file must survive a rename that could not be carried out")
+
+	got, err := os.ReadFile(src)
+	require.NoError(t, err)
 	require.Equal(t, content, got)
 }
 
@@ -233,11 +251,6 @@ func TestMultipleDirs(t *testing.T) {
 // files onto a volume that reports zero free space.
 func TestStatfs(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil)
-
-	// The in-memory test repo returns "" for Path(), so point RepoPath
-	// at a real directory to exercise the syscall path.
-	repoDir := t.TempDir()
-	mnt.Root.RepoPath = repoDir
 
 	fusetest.AssertStatfsNonZero(t, mnt.Dir)
 }
