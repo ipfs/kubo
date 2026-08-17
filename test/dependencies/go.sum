@@ -299,8 +299,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/ipfs/bbloom v0.1.0 h1:nIWwfIE3AaG7RCDQIsrUonGCOTp7qSXzxH7ab/ss964=
 github.com/ipfs/bbloom v0.1.0/go.mod h1:lDy3A3i6ndgEW2z1CaRFvDi5/ZTzgM1IxA/pkL7Wgts=
-github.com/ipfs/boxo v0.42.1 h1:sbG7kjAvKozeNSI2d6S3qv8uCdO6xgzYB18IvI0Z6mc=
-github.com/ipfs/boxo v0.42.1/go.mod h1:Izfi844gxRpk7VYbgtMOufY811ohXciUvdgSwd+uPuo=
+github.com/ipfs/boxo v0.42.2 h1:c/lP/MQ2ChmfQ5I0JokqK53bAZuMsNjGia9sHc/RkqU=
+github.com/ipfs/boxo v0.42.2/go.mod h1:Izfi844gxRpk7VYbgtMOufY811ohXciUvdgSwd+uPuo=
 github.com/ipfs/go-bitfield v1.1.0 h1:fh7FIo8bSwaJEh6DdTWbCeZ1eqOaOkKFI74SCnsWbGA=
 github.com/ipfs/go-bitfield v1.1.0/go.mod h1:paqf1wjq/D2BBmzfTVFlJQ9IlFOZpg422HL0HqsGWHU=
 github.com/ipfs/go-block-format v0.2.4 h1:pgsT9i8zB4YQkBIQRrBwqbQiXPogRCiQnfxd2bC4koI=
