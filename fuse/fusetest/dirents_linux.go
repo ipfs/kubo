@@ -33,6 +33,7 @@ func assertDirEntryInos(t *testing.T, dir string) {
 		}
 		for b := buf[:n]; len(b) > 0; {
 			ent := (*unix.Dirent)(unsafe.Pointer(&b[0]))
+			require.NotZero(t, ent.Reclen, "a dirent of no length would never end the loop")
 			b = b[ent.Reclen:]
 
 			name := string(bytes.SplitN(unsafe.Slice((*byte)(unsafe.Pointer(&ent.Name[0])), len(ent.Name)), []byte{0}, 2)[0])
