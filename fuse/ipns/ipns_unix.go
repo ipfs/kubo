@@ -45,6 +45,11 @@ type Root struct {
 
 	LocalLinks map[string]*Link
 	RepoPath   string
+
+	// Cfg is the writable mounts' shared config. The root uses its inode
+	// table so the entries it serves itself are numbered from the same
+	// sequence as the files under the key directories.
+	Cfg *writable.Config
 }
 
 func ipnsPubFunc(ipfs iface.CoreAPI, key iface.Key) mfs.PubFunc {
@@ -93,6 +98,9 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, gcLocker bstore.GCLocke
 		GCLocker:   gcLocker,
 		MountCtx:   ctx,
 	}
+	// The root serves the key directories and alias symlinks itself, so it
+	// needs the table even when there are no keys to build a Dir from.
+	cfg.InitInodes()
 
 	ldirs := make(map[string]*writable.Dir)
 	roots := make(map[string]*mfs.Root)
@@ -110,6 +118,7 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, gcLocker bstore.GCLocke
 	}
 
 	return &Root{
+		Cfg:        cfg,
 		Ipfs:       ipfs,
 		IpfsRoot:   ipfspath,
 		IpnsRoot:   ipnspath,
@@ -124,6 +133,7 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, gcLocker bstore.GCLocke
 // Getattr returns the root directory attributes.
 func (r *Root) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr.Mode = uint32(fusemnt.NamespaceRootMode.Perm())
+	out.Attr.Nlink = fusemnt.Nlink
 	return 0
 }
 
@@ -142,6 +152,27 @@ func (r *Root) Statfs(_ context.Context, out *fuse.StatfsOut) syscall.Errno {
 	return 0
 }
 
+// fillEntryAttr copies a node's attributes into the lookup reply. Without it
+// the reply carries zeroes, and since every later lookup refreshes the
+// kernel's cache with the same zeroes, a key directory keeps showing up with
+// no permissions and no link count.
+func fillEntryAttr(ctx context.Context, node fs.NodeGetattrer, out *fuse.EntryOut) {
+	var attr fuse.AttrOut
+	if errno := node.Getattr(ctx, nil, &attr); errno != 0 {
+		log.Warnf("ipns: attributes for lookup reply: %s", errno)
+		return
+	}
+	out.Attr = attr.Attr
+}
+
+// entryAttr numbers an entry the root serves itself: a key directory, an
+// alias symlink, or a symlink to a name resolved through IPNS. The number
+// follows the name rather than what the name currently resolves to, so that
+// a republished record does not renumber the entry.
+func (r *Root) entryAttr(name string, mode uint32) fs.StableAttr {
+	return r.Cfg.EntryAttr(fusemnt.RootIno, name, mode)
+}
+
 func (r *Root) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	switch name {
 	case "mach_kernel", ".hidden", "._.":
@@ -149,11 +180,13 @@ func (r *Root) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 	}
 
 	if lnk, ok := r.LocalLinks[name]; ok {
-		return r.NewInode(ctx, lnk, fs.StableAttr{Mode: syscall.S_IFLNK}), 0
+		fillEntryAttr(ctx, lnk, out)
+		return r.NewInode(ctx, lnk, r.entryAttr(name, syscall.S_IFLNK)), 0
 	}
 
 	if dir, ok := r.LocalDirs[name]; ok {
-		return r.NewInode(ctx, dir, fs.StableAttr{Mode: syscall.S_IFDIR}), 0
+		fillEntryAttr(ctx, dir, out)
+		return r.NewInode(ctx, dir, r.entryAttr(name, syscall.S_IFDIR)), 0
 	}
 
 	// Other links go through IPNS resolution and are symlinked into the /ipfs mount.
@@ -168,15 +201,17 @@ func (r *Root) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 	}
 
 	lnk := &Link{Target: r.IpfsRoot + "/" + strings.TrimPrefix(resolved.String(), "/ipfs/")}
-	return r.NewInode(ctx, lnk, fs.StableAttr{Mode: syscall.S_IFLNK}), 0
+	fillEntryAttr(ctx, lnk, out)
+	return r.NewInode(ctx, lnk, r.entryAttr(name, syscall.S_IFLNK)), 0
 }
 
 func (r *Root) Readdir(_ context.Context) (fs.DirStream, syscall.Errno) {
 	entries := make([]fuse.DirEntry, 0, len(r.Keys)*2)
 	for alias, k := range r.Keys {
+		keyName := k.ID().String()
 		entries = append(entries,
-			fuse.DirEntry{Name: k.ID().String(), Mode: syscall.S_IFDIR},
-			fuse.DirEntry{Name: alias, Mode: syscall.S_IFLNK},
+			fuse.DirEntry{Name: keyName, Mode: syscall.S_IFDIR, Ino: r.Cfg.EntryIno(fusemnt.RootIno, keyName)},
+			fuse.DirEntry{Name: alias, Mode: syscall.S_IFLNK, Ino: r.Cfg.EntryIno(fusemnt.RootIno, alias)},
 		)
 	}
 	return fs.NewListDirStream(entries), 0

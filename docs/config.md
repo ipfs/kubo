@@ -2069,6 +2069,9 @@ Default: `"cache"`
 
 FUSE mount point configuration options.
 
+> [!WARNING]
+> While `/ipns` or `/mfs` is mounted, change what they hold through the mounted filesystem only. Writing to the same MFS tree with `ipfs files` commands at the same time is not supported: each side keeps its own view of the tree, so a write made on one side can be lost when the other writes back, and a file deleted and created again with `ipfs files` still looks like the same file to programs watching it on the mount. Unmount before using `ipfs files` on a mounted tree.
+
 All mounts expose the `ipfs.cid` extended attribute on files and directories, returning the CID of the underlying DAG node:
 
 ```console
