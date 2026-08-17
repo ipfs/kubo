@@ -28,6 +28,12 @@ type mount struct {
 // NewMount mounts a FUSE filesystem at a given location, and returns a Mount instance.
 func NewMount(root fs.InodeEmbedder, mountpoint string, opts *fs.Options) (Mount, error) {
 	PlatformMountOpts(&opts.MountOptions)
+	if opts.RootStableAttr == nil {
+		opts.RootStableAttr = &fs.StableAttr{Ino: RootIno}
+	}
+	if opts.FirstAutomaticIno == 0 {
+		opts.FirstAutomaticIno = AutomaticIno
+	}
 	server, err := fs.Mount(mountpoint, root, opts)
 	if err != nil {
 		return nil, fmt.Errorf("mounting %s: %w", mountpoint, err)

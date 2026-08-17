@@ -10,6 +10,8 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/stretchr/testify/require"
+
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
 
 // SkipUnlessFUSE skips the test when FUSE is not available.
@@ -48,6 +50,14 @@ func TestMount(t *testing.T, root fs.InodeEmbedder, opts *fs.Options) string {
 	opts.GID = uint32(os.Getgid())
 	if opts.MountOptions.FsName == "" {
 		opts.MountOptions.FsName = "kubo-test"
+	}
+	// Match what mount.NewMount gives the real mounts, so tests see the
+	// inode numbers users see.
+	if opts.RootStableAttr == nil {
+		opts.RootStableAttr = &fs.StableAttr{Ino: fusemnt.RootIno}
+	}
+	if opts.FirstAutomaticIno == 0 {
+		opts.FirstAutomaticIno = fusemnt.AutomaticIno
 	}
 	server, err := fs.Mount(mntDir, root, opts)
 	MountError(t, err)

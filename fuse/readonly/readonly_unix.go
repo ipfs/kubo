@@ -62,6 +62,7 @@ func (r *Root) Statfs(_ context.Context, out *fuse.StatfsOut) syscall.Errno {
 
 func (*Root) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr.Mode = uint32(fusemnt.NamespaceRootMode.Perm())
+	out.Attr.Nlink = fusemnt.Nlink
 	out.SetTimeout(immutableAttrCacheTime)
 	return 0
 }
@@ -118,7 +119,7 @@ func (r *Root) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 	}
 
 	child := &Node{ipfs: r.ipfs, nd: fnd}
-	stable := stableAttrFor(child)
+	stable := stableAttrFor(child, cidLnk.Cid)
 
 	// Fill attrs in the lookup response so the kernel doesn't cache zeros.
 	child.fillAttr(&out.Attr)
@@ -186,6 +187,7 @@ type roFileHandle struct {
 // which clobbers the UnixFS-derived values set below.
 func (n *Node) fillAttr(a *fuse.Attr) {
 	a.Blksize = fusemnt.DefaultBlksize
+	a.Nlink = fusemnt.Nlink
 
 	if rawnd, ok := n.nd.(*mdag.RawNode); ok {
 		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
@@ -199,6 +201,16 @@ func (n *Node) fillAttr(a *fuse.Attr) {
 			log.Errorf("readonly: loadData() failed: %s", err)
 			return
 		}
+	}
+
+	// A UnixFS directory can link to a block of any codec, and loadData only
+	// reads UnixFS metadata out of dag-pb. Report anything else as a file of
+	// the block's own size, which is what reads of it return.
+	if n.cached == nil {
+		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
+		a.Size = uint64(len(n.nd.RawData()))
+		a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
+		return
 	}
 
 	switch n.cached.Type() {
@@ -246,14 +258,19 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 		return nil, syscall.EIO
 	}
 
+	// A block we cannot read is not an entry we can serve: every attribute
+	// of it, down to its type, comes from the block itself.
 	nd, err := n.ipfs.DAG.Get(ctx, link.Cid)
-	if err != nil && !ipld.IsNotFound(err) {
+	if err != nil {
+		if ipld.IsNotFound(err) {
+			return nil, syscall.ENOENT
+		}
 		log.Errorf("fuse lookup %q: %s", name, err)
 		return nil, syscall.EIO
 	}
 
 	child := &Node{ipfs: n.ipfs, nd: nd}
-	stable := stableAttrFor(child)
+	stable := stableAttrFor(child, link.Cid)
 
 	child.fillAttr(&out.Attr)
 	out.SetEntryTimeout(immutableAttrCacheTime)
@@ -302,7 +319,9 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 				}
 			}
 		}
-		entries = append(entries, fuse.DirEntry{Name: name, Mode: mode})
+		// Ino has to match what Lookup reports for the same name, or d_ino
+		// from getdents disagrees with st_ino from stat.
+		entries = append(entries, fuse.DirEntry{Name: name, Mode: mode, Ino: fusemnt.InoFromCid(lnk.Cid)})
 		return nil
 	})
 	if err != nil {
@@ -372,10 +391,19 @@ func (fh *roFileHandle) Release(_ context.Context) syscall.Errno {
 	return fs.ToErrno(fh.r.Close())
 }
 
-// stableAttrFor returns the StableAttr (file type bits) for a Node.
-func stableAttrFor(n *Node) fs.StableAttr {
+// stableAttrFor describes a node to go-fuse: which object it is (Ino and Gen,
+// both derived from c, the CID the entry resolved to) and what kind of object.
+//
+// Ino and Gen together are the identity go-fuse matches a lookup against, so
+// both are needed to tell two CIDs apart; see fusemnt.InoGenFromCid. They are
+// derived rather than counted because /ipfs content never changes under a CID:
+// a node go-fuse already holds for that CID is still accurate and is reused
+// rather than rebuilt.
+func stableAttrFor(n *Node, c cid.Cid) fs.StableAttr {
+	ino, gen := fusemnt.InoGenFromCid(c)
+	attr := fs.StableAttr{Ino: ino, Gen: gen} // Mode 0 is S_IFREG
 	if _, ok := n.nd.(*mdag.RawNode); ok {
-		return fs.StableAttr{} // S_IFREG
+		return attr
 	}
 	if n.cached == nil {
 		_ = n.loadData()
@@ -383,12 +411,12 @@ func stableAttrFor(n *Node) fs.StableAttr {
 	if n.cached != nil {
 		switch n.cached.Type() {
 		case ft.TDirectory, ft.THAMTShard:
-			return fs.StableAttr{Mode: syscall.S_IFDIR}
+			attr.Mode = syscall.S_IFDIR
 		case ft.TSymlink:
-			return fs.StableAttr{Mode: syscall.S_IFLNK}
+			attr.Mode = syscall.S_IFLNK
 		}
 	}
-	return fs.StableAttr{} // S_IFREG
+	return attr
 }
 
 // Interface checks.
