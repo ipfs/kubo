@@ -242,6 +242,31 @@ func TestGateway(t *testing.T) {
 		assert.Contains(t, []int{302, 301}, resp.StatusCode)
 	})
 
+	t.Run("X-Ipfs-Path returns only with Gateway.DeprecatedXIpfsPath", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init()
+		cidStr := node.IPFSAddStr("hello legacy header", "--cid-version=1")
+		node.StartDaemon()
+
+		resp := node.GatewayClient().Get("/ipfs/" + cidStr)
+		assert.Equal(t, 200, resp.StatusCode)
+		assert.Equal(t, "ipfs://"+cidStr, resp.Headers.Get("Ipfs-Uri"))
+		assert.Empty(t, resp.Headers.Get("X-Ipfs-Path"))
+
+		node.StopDaemon()
+		node.UpdateConfig(func(cfg *config.Config) {
+			cfg.Gateway.DeprecatedXIpfsPath = config.True
+		})
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		resp = node.GatewayClient().Get("/ipfs/" + cidStr)
+		assert.Equal(t, 200, resp.StatusCode)
+		assert.Equal(t, "ipfs://"+cidStr, resp.Headers.Get("Ipfs-Uri"))
+		assert.Equal(t, "/ipfs/"+cidStr, resp.Headers.Get("X-Ipfs-Path"))
+	})
+
 	t.Run("POST /api/v0/version succeeds", func(t *testing.T) {
 		t.Parallel()
 		resp := node.APIClient().Post("/api/v0/version", nil)
