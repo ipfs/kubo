@@ -41,8 +41,9 @@ test_expect_success "GET response for Gateway resource looks good" '
   test_should_contain "< Access-Control-Expose-Headers: Content-Length" curl_output &&
   test_should_contain "< Access-Control-Expose-Headers: X-Chunked-Output" curl_output &&
   test_should_contain "< Access-Control-Expose-Headers: X-Stream-Output" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Path" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Roots" curl_output
+  test_should_contain "< Access-Control-Expose-Headers: Ipfs-Uri" curl_output &&
+  test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Roots" curl_output &&
+  test_should_not_contain "< Access-Control-Expose-Headers: X-Ipfs-Path" curl_output
 '
 # HTTP OPTIONS Request
 test_expect_success "OPTIONS to Gateway succeeds" '
@@ -64,8 +65,9 @@ test_expect_success "OPTIONS response for Gateway resource looks good" '
   test_should_contain "< Access-Control-Expose-Headers: Content-Length" curl_output &&
   test_should_contain "< Access-Control-Expose-Headers: X-Chunked-Output" curl_output &&
   test_should_contain "< Access-Control-Expose-Headers: X-Stream-Output" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Path" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Roots" curl_output
+  test_should_contain "< Access-Control-Expose-Headers: Ipfs-Uri" curl_output &&
+  test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Roots" curl_output &&
+  test_should_not_contain "< Access-Control-Expose-Headers: X-Ipfs-Path" curl_output
 '
 
 # HTTP OPTIONS Request on path → subdomain HTTP 301 redirect
@@ -104,8 +106,9 @@ test_expect_success "Access-Control-Allow-Headers extends the implicit list" '
   test_should_contain "< Access-Control-Allow-Headers: X-Custom1" curl_output &&
   test_should_contain "< Access-Control-Expose-Headers: Content-Range" curl_output &&
   test_should_contain "< Access-Control-Expose-Headers: Content-Length" curl_output &&
-  test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Path" curl_output &&
+  test_should_contain "< Access-Control-Expose-Headers: Ipfs-Uri" curl_output &&
   test_should_contain "< Access-Control-Expose-Headers: X-Ipfs-Roots" curl_output &&
+  test_should_not_contain "< Access-Control-Expose-Headers: X-Ipfs-Path" curl_output &&
   test_should_contain "< Access-Control-Expose-Headers: X-Custom2" curl_output
 '
 
