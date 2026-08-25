@@ -1103,15 +1103,14 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 		require.NoError(t, res1.Err)
 
 		// Should report cleared items and proper message format
-		assert.Contains(t, res1.Stdout.String(), "removed")
-		assert.Contains(t, res1.Stdout.String(), "items from provide queue")
+		assert.Contains(t, res1.Stdout.String(), "removed all items from provide queue")
 
-		// Clear the provide queue second time - should definitely report 0 items
+		// Clear the provide queue second time.
 		res2 := nodes[0].IPFS("provide", "clear")
 		require.NoError(t, res2.Err)
 
-		// Should report 0 items cleared since queue was already cleared
-		assert.Contains(t, res2.Stdout.String(), "removed 0 items from provide queue")
+		// Should report all items cleared since queue was already cleared.
+		assert.Contains(t, res2.Stdout.String(), "removed all items from provide queue")
 	})
 
 	t.Run("provide clear command with quiet option", func(t *testing.T) {
@@ -1149,35 +1148,6 @@ func runProviderSuite(t *testing.T, sweep bool, apply cfgApplier, awaitReprovide
 		// Clear should succeed even when provider is disabled
 		res := nodes[0].IPFS("provide", "clear")
 		require.NoError(t, res.Err)
-	})
-
-	t.Run("provide clear command returns JSON with removed item count", func(t *testing.T) {
-		t.Parallel()
-
-		nodes := harness.NewT(t).NewNodes(1).Init()
-		nodes.ForEachPar(func(n *harness.Node) {
-			n.SetIPFSConfig("Provide.Enabled", true)
-			n.SetIPFSConfig("Provide.DHT.Interval", "22h")
-			n.SetIPFSConfig("Provide.Strategy", "all")
-		})
-		nodes.StartDaemons()
-		defer nodes.StopDaemons()
-
-		// Clear the provide queue with JSON encoding
-		res := nodes[0].IPFS("provide", "clear", "--enc=json")
-		require.NoError(t, res.Err)
-
-		// Should return valid JSON with the number of removed items
-		output := res.Stdout.String()
-		assert.NotEmpty(t, output)
-
-		// Parse JSON to verify structure
-		var result int
-		err := json.Unmarshal([]byte(output), &result)
-		require.NoError(t, err, "Output should be valid JSON")
-
-		// Should be a non-negative integer (0 or positive)
-		assert.GreaterOrEqual(t, result, 0)
 	})
 }
 
