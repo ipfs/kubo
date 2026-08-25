@@ -5,9 +5,5 @@
 # Default
 * @ipfs/kubo-maintainers 
 
-# HTTP Gateway
-core/corehttp/  @lidel
-test/sharness/*gateway*.sh  @lidel
-
 # Project policy and agent guardrails (Stability and User Agency rules)
 /AGENTS.md  @ipfs/kubo-maintainers
