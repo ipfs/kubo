@@ -45,9 +45,14 @@ const (
 	DAGLayoutBalanced = "balanced" // balanced DAG layout (default)
 	DAGLayoutTrickle  = "trickle"  // trickle DAG layout
 
-	DefaultUnixFSHAMTDirectorySizeEstimation = HAMTSizeEstimationLinks // legacy behavior
-	DefaultUnixFSDAGLayout                   = DAGLayoutBalanced       // balanced DAG layout
-	DefaultUnixFSIncludeEmptyDirs            = true                    // include empty directories
+	// PBNodeFieldOrder values for Import.UnixFSPBNodeFieldOrder
+	PBNodeFieldOrderLinksFirst = "links-first" // canonical DAG-PB order (default)
+	PBNodeFieldOrderDataFirst  = "data-first"  // streaming-friendly order (IPIP-550, unixfs-v1-2026)
+
+	DefaultUnixFSHAMTDirectorySizeEstimation = HAMTSizeEstimationLinks    // legacy behavior
+	DefaultUnixFSDAGLayout                   = DAGLayoutBalanced          // balanced DAG layout
+	DefaultUnixFSIncludeEmptyDirs            = true                       // include empty directories
+	DefaultUnixFSPBNodeFieldOrder            = PBNodeFieldOrderLinksFirst // keeps existing CIDs
 )
 
 var (
@@ -69,6 +74,7 @@ type Import struct {
 	UnixFSHAMTDirectorySizeThreshold  OptionalBytes
 	UnixFSHAMTDirectorySizeEstimation OptionalString // "links", "block", or "disabled"
 	UnixFSDAGLayout                   OptionalString // "balanced" or "trickle"
+	UnixFSPBNodeFieldOrder            OptionalString // "links-first" or "data-first"
 	BatchMaxNodes                     OptionalInteger
 	BatchMaxSize                      OptionalInteger
 	FastProvideRoot                   Flag
@@ -174,6 +180,18 @@ func ValidateImportConfig(cfg *Import) error {
 		}
 	}
 
+	// Validate UnixFSPBNodeFieldOrder
+	if !cfg.UnixFSPBNodeFieldOrder.IsDefault() {
+		order := cfg.UnixFSPBNodeFieldOrder.WithDefault(DefaultUnixFSPBNodeFieldOrder)
+		switch order {
+		case PBNodeFieldOrderLinksFirst, PBNodeFieldOrderDataFirst:
+			// valid
+		default:
+			return fmt.Errorf("Import.UnixFSPBNodeFieldOrder must be %q or %q, got %q",
+				PBNodeFieldOrderLinksFirst, PBNodeFieldOrderDataFirst, order)
+		}
+	}
+
 	return nil
 }
 
@@ -238,6 +256,16 @@ func (i *Import) HAMTSizeEstimationMode() uio.SizeEstimationMode {
 		return uio.SizeEstimationDisabled
 	default:
 		return uio.SizeEstimationLinks
+	}
+}
+
+// PBNodeFieldOrderMode returns the boxo PBNodeFieldOrder based on the config value.
+func (i *Import) PBNodeFieldOrderMode() merkledag.PBNodeFieldOrder {
+	switch i.UnixFSPBNodeFieldOrder.WithDefault(DefaultUnixFSPBNodeFieldOrder) {
+	case PBNodeFieldOrderDataFirst:
+		return merkledag.PBNodeDataFirst
+	default:
+		return merkledag.PBNodeLinksFirst
 	}
 }
 

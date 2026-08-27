@@ -354,17 +354,19 @@ See https://specs.ipfs.tech/ipips/ipip-0499/. Alias: legacy-cid-v0`,
 Uses CIDv1, raw leaves, sha2-256, 1 MiB chunks, 1024 links per file node,
 256 HAMT fanout, and block-based size estimation for HAMT threshold.
 See https://specs.ipfs.tech/ipips/ipip-0499/`,
+		Transform: applyUnixFSv12025,
+	},
+	"unixfs-v1-2026": {
+		Description: `UnixFS import profile for streaming-optimized DAGs.
+Same as unixfs-v1-2025, plus PBNode messages encode the Data field before
+Links, so streaming readers get HAMT parameters before links. Opt-in:
+produces different CIDs than unixfs-v1-2025 for directories and HAMT shards.
+See IPIP-550: https://github.com/ipfs/specs/pull/550`,
 		Transform: func(c *Config) error {
-			c.Import.CidVersion = *NewOptionalInteger(1)
-			c.Import.UnixFSRawLeaves = True
-			c.Import.UnixFSChunker = *NewOptionalString("size-1048576") // 1 MiB
-			c.Import.HashFunction = *NewOptionalString("sha2-256")
-			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
-			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
-			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
-			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
-			c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationBlock)
-			c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
+			if err := applyUnixFSv12025(c); err != nil {
+				return err
+			}
+			c.Import.UnixFSPBNodeFieldOrder = *NewOptionalString(PBNodeFieldOrderDataFirst)
 			return nil
 		},
 	},
@@ -461,6 +463,21 @@ func applyUnixFSv02015(c *Config) error {
 	c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
 	c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
 	c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationLinks)
+	c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
+	return nil
+}
+
+// applyUnixFSv12025 applies the unixfs-v1-2025 import settings from IPIP-499.
+func applyUnixFSv12025(c *Config) error {
+	c.Import.CidVersion = *NewOptionalInteger(1)
+	c.Import.UnixFSRawLeaves = True
+	c.Import.UnixFSChunker = *NewOptionalString("size-1048576") // 1 MiB
+	c.Import.HashFunction = *NewOptionalString("sha2-256")
+	c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
+	c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+	c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+	c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
+	c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationBlock)
 	c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
 	return nil
 }

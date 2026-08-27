@@ -255,6 +255,7 @@ config file at runtime.
     - [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
     - [`Import.UnixFSHAMTDirectorySizeEstimation`](#importunixfshamtdirectorysizeestimation)
     - [`Import.UnixFSDAGLayout`](#importunixfsdaglayout)
+    - [`Import.UnixFSPBNodeFieldOrder`](#importunixfspbnodefieldorder)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -279,6 +280,7 @@ config file at runtime.
     - [`unixfs-v0-2015` profile](#unixfs-v0-2015-profile)
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
     - [`unixfs-v1-2025` profile](#unixfs-v1-2025-profile)
+    - [`unixfs-v1-2026` profile](#unixfs-v1-2026-profile)
   - [Security](#security)
     - [Port and Network Exposure](#port-and-network-exposure)
     - [Security Best Practices](#security-best-practices)
@@ -4284,6 +4286,31 @@ Default: `balanced`
 
 Type: `optionalString`
 
+### `Import.UnixFSPBNodeFieldOrder`
+
+Controls the order of the top-level `PBNode` protobuf fields written when
+creating `dag-pb` nodes (directories, HAMT shards, and non-raw file nodes).
+
+Accepted values:
+
+- `links-first` (default): canonical DAG-PB order, `Links` before `Data`.
+  Produces the same bytes and CIDs as previous Kubo releases.
+- `data-first`: `Data` before `Links`, so streaming readers can process
+  UnixFS metadata (for example HAMT fanout) before reading links. Changes
+  the CID of every written `dag-pb` node compared to `links-first`.
+
+This setting only affects writes. Reading accepts both orders regardless of
+this setting.
+
+Applied via the [`unixfs-v1-2026` profile](#unixfs-v1-2026-profile). See
+[IPIP-550](https://github.com/ipfs/specs/pull/550) for details.
+
+Commands affected: `ipfs add`, `ipfs files` (MFS)
+
+Default: `links-first`
+
+Type: `optionalString`
+
 ## `Version`
 
 Options to configure agent version announced to the swarm, and leveraging
@@ -4635,6 +4662,23 @@ See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Imp
 > This profile ensures CID consistency across different IPFS implementations.
 >
 > See [IPIP-499](https://specs.ipfs.tech/ipips/ipip-0499/) for more details.
+
+### `unixfs-v1-2026` profile
+
+UnixFS import profile for streaming-optimized DAGs.
+
+Same as [`unixfs-v1-2025`](#unixfs-v1-2025-profile), plus `PBNode` messages
+encode the `Data` field before `Links`
+([`Import.UnixFSPBNodeFieldOrder`](#importunixfspbnodefieldorder) set to
+`data-first`), so streaming readers get HAMT parameters before reading links.
+
+See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
+
+> [!IMPORTANT]
+> Opt-in: produces different CIDs than `unixfs-v1-2025` for directories and
+> HAMT shards. Use only when consumers of your CIDs expect this profile.
+>
+> See [IPIP-550](https://github.com/ipfs/specs/pull/550) for more details.
 
 ## Security
 
