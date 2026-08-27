@@ -65,6 +65,7 @@ config file at runtime.
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
     - [`Gateway.DeserializedResponses`](#gatewaydeserializedresponses)
     - [`Gateway.AllowCodecConversion`](#gatewayallowcodecconversion)
+    - [`Gateway.DeprecatedXIpfsPath`](#gatewaydeprecatedxipfspath)
     - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
     - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
     - [`Gateway.RetrievalTimeout`](#gatewayretrievaltimeout)
@@ -1305,6 +1306,27 @@ Instead of relying on gateway-side conversion, fetch the raw block using
 - Allows clients to use any codec without waiting for gateway support
 - Enables ecosystem innovation without gateway operator coordination
 - Works with libraries like [@helia/verified-fetch](https://www.npmjs.com/package/@helia/verified-fetch) in JavaScript
+
+Default: `false`
+
+Type: `flag`
+
+### `Gateway.DeprecatedXIpfsPath`
+
+An optional flag to restore the deprecated `X-Ipfs-Path` response header,
+superseded by
+[`Ipfs-Uri`](https://specs.ipfs.tech/http-gateways/path-gateway/#ipfs-uri-response-header)
+([IPIP-548](https://github.com/ipfs/specs/pull/548)).
+
+> [!IMPORTANT]
+> Using `X-Ipfs-Path` is not safe when non-ASCII filenames are involved: HTTP
+> headers cannot carry such bytes, so values arrive garbled. Enable this flag
+> only to facilitate migration to
+> [`Ipfs-Uri`](https://specs.ipfs.tech/http-gateways/path-gateway/#ipfs-uri-response-header),
+> which carries an [`ipfs://`](https://specs.ipfs.tech/ipfs-uri/) or
+> [`ipns://`](https://specs.ipfs.tech/ipns-uri/) address that is safe for any
+> filename. Even when enabled, the legacy header is still skipped when the
+> value would include non-ASCII byte sequences.
 
 Default: `false`
 
