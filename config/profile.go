@@ -360,7 +360,9 @@ See https://specs.ipfs.tech/ipips/ipip-0499/`,
 		Description: `UnixFS import profile for streaming-optimized DAGs.
 Same as unixfs-v1-2025, plus PBNode messages encode the Data field before
 Links, so streaming readers get HAMT parameters before links. Opt-in:
-produces different CIDs than unixfs-v1-2025 for directories and HAMT shards.
+produces different CIDs than unixfs-v1-2025 for directories, HAMT shards, and
+files larger than one chunk. Existing MFS directories are re-encoded, and get
+new CIDs, on their next access.
 See IPIP-550: https://github.com/ipfs/specs/pull/550`,
 		Transform: func(c *Config) error {
 			if err := applyUnixFSv12025(c); err != nil {

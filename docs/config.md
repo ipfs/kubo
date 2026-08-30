@@ -4297,7 +4297,10 @@ Accepted values:
   Produces the same bytes and CIDs as previous Kubo releases.
 - `data-first`: `Data` before `Links`, so streaming readers can process
   UnixFS metadata (for example HAMT fanout) before reading links. Changes
-  the CID of every written `dag-pb` node compared to `links-first`.
+  the CID of every written `dag-pb` node that has both `Data` and `Links`
+  (directories with entries, HAMT shards, and the root and intermediate
+  nodes of files larger than one chunk); a node with only one of the two
+  fields keeps the CID it has under `links-first`.
 
 This setting only affects writes. Reading accepts both orders regardless of
 this setting.
@@ -4305,7 +4308,7 @@ this setting.
 Applied via the [`unixfs-v1-2026` profile](#unixfs-v1-2026-profile). See
 [IPIP-550](https://github.com/ipfs/specs/pull/550) for details.
 
-Commands affected: `ipfs add`, `ipfs files` (MFS)
+Commands affected: `ipfs add`, `ipfs files` (MFS), `ipfs object patch`
 
 Default: `links-first`
 
@@ -4675,8 +4678,12 @@ encode the `Data` field before `Links`
 See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
 
 > [!IMPORTANT]
-> Opt-in: produces different CIDs than `unixfs-v1-2025` for directories and
-> HAMT shards. Use only when consumers of your CIDs expect this profile.
+> Opt-in: produces different CIDs than `unixfs-v1-2025` for directories, HAMT
+> shards, and files larger than one chunk. Existing MFS directories are
+> re-encoded, and get new CIDs, the next time an `ipfs files` command reads
+> them; the MFS root itself is re-encoded by any command that starts a node.
+> A sharded directory's root changes before its child shards. Use only when
+> consumers of your CIDs expect this profile.
 >
 > See [IPIP-550](https://github.com/ipfs/specs/pull/550) for more details.
 
