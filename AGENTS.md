@@ -187,6 +187,26 @@ FUSE_BIN="$(mktemp -d)" && ln -s /usr/bin/fusermount3 "$FUSE_BIN/fusermount" && 
 
 Set `TEST_FUSE=1` to make mount failures fatal (CI does this). Without it, tests auto-detect and skip when FUSE is unavailable.
 
+### Cleaning Up Leftover FUSE Mounts
+
+`fusetest.TestMount` mounts at `t.TempDir()` and unmounts in `t.Cleanup`, but that cleanup does not run when the test process is killed, and it blocks when the test is already stuck inside the mount. The mountpoint then stays under `/tmp` with no server behind it. From that point on, every `stat()` of it blocks in uninterruptible `D` state, which no signal can interrupt, not even `SIGKILL`. The damage outlives the test run: it hangs `find /tmp`, the daily `tmpwatch` cron, and backups.
+
+After a FUSE test run that crashed, timed out, or was interrupted, check for leftovers:
+
+```bash
+grep fuse /proc/self/mountinfo       # kubo-test mounts under /tmp are leftovers
+ps -eo pid,stat,cmd | awk '$2 ~ /D/' # processes stuck on a dead mount
+```
+
+To clean up, abort the connection first, then unmount. The abort returns `EIO` to the blocked processes so they can exit; unmounting alone does not release them. The connection id is the minor number in field 3 of `mountinfo`, so `0:107` means connection `107`:
+
+```bash
+echo 1 > /sys/fs/fuse/connections/107/abort
+fusermount3 -u -z /tmp/TestSomething123/001
+```
+
+`/sys/fs/fuse/connections/` also holds live desktop mounts such as `gvfs` and the flatpak document portal. Match each id against `mountinfo` before you abort it.
+
 ### Running Sharness Tests
 
 Sharness tests are legacy shell-based tests. Run individual tests with a timeout:
@@ -216,6 +236,7 @@ pkill -f "ipfs daemon"
 - when writing tests that cover CIDv0 vs CIDv1, always set the CID version explicitly (never rely on defaults); if chunk size matters for the test, also set the chunker explicitly
 - always re-run modified tests locally before submitting to confirm they pass
 - avoid emojis in test names and test log output
+- never leave a symlink loop behind in `/tmp` (`a -> b` with `b -> a`, or a self-link), in a test fixture or in an ad-hoc `mktemp -d` repro directory. `fuser` resolves such a path with an unbounded `readlink()` walk, so the daily `tmpwatch --fuser` cron that runs `fuser` on every file in `/tmp` spins on one core forever and `/tmp` stops being cleaned. Delete loop fixtures in the test that creates them rather than relying on `t.TempDir()` removal, which does not run when the test process is killed
 
 ## Before Submitting
 

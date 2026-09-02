@@ -55,7 +55,17 @@ collector.
 TODO:
 
 * Filtering requests
-* Checking the X-IPFS-Path header in responses to filter again after resolving.
+* Checking the [Ipfs-Uri](https://specs.ipfs.tech/http-gateways/path-gateway/#ipfs-uri-response-header)
+  header in responses to filter again after resolving.
+
+> [!IMPORTANT]
+> Using `X-Ipfs-Path` is not safe when non-ASCII filenames are involved: HTTP
+> headers cannot carry such bytes, so values arrive garbled. Kubo no longer
+> sends it. New projects must switch to the
+> [`Ipfs-Uri`](https://specs.ipfs.tech/http-gateways/path-gateway/#ipfs-uri-response-header)
+> header, which carries an [`ipfs://`](https://specs.ipfs.tech/ipfs-uri/) or
+> [`ipns://`](https://specs.ipfs.tech/ipns-uri/) address that is safe for any
+> filename.
 
 # Subdomain Gateway
 
