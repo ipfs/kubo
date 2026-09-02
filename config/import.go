@@ -47,7 +47,7 @@ const (
 
 	// PBNodeFieldOrder values for Import.UnixFSPBNodeFieldOrder
 	PBNodeFieldOrderLinksFirst = "links-first" // canonical DAG-PB order (default)
-	PBNodeFieldOrderDataFirst  = "data-first"  // streaming-friendly order (IPIP-550, unixfs-v1-2026)
+	PBNodeFieldOrderDataFirst  = "data-first"  // streaming-friendly order (IPIP-550)
 
 	DefaultUnixFSHAMTDirectorySizeEstimation = HAMTSizeEstimationLinks    // legacy behavior
 	DefaultUnixFSDAGLayout                   = DAGLayoutBalanced          // balanced DAG layout

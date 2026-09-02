@@ -356,22 +356,6 @@ Uses CIDv1, raw leaves, sha2-256, 1 MiB chunks, 1024 links per file node,
 See https://specs.ipfs.tech/ipips/ipip-0499/`,
 		Transform: applyUnixFSv12025,
 	},
-	"unixfs-v1-2026": {
-		Description: `UnixFS import profile for streaming-optimized DAGs.
-Same as unixfs-v1-2025, plus PBNode messages encode the Data field before
-Links, so streaming readers get HAMT parameters before links. Opt-in:
-produces different CIDs than unixfs-v1-2025 for directories, HAMT shards, and
-files larger than one chunk. Existing MFS directories are re-encoded, and get
-new CIDs, on their next access.
-See IPIP-550: https://github.com/ipfs/specs/pull/550`,
-		Transform: func(c *Config) error {
-			if err := applyUnixFSv12025(c); err != nil {
-				return err
-			}
-			c.Import.UnixFSPBNodeFieldOrder = *NewOptionalString(PBNodeFieldOrderDataFirst)
-			return nil
-		},
-	},
 	"autoconf-on": {
 		Description: `Sets configuration to use implicit defaults from remote autoconf service.
 Bootstrap peers, DNS resolvers, delegated routers, and IPNS delegated publishers are set to "auto".
@@ -466,6 +450,7 @@ func applyUnixFSv02015(c *Config) error {
 	c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
 	c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationLinks)
 	c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
+	c.Import.UnixFSPBNodeFieldOrder = *NewOptionalString(PBNodeFieldOrderLinksFirst)
 	return nil
 }
 
@@ -481,5 +466,6 @@ func applyUnixFSv12025(c *Config) error {
 	c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
 	c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationBlock)
 	c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
+	c.Import.UnixFSPBNodeFieldOrder = *NewOptionalString(PBNodeFieldOrderLinksFirst)
 	return nil
 }

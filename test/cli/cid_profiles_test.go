@@ -624,12 +624,12 @@ func hamtSeedForProfile(exp cidProfileExpectations) string {
 	}
 }
 
-// TestUnixFSV12026Profile verifies the opt-in unixfs-v1-2026 profile writes
-// PBNode messages with the Data field before Links (IPIP-550,
+// TestUnixFSPBNodeFieldOrder verifies the opt-in Import.UnixFSPBNodeFieldOrder
+// setting writes PBNode messages with the Data field before Links (IPIP-550,
 // https://github.com/ipfs/specs/pull/550), reproducing the byte-exact
-// fixtures from the IPIP, while unixfs-v1-2025 keeps the legacy links-first
-// encoding and its CIDs.
-func TestUnixFSV12026Profile(t *testing.T) {
+// fixtures from the IPIP, while the unixfs-v1-2025 profile pins the legacy
+// links-first encoding and its CIDs.
+func TestUnixFSPBNodeFieldOrder(t *testing.T) {
 	t.Parallel()
 
 	// Fixtures from the IPIP-550 test fixtures table: a directory holding
@@ -647,9 +647,10 @@ func TestUnixFSV12026Profile(t *testing.T) {
 		return node.IPFS("add", "-r", "-Q", dir).Stdout.Trimmed()
 	}
 
-	t.Run("unixfs-v1-2026 writes Data field before Links", func(t *testing.T) {
+	t.Run("data-first setting writes Data field before Links", func(t *testing.T) {
 		t.Parallel()
-		node := harness.NewT(t).NewNode().Init("--profile=unixfs-v1-2026")
+		node := harness.NewT(t).NewNode().Init("--profile=unixfs-v1-2025")
+		node.IPFS("config", "Import.UnixFSPBNodeFieldOrder", "data-first")
 		node.StartDaemon()
 		defer node.StopDaemon()
 

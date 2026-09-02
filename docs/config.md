@@ -280,7 +280,6 @@ config file at runtime.
     - [`unixfs-v0-2015` profile](#unixfs-v0-2015-profile)
     - [`legacy-cid-v0` profile](#legacy-cid-v0-profile)
     - [`unixfs-v1-2025` profile](#unixfs-v1-2025-profile)
-    - [`unixfs-v1-2026` profile](#unixfs-v1-2026-profile)
   - [Security](#security)
     - [Port and Network Exposure](#port-and-network-exposure)
     - [Security Best Practices](#security-best-practices)
@@ -4305,7 +4304,11 @@ Accepted values:
 This setting only affects writes. Reading accepts both orders regardless of
 this setting.
 
-Applied via the [`unixfs-v1-2026` profile](#unixfs-v1-2026-profile). See
+This is a low-level, opt-in setting: no configuration profile enables
+`data-first`, and the `unixfs-v0-2015` and `unixfs-v1-2025` profiles set
+`links-first` explicitly. Enable `data-first` only when every consumer of
+your CIDs expects it. Note that with `data-first`, data already in MFS is
+re-encoded, and gets new CIDs, as `ipfs files` commands read it. See
 [IPIP-550](https://github.com/ipfs/specs/pull/550) for details.
 
 Commands affected: `ipfs add`, `ipfs files` (MFS), `ipfs object patch`
@@ -4665,27 +4668,6 @@ See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Imp
 > This profile ensures CID consistency across different IPFS implementations.
 >
 > See [IPIP-499](https://specs.ipfs.tech/ipips/ipip-0499/) for more details.
-
-### `unixfs-v1-2026` profile
-
-UnixFS import profile for streaming-optimized DAGs.
-
-Same as [`unixfs-v1-2025`](#unixfs-v1-2025-profile), plus `PBNode` messages
-encode the `Data` field before `Links`
-([`Import.UnixFSPBNodeFieldOrder`](#importunixfspbnodefieldorder) set to
-`data-first`), so streaming readers get HAMT parameters before reading links.
-
-See <https://github.com/ipfs/kubo/blob/master/config/profile.go> for exact [`Import.*`](#import) settings.
-
-> [!IMPORTANT]
-> Opt-in: produces different CIDs than `unixfs-v1-2025` for directories, HAMT
-> shards, and files larger than one chunk. Existing MFS directories are
-> re-encoded, and get new CIDs, the next time an `ipfs files` command reads
-> them; the MFS root itself is re-encoded by any command that starts a node.
-> A sharded directory's root changes before its child shards. Use only when
-> consumers of your CIDs expect this profile.
->
-> See [IPIP-550](https://github.com/ipfs/specs/pull/550) for more details.
 
 ## Security
 
