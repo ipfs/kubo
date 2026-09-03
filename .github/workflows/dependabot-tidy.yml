@@ -27,14 +27,18 @@ jobs:
         id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER_INPUT: ${{ inputs.pr_number }}
+          PR_NUMBER_PR: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            pr_number="${{ inputs.pr_number }}"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            pr_number="$PR_NUMBER_INPUT"
           else
-            pr_number="${{ github.event.pull_request.number }}"
+            pr_number="$PR_NUMBER_PR"
           fi
           echo "number=$pr_number" >> $GITHUB_OUTPUT
-          branch=$(gh pr view "$pr_number" --repo "${{ github.repository }}" --json headRefName -q '.headRefName')
+          branch=$(gh pr view "$pr_number" --repo "$REPOSITORY" --json headRefName -q '.headRefName')
           echo "branch=$branch" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v7
         with:
