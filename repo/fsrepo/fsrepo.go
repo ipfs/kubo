@@ -24,7 +24,7 @@ import (
 	lockfile "github.com/ipfs/go-fs-lock"
 	logging "github.com/ipfs/go-log/v2"
 	config "github.com/ipfs/kubo/config"
-	serialize "github.com/ipfs/kubo/config/serialize"
+	"github.com/ipfs/kubo/config/serialize"
 	"github.com/ipfs/kubo/misc/fsutil"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	ma "github.com/multiformats/go-multiaddr"

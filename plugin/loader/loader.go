@@ -1,7 +1,6 @@
 package loader
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipld/go-ipld-prime/multicodec"
 
+	"github.com/ipfs/kubo/config/serialize"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 	plugin "github.com/ipfs/kubo/plugin"
@@ -132,13 +132,7 @@ func readPluginsConfig(repoRoot string, userConfigFile string) (config.Plugins, 
 		return config.Plugins{}, err
 	}
 
-	cfgFile, err := os.Open(cfgPath)
-	if err != nil {
-		return config.Plugins{}, err
-	}
-	defer cfgFile.Close()
-
-	err = json.NewDecoder(cfgFile).Decode(&cfg)
+	err = serialize.ReadConfigFile(cfgPath, &cfg)
 	if err != nil {
 		return config.Plugins{}, err
 	}
