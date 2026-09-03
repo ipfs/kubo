@@ -130,21 +130,30 @@ Inverse profile of the test profile.`,
 		},
 	},
 	"default-datastore": {
-		Description: `Configures the node to use the default datastore (flatfs).
+		Description: `Configures the node to use the default datastore layout: blocks in
+flatfs, everything else in leveldb. Same as the 'flatfs-levelds' profile.
 
-Read the "flatfs" profile description for more information on this datastore.
+Read the "flatfs-levelds" profile description for more information on
+this datastore.
 
 This profile may only be applied when first initializing the node.
 `,
 
 		InitOnly: true,
 		Transform: func(c *Config) error {
-			c.Datastore.Spec = flatfsSpec()
+			c.Datastore.Spec = flatfsLeveldsSpec()
 			return nil
 		},
 	},
-	"flatfs": {
-		Description: `Configures the node to use the flatfs datastore.
+	"flatfs-levelds": {
+		Description: `Configures the node to store blocks in flatfs, everything else in leveldb.
+This is the default.
+
+Blocks go to flatfs, one file per block. All other keys (pins, MFS root,
+provider records, IPNS records) go to leveldb. flatfs is built for
+content-addressed data only and is unsafe for anything else, which is why
+it holds nothing but blocks. 'flatfs' is an alias of this profile;
+'flatfs-pebbleds' uses pebble instead of leveldb.
 
 This is the most battle-tested and reliable datastore.
 You should use this datastore if:
@@ -159,6 +168,21 @@ You should use this datastore if:
 
 See configuration documentation at:
 https://github.com/ipfs/kubo/blob/master/docs/datastores.md#flatfs
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#levelds
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs-levelds'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = flatfsLeveldsSpec()
+			return nil
+		},
+	},
+	"flatfs": {
+		Description: `Alias of 'flatfs-levelds', the default datastore layout: blocks in flatfs,
+everything else in leveldb. See 'flatfs-levelds' for details.
 
 NOTE: This profile may only be applied when first initializing node at IPFS_PATH
       via 'ipfs init --profile flatfs'
@@ -166,13 +190,29 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 
 		InitOnly: true,
 		Transform: func(c *Config) error {
-			c.Datastore.Spec = flatfsSpec()
+			c.Datastore.Spec = flatfsLeveldsSpec()
+			return nil
+		},
+	},
+	"flatfs-levelds-measure": {
+		Description: `Configures the node to store blocks in flatfs, everything else in leveldb,
+with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+The wrapper adds overhead to every datastore operation; use this profile
+for debugging, right-sizing, and testing.
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs-levelds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = flatfsLeveldsSpecMeasure()
 			return nil
 		},
 	},
 	"flatfs-measure": {
-		Description: `Configures the node to use the flatfs datastore with metrics tracking wrapper.
-Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+		Description: `Alias of 'flatfs-levelds-measure'.
 
 NOTE: This profile may only be applied when first initializing node at IPFS_PATH
       via 'ipfs init --profile flatfs-measure'
@@ -180,12 +220,65 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 
 		InitOnly: true,
 		Transform: func(c *Config) error {
-			c.Datastore.Spec = flatfsSpecMeasure()
+			c.Datastore.Spec = flatfsLeveldsSpecMeasure()
+			return nil
+		},
+	},
+	"flatfs-pebbleds": {
+		Description: `EXPERIMENTAL: Configures the node to store blocks in flatfs, everything
+else in pebble. Opt-in; pebble has seen less production use in Kubo than
+leveldb.
+
+This is the 'flatfs-levelds' layout with pebble in place of leveldb:
+blocks go to flatfs, one file per block; all other keys (pins, MFS root,
+provider records, IPNS records) go to pebble. flatfs is built for
+content-addressed data only and is unsafe for anything else, which is why
+it holds nothing but blocks.
+
+You should use this profile if:
+
+- You want flatfs for blocks: simple, low memory use, reclaims space as
+  soon as GC removes a block.
+- You want pebble instead of leveldb for the rest: pebble compacts deleted
+  keys promptly, leveldb can keep them around long after bulk deletes.
+- You want to keep blocks out of pebble, for example because large imports
+  into 'pebbleds' are slow on your disk.
+
+See configuration documentation at:
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#flatfs
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md#pebbleds
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs-pebbleds'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = flatfsPebbledsSpec()
+			return nil
+		},
+	},
+	"flatfs-pebbleds-measure": {
+		Description: `EXPERIMENTAL: Configures the node to store blocks in flatfs, everything
+else in pebble, with metrics tracking wrapper.
+Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+The wrapper adds overhead to every datastore operation; use this profile
+for debugging, right-sizing, and testing.
+
+NOTE: This profile may only be applied when first initializing node at IPFS_PATH
+      via 'ipfs init --profile flatfs-pebbleds-measure'
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = flatfsPebbledsSpecMeasure()
 			return nil
 		},
 	},
 	"pebbleds": {
-		Description: `Configures the node to use the pebble high-performance datastore.
+		Description: `EXPERIMENTAL: Configures the node to use the pebble high-performance
+datastore for everything. Opt-in; pebble has seen less production use in
+Kubo than leveldb.
 
 Pebble is a LevelDB/RocksDB inspired key-value store focused on performance
 and internal usage by CockroachDB.
@@ -211,8 +304,11 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 		},
 	},
 	"pebbleds-measure": {
-		Description: `Configures the node to use the pebble datastore with metrics tracking wrapper.
+		Description: `EXPERIMENTAL: Configures the node to use the pebble datastore with metrics
+tracking wrapper.
 Additional '*_datastore_*' metrics will be exposed on /debug/metrics/prometheus
+The wrapper adds overhead to every datastore operation; use this profile
+for debugging, right-sizing, and testing.
 
 NOTE: This profile may only be applied when first initializing node at IPFS_PATH
       via 'ipfs init --profile pebbleds-measure'
@@ -247,8 +343,8 @@ move pinned data via 'ipfs dag export/import' or 'ipfs pin ls -t recursive|add',
 and decommission the old badger-based node.
 When it comes to block storage, use experimental 'pebbleds' only if you are sure
 modern 'flatfs' does not serve your use case (most users will be perfectly fine
-with flatfs, it is also possible to keep flatfs for blocks and replace leveldb
-with pebble if preferred over leveldb).
+with flatfs; the 'flatfs-pebbleds' profile keeps flatfs for blocks and
+replaces leveldb with pebble if preferred over leveldb).
 
 See configuration documentation at:
 https://github.com/ipfs/kubo/blob/master/docs/datastores.md#badgerds
@@ -267,6 +363,8 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 		Description: `DEPRECATED: Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
 This profile will be removed in a future Kubo release.
 New deployments should use 'flatfs' or 'pebbleds' instead.
+The wrapper adds overhead to every datastore operation; use this profile
+for debugging, right-sizing, and testing.
 
 NOTE: This profile may only be applied when first initializing node at IPFS_PATH
       via 'ipfs init --profile badgerds-measure'

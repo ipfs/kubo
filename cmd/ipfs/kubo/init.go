@@ -48,6 +48,14 @@ initialize it using 'server' profile.
 
 For the list of available profiles see 'ipfs config profile --help'
 
+The datastore layout is fixed at init time. By default ('flatfs-levelds'
+profile, alias 'flatfs') blocks go to flatfs, one file per block, and
+everything else (pins, MFS root, provider and IPNS records) goes to leveldb.
+Experimental, opt-in: 'flatfs-pebbleds' keeps flatfs for blocks and uses
+pebble instead of leveldb; 'pebbleds' puts everything in pebble. Details
+and trade-offs:
+https://github.com/ipfs/kubo/blob/master/docs/datastores.md
+
 ipfs uses a repository in the local file system. By default, the repo is
 located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
 environment variable:

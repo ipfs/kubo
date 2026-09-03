@@ -126,7 +126,7 @@ func DefaultDatastoreConfig() Datastore {
 		StorageGCWatermark: 90, // 90%
 		GCPeriod:           "1h",
 		BloomFilterSize:    0,
-		Spec:               flatfsSpec(),
+		Spec:               flatfsLeveldsSpec(),
 	}
 }
 
@@ -174,7 +174,7 @@ func badgerSpecMeasure() map[string]any {
 	}
 }
 
-func flatfsSpec() map[string]any {
+func flatfsLeveldsSpec() map[string]any {
 	return map[string]any{
 		"type": "mount",
 		"mounts": []any{
@@ -197,7 +197,7 @@ func flatfsSpec() map[string]any {
 	}
 }
 
-func flatfsSpecMeasure() map[string]any {
+func flatfsLeveldsSpecMeasure() map[string]any {
 	return map[string]any{
 		"type": "mount",
 		"mounts": []any{
@@ -220,6 +220,59 @@ func flatfsSpecMeasure() map[string]any {
 					"type":        "levelds",
 					"path":        "datastore",
 					"compression": "none",
+				},
+			},
+		},
+	}
+}
+
+// flatfsPebbledsSpec is flatfsLeveldsSpec with pebble in place of leveldb at "/".
+func flatfsPebbledsSpec() map[string]any {
+	return map[string]any{
+		"type": "mount",
+		"mounts": []any{
+			map[string]any{
+				"mountpoint": "/blocks",
+				"type":       "flatfs",
+				"prefix":     "flatfs.datastore",
+				"path":       "blocks",
+				"sync":       false,
+				"shardFunc":  "/repo/flatfs/shard/v1/next-to-last/2",
+			},
+			map[string]any{
+				"mountpoint":         "/",
+				"type":               "pebbleds",
+				"prefix":             "pebble.datastore",
+				"path":               "pebbleds",
+				"formatMajorVersion": int(pebble.FormatNewest),
+			},
+		},
+	}
+}
+
+func flatfsPebbledsSpecMeasure() map[string]any {
+	return map[string]any{
+		"type": "mount",
+		"mounts": []any{
+			map[string]any{
+				"mountpoint": "/blocks",
+				"type":       "measure",
+				"prefix":     "flatfs.datastore",
+				"child": map[string]any{
+					"type":      "flatfs",
+					"path":      "blocks",
+					"sync":      false,
+					"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+				},
+			},
+			map[string]any{
+				"mountpoint": "/",
+				"type":       "measure",
+				"prefix":     "pebble.datastore",
+				"child": map[string]any{
+					"type":               "pebbleds",
+					"path":               "pebbleds",
+					"formatMajorVersion": int(pebble.FormatNewest),
 				},
 			},
 		},

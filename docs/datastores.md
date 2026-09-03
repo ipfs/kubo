@@ -33,7 +33,14 @@ The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descri
 
 - `sync`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a slowdown when adding files).
 
-NOTE: flatfs must only be used as a block store (mounted at `/blocks`) as it only partially implements the datastore interface. You can mount flatfs for /blocks only using the mount datastore (described below).
+> [!WARNING]
+> flatfs is a special-purpose store for content-addressed data (CID to block) and is safe only when mounted at `/blocks`. It is not a general-purpose key-value store:
+>
+> - It assumes a key is the hash of its value, so the same key always carries the same bytes. When several writes target one key at the same time, or within one batch, the first to finish is kept and the rest are skipped without an error. That is correct for blocks and wrong for anything mutable (pins, MFS root, provider records, IPNS records), which needs a store where the last write wins, such as leveldb or pebble.
+> - Keys become file names, so only upper-case letters, digits, and the characters `-`, `+`, `_`, `=` are accepted. Namespaced keys such as `/foo/bar` are rejected.
+> - Queries by key prefix return nothing; only a query over the whole store works.
+>
+> This is why every profile that uses flatfs mounts it at `/blocks` only and keeps the remaining keys in leveldb or pebble: the default `flatfs-levelds` profile (alias `flatfs`) pairs it with leveldb, `flatfs-pebbleds` with pebble. Mount flatfs for `/blocks` only, using the [mount](#mount) datastore. See the [go-ds-flatfs restrictions](https://github.com/ipfs/go-ds-flatfs/blob/master/README.md#restrictions) for details.
 
 ### Choosing a `shardFunc` for large blockstores
 
@@ -127,7 +134,7 @@ If they are not configured (or assigned their zero-valued), then default values 
 > [!TIP]
 > Start using pebble with only default values and configure tuning items are needed for your needs. For a more complete description of these values, see: `https://pkg.go.dev/github.com/cockroachdb/pebble@vA.B.C#Options` (where `A.B.C` is pebble version from Kubo's `go.mod`).
 
-Using a pebble datastore can be set when initializing kubo `ipfs init --profile pebbleds`.
+Using a pebble datastore can be set when initializing kubo `ipfs init --profile pebbleds`. To keep blocks in flatfs and use pebble only for the remaining keys, use `ipfs init --profile flatfs-pebbleds`. Both profiles are experimental and opt-in.
 
 #### Use of `formatMajorVersion`
 
@@ -135,7 +142,7 @@ Using a pebble datastore can be set when initializing kubo `ipfs init --profile 
 
 At any point, a database's format major version may be bumped. However, once a database's format major version is increased, previous versions of Pebble will refuse to open the database.
 
-When IPFS is initialized to use the pebbleds datastore (`ipfs init --profile=pebbleds`), the latest pebble database format is configured in the pebble datastore config as `"formatMajorVersion"`. Setting this in the datastore config prevents automatically upgrading to the latest available version when kubo is upgraded. If a later version becomes available, the kubo daemon prints a startup message to indicate this. The user can them update the config to use the latest format when they are certain a downgrade will not be necessary.
+When IPFS is initialized to use the pebbleds datastore (`ipfs init --profile=pebbleds` or `--profile=flatfs-pebbleds`), the latest pebble database format is configured in the pebble datastore config as `"formatMajorVersion"`. Setting this in the datastore config prevents automatically upgrading to the latest available version when kubo is upgraded. If a later version becomes available, the kubo daemon prints a startup message to indicate this. The user can them update the config to use the latest format when they are certain a downgrade will not be necessary.
 
 Without the `"formatMajorVersion"` in the pebble datastore config, the database format is automatically upgraded to the latest version. If this happens, then it is possible a downgrade back to the previous version of kubo will not work if new format is not compatible with the pebble datastore in the previous version of kubo.
 
@@ -158,9 +165,9 @@ Uses [badger](https://github.com/dgraph-io/badger) as a key-value store.
 > `ipfs dag export/import` or `ipfs pin ls -t recursive|add`, and decommission the
 > old badger-based node. When it comes to block storage, use experimental
 > `pebbleds` only if you are sure modern `flatfs` does not serve your use case
-> (most users will be perfectly fine with `flatfs`, it is also possible to keep
-> `flatfs` for blocks and replace `leveldb` with `pebble` if preferred over
-> `leveldb`).
+> (most users will be perfectly fine with `flatfs`; the `flatfs-pebbleds`
+> profile keeps `flatfs` for blocks and replaces `leveldb` with `pebble` if
+> preferred over `leveldb`).
 
 - `syncWrites`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a 2-3x slowdown when adding files).
 - `truncate`: Truncate the DB if a partially written sector is found (defaults to true). There is no good reason to set this to false unless you want to manually recover partially written (and unpinned) blocks if kubo crashes half-way through a write operation.
@@ -198,6 +205,8 @@ The mountpoints are added as keys within the child datastore definitions.
 ## measure
 
 This datastore is a wrapper that adds metrics tracking to any datastore.
+
+Every operation goes through the wrapper, which adds overhead. The `-measure` profiles (`flatfs-levelds-measure`, `flatfs-pebbleds-measure`, `pebbleds-measure`) are provided for debugging, right-sizing, and testing.
 
 ```json
 {
