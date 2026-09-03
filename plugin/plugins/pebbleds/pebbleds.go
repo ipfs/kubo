@@ -18,6 +18,19 @@ var Plugins = []plugin.Plugin{
 	&pebbledsPlugin{},
 }
 
+// Defaults for pebble's experimental value separation, applied when
+// "valueSeparationEnabled" is true and the corresponding option is unset.
+// Pebble has no defaults of its own here (a nil policy means disabled), so
+// these are Kubo's choices: separate everything above the size of a typical
+// small DAG node, and follow the reference values used in pebble's own
+// ValueSeparationPolicy documentation for the rest.
+const (
+	DefaultValueSeparationMinimumSize           = 1024
+	DefaultValueSeparationMaxBlobReferenceDepth = 10
+	DefaultValueSeparationRewriteMinimumAge     = 15 * time.Minute
+	DefaultValueSeparationTargetGarbageRatio    = 0.20
+)
+
 type pebbledsPlugin struct{}
 
 var _ plugin.PluginDatastore = (*pebbledsPlugin)(nil)
@@ -109,6 +122,29 @@ func (*pebbledsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 		if err != nil {
 			return nil, err
 		}
+		valueSepEnabled, err := getConfigBool("valueSeparationEnabled", params)
+		if err != nil {
+			return nil, err
+		}
+		valueSepMinSize, err := getConfigInt("valueSeparationMinimumSize", params)
+		if err != nil {
+			return nil, err
+		}
+		valueSepMaxRefDepth, err := getConfigInt("valueSeparationMaxBlobReferenceDepth", params)
+		if err != nil {
+			return nil, err
+		}
+		valueSepRewriteAgeSec, err := getConfigInt("valueSeparationRewriteMinimumAgeSeconds", params)
+		if err != nil {
+			return nil, err
+		}
+		valueSepGarbageRatio, err := getConfigFloat("valueSeparationTargetGarbageRatio", params)
+		if err != nil {
+			return nil, err
+		}
+		if !valueSepEnabled && (valueSepMinSize != 0 || valueSepMaxRefDepth != 0 || valueSepRewriteAgeSec != 0 || valueSepGarbageRatio != 0) {
+			return nil, fmt.Errorf("valueSeparation* options require \"valueSeparationEnabled\": true")
+		}
 
 		if formatMajorVersion == 0 {
 			// Pebble DB format not configured. Automatically ratchet the
@@ -141,6 +177,50 @@ func (*pebbledsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 			}
 		}
 
+		if valueSepEnabled {
+			// Blob files are only readable at FormatValueSeparation or
+			// newer. Refuse to silently ratchet a repo that pinned an
+			// older format: raising formatMajorVersion is irreversible
+			// and must stay an explicit user decision.
+			if formatMajorVersion < pebble.FormatValueSeparation {
+				return nil, fmt.Errorf(
+					"valueSeparationEnabled requires \"formatMajorVersion\" >= %d (currently %d); raising it is IRREVERSIBLE, see docs/datastores.md#pebbleds",
+					int(pebble.FormatValueSeparation), int(formatMajorVersion))
+			}
+			if valueSepMinSize < 0 || valueSepMaxRefDepth < 0 || valueSepRewriteAgeSec < 0 {
+				return nil, fmt.Errorf("valueSeparation* options must not be negative")
+			}
+			if valueSepGarbageRatio < 0 || valueSepGarbageRatio > 1 {
+				return nil, fmt.Errorf("\"valueSeparationTargetGarbageRatio\" must be within [0.0, 1.0]")
+			}
+			if valueSepMinSize == 0 {
+				valueSepMinSize = DefaultValueSeparationMinimumSize
+			}
+			if valueSepMaxRefDepth == 0 {
+				valueSepMaxRefDepth = DefaultValueSeparationMaxBlobReferenceDepth
+			}
+			rewriteAge := DefaultValueSeparationRewriteMinimumAge
+			if valueSepRewriteAgeSec != 0 {
+				rewriteAge = time.Duration(valueSepRewriteAgeSec) * time.Second
+			}
+			if valueSepGarbageRatio == 0 {
+				valueSepGarbageRatio = DefaultValueSeparationTargetGarbageRatio
+			}
+			if c.pebbleOpts == nil {
+				c.pebbleOpts = &pebble.Options{FormatMajorVersion: formatMajorVersion}
+			}
+			policy := pebble.ValueSeparationPolicy{
+				Enabled:               true,
+				MinimumSize:           valueSepMinSize,
+				MaxBlobReferenceDepth: valueSepMaxRefDepth,
+				RewriteMinimumAge:     rewriteAge,
+				TargetGarbageRatio:    valueSepGarbageRatio,
+			}
+			// The policy is ignored unless Experimental.EnableColumnarBlocks
+			// is true; go-ds-pebble calls EnsureDefaults, which sets it.
+			c.pebbleOpts.Experimental.ValueSeparationPolicy = func() pebble.ValueSeparationPolicy { return policy }
+		}
+
 		return &c, nil
 	}
 }
@@ -170,6 +250,22 @@ func getConfigInt(name string, params map[string]any) (int, error) {
 			return int(fval), nil
 		}
 		return ival, nil
+	}
+	return 0, nil
+}
+
+func getConfigFloat(name string, params map[string]any) (float64, error) {
+	val, ok := params[name]
+	if ok {
+		fval, ok := val.(float64)
+		if !ok {
+			ival, ok := val.(int)
+			if !ok {
+				return 0, fmt.Errorf("%q field was not a float64 or an integer", name)
+			}
+			return float64(ival), nil
+		}
+		return fval, nil
 	}
 	return 0, nil
 }

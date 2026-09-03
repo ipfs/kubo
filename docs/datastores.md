@@ -114,7 +114,7 @@ If they are not configured (or assigned their zero-valued), then default values 
 * `bytesPerSync`: int, Sync sstables periodically in order to smooth out writes to disk. (default: 512KB)
 * `disableWAL`: true|false, Disable the write-ahead log (WAL) at expense of prohibiting crash recovery. (default: false)
 * `cacheSize`: Size of pebble's shared block cache. (default: 8MB)
-* `formatVersionMajor`: int, Sets the format of pebble on-disk files. If 0 or unset, automatically convert to latest format.
+* `formatMajorVersion`: int, Sets the format of pebble on-disk files. If 0 or unset, automatically convert to latest format.
 * `l0CompactionThreshold`: int, Count of L0 files necessary to trigger an L0 compaction.
 * `l0StopWritesThreshold`: int, Limit on L0 read-amplification, computed as the number of L0 sublevels.
 * `lBaseMaxBytes`: int, Maximum number of bytes for LBase. The base level is the level which L0 is compacted into.
@@ -122,7 +122,12 @@ If they are not configured (or assigned their zero-valued), then default values 
 * `memTableSize`: int, Size of a MemTable in steady state. The actual MemTable size starts at min(256KB, MemTableSize) and doubles for each subsequent MemTable up to MemTableSize (default: 4MB)
 * `memTableStopWritesThreshold`: int, Limit on the number of queued of MemTables. (default: 2)
 * `walBytesPerSync`: int: Sets the number of bytes to write to a WAL before calling Sync on it in the background. (default: 0, no background syncing)
-* `walMinSyncSeconds`: int: Sets the minimum duration between syncs of the WAL. (default: 0)
+* `walMinSyncIntervalSeconds`: int: Sets the minimum duration between syncs of the WAL. (default: 0)
+* `valueSeparationEnabled`: true|false, Store large values in separate blob files instead of inside sstables. Experimental, see [Value separation](#value-separation-experimental) below before enabling. (default: false)
+* `valueSeparationMinimumSize`: int, Values at or above this size (in bytes) are stored in blob files. (default: 1024)
+* `valueSeparationMaxBlobReferenceDepth`: int, Limit on the number of overlapping blob files a single sstable may reference; lower values favor read locality over write amplification. (default: 10)
+* `valueSeparationRewriteMinimumAgeSeconds`: int, Minimum age of a blob file before it is eligible for a space-reclaiming rewrite. (default: 900)
+* `valueSeparationTargetGarbageRatio`: float in [0.0, 1.0], Fraction of dead bytes tolerated in blob files before pebble rewrites them to reclaim space; lower values reclaim space sooner at the cost of extra background writes. (default: 0.20)
 
 > [!TIP]
 > Start using pebble with only default values and configure tuning items are needed for your needs. For a more complete description of these values, see: `https://pkg.go.dev/github.com/cockroachdb/pebble@vA.B.C#Options` (where `A.B.C` is pebble version from Kubo's `go.mod`).
@@ -140,6 +145,59 @@ When IPFS is initialized to use the pebbleds datastore (`ipfs init --profile=peb
 Without the `"formatMajorVersion"` in the pebble datastore config, the database format is automatically upgraded to the latest version. If this happens, then it is possible a downgrade back to the previous version of kubo will not work if new format is not compatible with the pebble datastore in the previous version of kubo.
 
 When installing a new version of kubo when `"formatMajorVersion"` is configured, migration does not upgrade this to the latest available version. This is done because a user may have reasons not to upgrade the pebble database format, and may want to be able to downgrade kubo if something else is not working in the new version. If the configured pebble database format in the old kubo is not supported in the new kubo, then the configured version must be updated and the old kubo run, before installing the new kubo.
+
+#### Value separation (experimental)
+
+Set `"valueSeparationEnabled": true` and pebble writes values of at least
+`valueSeparationMinimumSize` to separate append-only blob files, keeping only
+keys and small references in the sstables. This matters when blocks live in
+pebble, as they do under the stock `pebbleds` profile: an IPFS block is a
+large value (typically 256KiB) behind a roughly 60-byte key, so with the
+inline layout every background compaction rewrites block bytes that never
+changed, and key-only scans read through all block data just to list the
+keys.
+
+With blob files, key-only scans skip block data and compactions move small
+references instead of block bytes. Listing all keys (the enumeration phase
+of `ipfs repo gc`, `ipfs refs local`, and `ipfs repo stat`) ran 19-58x
+faster in single-machine synthetic benchmarks (NVMe, ext4, 4KiB-256KiB
+blocks), and random 256KiB block reads 10-30% faster on default pebble
+settings (on a heavily tuned store, reads ranged from 10% slower to 26%
+faster). Ordinary (non-fsync) writes measured 15-35% lower throughput,
+because blocks still travel through the WAL and memtables; workloads that
+fsync every write showed no penalty in these runs. Gains grow with value
+size, so a repo of mostly small records has little to gain.
+
+Deleted values free disk space in the background: when the fraction of dead
+bytes in a blob file exceeds `valueSeparationTargetGarbageRatio` and the
+file is older than `valueSeparationRewriteMinimumAgeSeconds`, pebble
+rewrites it. After `ipfs repo gc`, expect disk usage to fall gradually
+rather than immediately, and expect blob files to keep up to that fraction
+of dead bytes indefinitely. Lower the ratio to reclaim more space at the
+cost of extra background writes.
+
+> [!WARNING]
+> Read these precautions before enabling:
+>
+> * Pebble marks this feature experimental
+>   (`Options.Experimental.ValueSeparationPolicy`). Only enable it on repos
+>   you can rebuild or restore from a backup.
+> * Blob files require pebble database format `24`
+>   (`pebble.FormatValueSeparation`) or newer. If your config pins an older
+>   `"formatMajorVersion"`, kubo refuses to start until you raise it, and
+>   raising it is **irreversible**: older versions of pebble (and therefore
+>   older versions of kubo) cannot open the database afterwards. See
+>   [Use of `formatMajorVersion`](#use-of-formatmajorversion) above.
+> * Enabling affects only new writes. Existing values move to blob files as
+>   regular compactions rewrite them, so benefits on old data appear over
+>   time, not at restart.
+> * Disabling later is safe: existing blob files stay readable and fold back
+>   into sstables through future compactions. The database format stays at
+>   `24` or newer either way, so disabling does not restore downgrade
+>   compatibility.
+> * A `valueSeparation*` option set to `0` (or omitted) uses the default
+>   listed above. For the most aggressive space reclamation, use a small
+>   non-zero `valueSeparationTargetGarbageRatio` such as `0.05`, not `0`.
 
 ## badgerds
 
