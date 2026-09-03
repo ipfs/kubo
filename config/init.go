@@ -130,6 +130,9 @@ func DefaultDatastoreConfig() Datastore {
 	}
 }
 
+// flatfsShardFuncDefault spreads blocks over 32^2 = 1024 shard directories.
+const flatfsShardFuncDefault = "/repo/flatfs/shard/v1/next-to-last/2"
+
 func pebbleSpec() map[string]any {
 	return map[string]any{
 		"type":               "pebbleds",
@@ -184,7 +187,7 @@ func flatfsLeveldsSpec() map[string]any {
 				"prefix":     "flatfs.datastore",
 				"path":       "blocks",
 				"sync":       false,
-				"shardFunc":  "/repo/flatfs/shard/v1/next-to-last/2",
+				"shardFunc":  flatfsShardFuncDefault,
 			},
 			map[string]any{
 				"mountpoint":  "/",
@@ -209,7 +212,7 @@ func flatfsLeveldsSpecMeasure() map[string]any {
 					"type":      "flatfs",
 					"path":      "blocks",
 					"sync":      false,
-					"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+					"shardFunc": flatfsShardFuncDefault,
 				},
 			},
 			map[string]any{
@@ -237,7 +240,7 @@ func flatfsPebbledsSpec() map[string]any {
 				"prefix":     "flatfs.datastore",
 				"path":       "blocks",
 				"sync":       false,
-				"shardFunc":  "/repo/flatfs/shard/v1/next-to-last/2",
+				"shardFunc":  flatfsShardFuncDefault,
 			},
 			map[string]any{
 				"mountpoint":         "/",
@@ -262,7 +265,7 @@ func flatfsPebbledsSpecMeasure() map[string]any {
 					"type":      "flatfs",
 					"path":      "blocks",
 					"sync":      false,
-					"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+					"shardFunc": flatfsShardFuncDefault,
 				},
 			},
 			map[string]any{

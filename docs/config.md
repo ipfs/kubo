@@ -1156,6 +1156,9 @@ datastores to provide extra functionality (eg metrics, logging, or caching).
 > [!NOTE]
 > For more information on possible values for this configuration option, see [`kubo/docs/datastores.md`](datastores.md)
 
+> [!NOTE]
+> The datastore layout, including the flatfs `shardFunc`, is fixed when the repo is created. Kubo refuses to open a repo whose `Datastore.Spec` no longer matches its `datastore_spec` file, and `ipfs config profile apply` refuses a profile that would change the layout. To change the layout, create a new repo with the wanted profiles and move the data there.
+
 Default (the [`flatfs-levelds` profile](#flatfs-levelds-profile): blocks in flatfs, everything else in leveldb):
 
 ```

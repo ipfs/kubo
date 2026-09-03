@@ -48,6 +48,11 @@ initialize it using 'server' profile.
 
 For the list of available profiles see 'ipfs config profile --help'
 
+To initialize from an existing configuration, pass a copy of a repo's
+'config' file as the argument ('-' reads it from stdin). The output of
+'ipfs config show' does not work here: it lacks the private key. Profiles
+given with --profile are applied on top of the file.
+
 The datastore layout is fixed at init time. By default ('flatfs-levelds'
 profile, alias 'flatfs') blocks go to flatfs, one file per block, and
 everything else (pins, MFS root, provider and IPNS records) goes to leveldb.
@@ -154,6 +159,12 @@ func applyProfiles(conf *config.Config, profiles string) error {
 }
 
 func doInit(out io.Writer, repoRoot string, empty bool, confProfiles string, conf *config.Config) error {
+	// a config without a private key, such as 'ipfs config show' output,
+	// would seed a repo that panics on every later start
+	if conf.Identity.PrivKey == "" {
+		return errors.New("config file has no Identity.PrivKey; pass a copy of a repo's 'config' file, not the output of 'ipfs config show'")
+	}
+
 	if _, err := fmt.Fprintf(out, "initializing IPFS node at %s\n", repoRoot); err != nil {
 		return err
 	}
