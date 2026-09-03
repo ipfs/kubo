@@ -3,6 +3,7 @@ package cmdutils
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 
@@ -54,12 +55,22 @@ func CheckBlockSize(req *cmds.Request, size uint64) error {
 	return nil
 }
 
-// ValidatePinName validates that a pin name does not exceed the maximum allowed byte length.
-// Returns an error if the name exceeds MaxPinNameBytes (255 bytes).
+// ReservedPinNamePrefix is the namespace for pins created by Kubo-internal
+// features rather than by users (e.g. "kubo:on-demand" for on-demand pinning).
+// ValidatePinName rejects user-supplied names with this prefix, so a pin name
+// under this namespace reliably identifies a Kubo-internal pin.
+const ReservedPinNamePrefix = "kubo:"
+
+// ValidatePinName validates that a pin name does not exceed the maximum allowed
+// byte length and does not use the Kubo-internal "kubo:" namespace.
 func ValidatePinName(name string) error {
 	if name == "" {
 		// Empty names are allowed
 		return nil
+	}
+
+	if strings.HasPrefix(name, ReservedPinNamePrefix) {
+		return fmt.Errorf("pin names starting with %q are reserved for kubo-internal pins", ReservedPinNamePrefix)
 	}
 
 	nameBytes := len([]byte(name))

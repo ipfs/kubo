@@ -357,6 +357,8 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 	// new CIDs still announce via fast-provide-root and 'ipfs provide once'.
 	isProviderEnabled := cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled)
 
+	isOnDemandPinEnabled := cfg.Experimental.OnDemandPinningEnabled
+
 	return fx.Options(
 		fx.Provide(BitswapOptions(cfg)),
 		fx.Provide(Bitswap(isBitswapServerEnabled, isBitswapLibp2pEnabled, isHTTPRetrievalEnabled)),
@@ -373,6 +375,8 @@ func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.Part
 
 		LibP2P(bcfg, cfg, userResourceOverrides),
 		OnlineProviders(isProviderEnabled, cfg),
+
+		maybeProvide(OnDemandPinChecker(cfg.OnDemandPinning), isOnDemandPinEnabled),
 	)
 }
 
@@ -446,6 +450,21 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		return fx.Error(err)
 	}
 
+	// Only validate when enabled; unused sections must not block startup when disabled.
+	if cfg.Experimental.OnDemandPinningEnabled {
+		if err := config.ValidateOnDemandPinningConfig(&cfg.OnDemandPinning); err != nil {
+			return fx.Error(err)
+		}
+		routingType := cfg.Routing.Type.WithDefault(config.DefaultRoutingType)
+		if err := config.ValidateOnDemandPinningRouting(routingType); err != nil {
+			return fx.Error(err)
+		}
+		provideEnabled := cfg.Provide.Enabled.WithDefault(config.DefaultProvideEnabled)
+		if err := config.ValidateOnDemandPinningProvide(provideEnabled); err != nil {
+			return fx.Error(err)
+		}
+	}
+
 	// Directory sharding settings from Import config.
 	// These globals affect both `ipfs add` and MFS (`ipfs files` API).
 	shardSizeThreshold := cfg.Import.UnixFSHAMTDirectorySizeThreshold.WithDefault(config.DefaultUnixFSHAMTDirectorySizeThreshold)
@@ -466,6 +485,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		fx.Provide(BlockService(cfg)),
 		fx.Provide(Pinning(providerStrategy)),
 		fx.Provide(Files(providerStrategy)),
+		fx.Provide(OnDemandPinStore),
 		Core,
 	)
 }
