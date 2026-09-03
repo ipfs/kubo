@@ -4,12 +4,18 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"io"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// goroutineLeakEnabled reports whether this test binary was built with
+// GOEXPERIMENT=goroutineleakprofile, which is when the runtime registers the
+// goroutineleak profile.
+var goroutineLeakEnabled = goroutineLeakAvailable() == nil
 
 func TestProfiler(t *testing.T) {
 	allCollectors := []string{
@@ -23,6 +29,9 @@ func TestProfiler(t *testing.T) {
 		CollectorMutex,
 		CollectorBlock,
 		CollectorTrace,
+	}
+	if goroutineLeakEnabled {
+		allCollectors = append(allCollectors, CollectorGoroutineLeak)
 	}
 
 	cases := []struct {
@@ -40,7 +49,7 @@ func TestProfiler(t *testing.T) {
 				MutexProfileFraction: 4,
 				BlockProfileRate:     50 * time.Nanosecond,
 			},
-			expectFiles: []string{
+			expectFiles: withLeakProfile([]string{
 				"goroutines.stacks",
 				"goroutines.pprof",
 				"version.json",
@@ -51,7 +60,7 @@ func TestProfiler(t *testing.T) {
 				"mutex.pprof",
 				"block.pprof",
 				"trace",
-			},
+			}),
 		},
 		{
 			name: "windows",
@@ -62,7 +71,7 @@ func TestProfiler(t *testing.T) {
 				BlockProfileRate:     50 * time.Nanosecond,
 			},
 			goos: "windows",
-			expectFiles: []string{
+			expectFiles: withLeakProfile([]string{
 				"goroutines.stacks",
 				"goroutines.pprof",
 				"version.json",
@@ -73,7 +82,7 @@ func TestProfiler(t *testing.T) {
 				"mutex.pprof",
 				"block.pprof",
 				"trace",
-			},
+			}),
 		},
 		{
 			name: "sampling profiling disabled",
@@ -82,14 +91,14 @@ func TestProfiler(t *testing.T) {
 				MutexProfileFraction: 4,
 				BlockProfileRate:     50 * time.Nanosecond,
 			},
-			expectFiles: []string{
+			expectFiles: withLeakProfile([]string{
 				"goroutines.stacks",
 				"goroutines.pprof",
 				"version.json",
 				"heap.pprof",
 				"allocs.pprof",
 				"ipfs",
-			},
+			}),
 		},
 		{
 			name: "Mutex profiling disabled",
@@ -98,7 +107,7 @@ func TestProfiler(t *testing.T) {
 				ProfileDuration:  1 * time.Millisecond,
 				BlockProfileRate: 50 * time.Nanosecond,
 			},
-			expectFiles: []string{
+			expectFiles: withLeakProfile([]string{
 				"goroutines.stacks",
 				"goroutines.pprof",
 				"version.json",
@@ -108,7 +117,7 @@ func TestProfiler(t *testing.T) {
 				"cpu.pprof",
 				"block.pprof",
 				"trace",
-			},
+			}),
 		},
 		{
 			name: "block profiling disabled",
@@ -118,7 +127,7 @@ func TestProfiler(t *testing.T) {
 				MutexProfileFraction: 4,
 				BlockProfileRate:     0,
 			},
-			expectFiles: []string{
+			expectFiles: withLeakProfile([]string{
 				"goroutines.stacks",
 				"goroutines.pprof",
 				"version.json",
@@ -128,7 +137,7 @@ func TestProfiler(t *testing.T) {
 				"cpu.pprof",
 				"mutex.pprof",
 				"trace",
-			},
+			}),
 		},
 		{
 			name: "single collector",
@@ -180,4 +189,59 @@ func TestProfiler(t *testing.T) {
 			}
 		})
 	}
+}
+
+// withLeakProfile appends the goroutine leak profile output file when the
+// runtime registered the goroutineleak profile, so the same expectations work
+// with and without GOEXPERIMENT=goroutineleakprofile.
+func withLeakProfile(files []string) []string {
+	if goroutineLeakEnabled {
+		return append(files, "goroutineleak.pprof")
+	}
+	return files
+}
+
+func TestUnknownCollectorBeatsAvailability(t *testing.T) {
+	// The unknown-name error must win regardless of whether the goroutineleak
+	// profile is available, keeping validation deterministic across builds.
+	err := WriteProfiles(t.Context(), zip.NewWriter(&bytes.Buffer{}), Options{
+		Collectors: []string{CollectorGoroutineLeak, "bogus"},
+	})
+	require.ErrorContains(t, err, "unknown collector 'bogus'")
+}
+
+func TestGoroutineLeakProfile(t *testing.T) {
+	// Request the collector together with another one: on builds without the
+	// experiment the whole request must fail up front with a clear error and
+	// no partially written archive, not silently drop the requested profile.
+	buf := &bytes.Buffer{}
+	archive := zip.NewWriter(buf)
+	err := WriteProfiles(t.Context(), archive, Options{
+		Collectors: []string{CollectorVersion, CollectorGoroutineLeak},
+	})
+
+	if !goroutineLeakEnabled {
+		require.ErrorContains(t, err, "goroutineleak profile is not available")
+		require.NoError(t, archive.Close())
+		zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+		require.NoError(t, err)
+		assert.Empty(t, zr.File, "no collector output should be written when an unavailable collector is requested")
+		return
+	}
+
+	require.NoError(t, err)
+	require.NoError(t, archive.Close())
+
+	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	require.NoError(t, err)
+	require.Len(t, zr.File, 2)
+
+	f, err := zr.Open("goroutineleak.pprof")
+	require.NoError(t, err)
+	defer f.Close()
+	data, err := io.ReadAll(f)
+	require.NoError(t, err)
+	require.Greater(t, len(data), 2)
+	// The profile is written in gzip-compressed protobuf format.
+	assert.Equal(t, []byte{0x1f, 0x8b}, data[:2])
 }
