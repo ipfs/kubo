@@ -1308,7 +1308,16 @@ func maybeRunGC(req *cmds.Request, node *core.IpfsNode) (<-chan error, error) {
 
 	errc := make(chan error)
 	go func() {
-		errc <- corerepo.PeriodicGC(req.Context, node)
+		// Stop the GC loop on either context. The RPC "ipfs shutdown"
+		// command closes the node without cancelling req.Context, while
+		// node.Context() ends only after the OnStop hooks ran, so
+		// req.Context is what aborts an in-flight sweep on a signal
+		// before the datastore closes.
+		ctx, cancel := context.WithCancel(req.Context)
+		defer cancel()
+		stop := context.AfterFunc(node.Context(), cancel)
+		defer stop()
+		errc <- corerepo.PeriodicGC(ctx, node)
 		close(errc)
 	}()
 	return errc, nil
