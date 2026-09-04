@@ -354,19 +354,7 @@ See https://specs.ipfs.tech/ipips/ipip-0499/. Alias: legacy-cid-v0`,
 Uses CIDv1, raw leaves, sha2-256, 1 MiB chunks, 1024 links per file node,
 256 HAMT fanout, and block-based size estimation for HAMT threshold.
 See https://specs.ipfs.tech/ipips/ipip-0499/`,
-		Transform: func(c *Config) error {
-			c.Import.CidVersion = *NewOptionalInteger(1)
-			c.Import.UnixFSRawLeaves = True
-			c.Import.UnixFSChunker = *NewOptionalString("size-1048576") // 1 MiB
-			c.Import.HashFunction = *NewOptionalString("sha2-256")
-			c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
-			c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
-			c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
-			c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
-			c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationBlock)
-			c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
-			return nil
-		},
+		Transform: applyUnixFSv12025,
 	},
 	"autoconf-on": {
 		Description: `Sets configuration to use implicit defaults from remote autoconf service.
@@ -462,5 +450,22 @@ func applyUnixFSv02015(c *Config) error {
 	c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
 	c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationLinks)
 	c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
+	c.Import.UnixFSPBNodeFieldOrder = *NewOptionalString(PBNodeFieldOrderLinksFirst)
+	return nil
+}
+
+// applyUnixFSv12025 applies the unixfs-v1-2025 import settings from IPIP-499.
+func applyUnixFSv12025(c *Config) error {
+	c.Import.CidVersion = *NewOptionalInteger(1)
+	c.Import.UnixFSRawLeaves = True
+	c.Import.UnixFSChunker = *NewOptionalString("size-1048576") // 1 MiB
+	c.Import.HashFunction = *NewOptionalString("sha2-256")
+	c.Import.UnixFSFileMaxLinks = *NewOptionalInteger(1024)
+	c.Import.UnixFSDirectoryMaxLinks = *NewOptionalInteger(0)
+	c.Import.UnixFSHAMTDirectoryMaxFanout = *NewOptionalInteger(256)
+	c.Import.UnixFSHAMTDirectorySizeThreshold = *NewOptionalBytes("256KiB")
+	c.Import.UnixFSHAMTDirectorySizeEstimation = *NewOptionalString(HAMTSizeEstimationBlock)
+	c.Import.UnixFSDAGLayout = *NewOptionalString(DAGLayoutBalanced)
+	c.Import.UnixFSPBNodeFieldOrder = *NewOptionalString(PBNodeFieldOrderLinksFirst)
 	return nil
 }
