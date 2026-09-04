@@ -255,6 +255,7 @@ config file at runtime.
     - [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
     - [`Import.UnixFSHAMTDirectorySizeEstimation`](#importunixfshamtdirectorysizeestimation)
     - [`Import.UnixFSDAGLayout`](#importunixfsdaglayout)
+    - [`Import.UnixFSPBNodeFieldOrder`](#importunixfspbnodefieldorder)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -4281,6 +4282,32 @@ Accepted values:
 Commands affected: `ipfs add`
 
 Default: `balanced`
+
+Type: `optionalString`
+
+### `Import.UnixFSPBNodeFieldOrder`
+
+Controls the order of the top-level `PBNode` protobuf fields written when
+creating `dag-pb` nodes.
+
+Accepted values:
+
+- `links-first` (default): canonical DAG-PB order, `Links` before `Data`.
+- `data-first`: `Data` before `Links`, so streaming readers can process
+  UnixFS metadata (for example HAMT fanout) before reading links. Changes
+  the CID of every written `dag-pb` node that has both fields.
+
+Only writes are affected; reading accepts both orders regardless of this
+setting. This is a low-level opt-in: no configuration profile enables
+`data-first`, and the `unixfs-v0-2015` and `unixfs-v1-2025` profiles set
+`links-first` explicitly. Enable `data-first` only when every consumer of
+your CIDs expects it, and note that MFS directories rewritten by
+`ipfs files` operations are re-encoded and get new CIDs. See
+[IPIP-550](https://github.com/ipfs/specs/pull/550) for details.
+
+Commands affected: `ipfs add`, `ipfs files` (MFS), `ipfs object patch`
+
+Default: `links-first`
 
 Type: `optionalString`
 

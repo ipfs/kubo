@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -621,6 +622,54 @@ func hamtSeedForProfile(exp cidProfileExpectations) string {
 	default:
 		return "hamt-" + exp.Name
 	}
+}
+
+// TestUnixFSPBNodeFieldOrder verifies the opt-in Import.UnixFSPBNodeFieldOrder
+// setting writes PBNode messages with the Data field before Links (IPIP-550,
+// https://github.com/ipfs/specs/pull/550), reproducing the byte-exact
+// fixtures from the IPIP, while the unixfs-v1-2025 profile pins the legacy
+// links-first encoding and its CIDs.
+func TestUnixFSPBNodeFieldOrder(t *testing.T) {
+	t.Parallel()
+
+	// Fixtures from the IPIP-550 test fixtures table: a directory holding
+	// hello.txt ("hello\n" raw leaf), encoded in both PBNode field orders.
+	const (
+		dirDataFirstCID  = "bafybeigqvyloizmfcdy6scaxnyltftzptaruqa3hnnplfzsbf4sqteiwlm"
+		dirLinksFirstCID = "bafybeigdcg7pksx2zk5336vrfsktjodlr4rbfz37qr3koc5xboxe5ekv24"
+		dirDataFirstHex  = "0a02080112330a24015512205891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03120968656c6c6f2e7478741806"
+	)
+
+	addFixtureDir := func(t *testing.T, node *harness.Node) string {
+		dir := filepath.Join(node.Dir, "fixture")
+		require.NoError(t, os.Mkdir(dir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(dir, "hello.txt"), []byte("hello\n"), 0o644))
+		return node.IPFS("add", "-r", "-Q", dir).Stdout.Trimmed()
+	}
+
+	t.Run("data-first setting writes Data field before Links", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init("--profile=unixfs-v1-2025")
+		node.IPFS("config", "Import.UnixFSPBNodeFieldOrder", "data-first")
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		cidStr := addFixtureDir(t, node)
+		require.Equal(t, dirDataFirstCID, cidStr, "expected data-first directory CID from IPIP-550 fixtures")
+
+		block := node.IPFS("block", "get", cidStr).Stdout.Bytes()
+		require.Equal(t, dirDataFirstHex, hex.EncodeToString(block), "expected byte-exact data-first block from IPIP-550 fixtures")
+	})
+
+	t.Run("unixfs-v1-2025 keeps legacy Links-first order", func(t *testing.T) {
+		t.Parallel()
+		node := harness.NewT(t).NewNode().Init("--profile=unixfs-v1-2025")
+		node.StartDaemon()
+		defer node.StopDaemon()
+
+		cidStr := addFixtureDir(t, node)
+		require.Equal(t, dirLinksFirstCID, cidStr, "expected legacy links-first directory CID from IPIP-550 fixtures")
+	})
 }
 
 // TestDefaultMatchesExpectedProfile verifies that default ipfs add behavior
