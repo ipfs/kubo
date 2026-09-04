@@ -4288,27 +4288,21 @@ Type: `optionalString`
 ### `Import.UnixFSPBNodeFieldOrder`
 
 Controls the order of the top-level `PBNode` protobuf fields written when
-creating `dag-pb` nodes (directories, HAMT shards, and non-raw file nodes).
+creating `dag-pb` nodes.
 
 Accepted values:
 
 - `links-first` (default): canonical DAG-PB order, `Links` before `Data`.
-  Produces the same bytes and CIDs as previous Kubo releases.
 - `data-first`: `Data` before `Links`, so streaming readers can process
   UnixFS metadata (for example HAMT fanout) before reading links. Changes
-  the CID of every written `dag-pb` node that has both `Data` and `Links`
-  (directories with entries, HAMT shards, and the root and intermediate
-  nodes of files larger than one chunk); a node with only one of the two
-  fields keeps the CID it has under `links-first`.
+  the CID of every written `dag-pb` node that has both fields.
 
-This setting only affects writes. Reading accepts both orders regardless of
-this setting.
-
-This is a low-level, opt-in setting: no configuration profile enables
+Only writes are affected; reading accepts both orders regardless of this
+setting. This is a low-level opt-in: no configuration profile enables
 `data-first`, and the `unixfs-v0-2015` and `unixfs-v1-2025` profiles set
 `links-first` explicitly. Enable `data-first` only when every consumer of
-your CIDs expects it. Note that with `data-first`, data already in MFS is
-re-encoded, and gets new CIDs, as `ipfs files` commands read it. See
+your CIDs expects it, and note that MFS directories rewritten by
+`ipfs files` operations are re-encoded and get new CIDs. See
 [IPIP-550](https://github.com/ipfs/specs/pull/550) for details.
 
 Commands affected: `ipfs add`, `ipfs files` (MFS), `ipfs object patch`
