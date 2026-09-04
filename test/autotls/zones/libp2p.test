@@ -1,0 +1,18 @@
+; Minimal DNS zone for the AutoTLS E2E canary.
+; The p2p-forge ipparser plugin reads this at CoreDNS startup; it needs
+; an SOA + NS record for the forge domain. We don't need glue records
+; or A/AAAA entries: ipparser synthesises per-peer subdomains from the
+; embedded IP in <peerid>.libp2p.test hostnames at query time.
+$TTL 300
+$ORIGIN libp2p.test.
+
+@ 86400 IN SOA ns1.libp2p.test. admin.libp2p.test. (
+    2026010101  ; serial
+    86400       ; refresh
+    2400        ; retry
+    604800      ; expire
+    86400       ; minimum
+)
+
+libp2p.test. 86400 IN NS ns1.libp2p.test.
+ns1.libp2p.test. 86400 IN A 127.0.0.1

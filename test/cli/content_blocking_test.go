@@ -71,11 +71,12 @@ func TestContentBlocking(t *testing.T) {
 	os.Setenv("IPFS_NS_MAP", "blocked-cid.example.com:/ipfs/"+blockedCID+",blocked-dnslink.example.com/ipns/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn")
 	defer os.Unsetenv("IPFS_NS_MAP")
 
-	// Enable GatewayOverLibp2p as we want to test denylist there too
-	node.IPFS("config", "--json", "Experimental.GatewayOverLibp2p", "true")
+	// Enable HTTPProvider.Libp2p so the denylist is exercised on that transport too.
+	node.IPFS("config", "--json", "HTTPProvider.Enabled", "true")
+	node.IPFS("config", "--json", "HTTPProvider.Libp2p", "true")
 
 	// Start daemon, it should pick up denylist from $IPFS_PATH/denylists/test.deny
-	node.StartDaemon() // we need online mode for GatewayOverLibp2p tests
+	node.StartDaemon() // online mode is needed for HTTPProvider.Libp2p tests
 	t.Cleanup(func() { node.StopDaemon() })
 	client := node.GatewayClient()
 
@@ -304,14 +305,13 @@ func TestContentBlocking(t *testing.T) {
 		client = node.GatewayClient()
 	})
 
-	// We need to confirm denylist is active on the
-	// trustless gateway exposed over libp2p
-	// when Experimental.GatewayOverLibp2p=true
-	// (https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#http-gateway-over-libp2p)
-	// NOTE: this type of gateway is hardcoded to be NoFetch: it does not fetch
-	// data that is not in local store, so we only need to run it once: a
-	// simple smoke-test for allowed CID and blockedCID.
-	t.Run("GatewayOverLibp2p", func(t *testing.T) {
+	// Confirm the denylist is active on the trustless gateway exposed
+	// over libp2p when HTTPProvider.Libp2p=true (see
+	// https://github.com/ipfs/kubo/blob/master/docs/config.md#httpproviderlibp2p).
+	// This transport is hardcoded to NoFetch: it does not fetch data that
+	// is not in the local blockstore, so a single smoke test of an
+	// allowed CID and the blockedCID is enough.
+	t.Run("HTTPProviderLibp2p", func(t *testing.T) {
 		t.Parallel()
 
 		// Create libp2p client that connects to our node over

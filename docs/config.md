@@ -30,12 +30,17 @@ config file at runtime.
   - [`AutoTLS`](#autotls)
     - [`AutoTLS.Enabled`](#autotlsenabled)
     - [`AutoTLS.AutoWSS`](#autotlsautowss)
+    - [`AutoTLS.IPCerts`](#autotlsipcerts)
+    - [`AutoTLS.IPCertsPort`](#autotlsipcertsport)
     - [`AutoTLS.ShortAddrs`](#autotlsshortaddrs)
+    - [`AutoTLS.SkipDNSLookup`](#autotlsskipdnslookup)
     - [`AutoTLS.DomainSuffix`](#autotlsdomainsuffix)
     - [`AutoTLS.RegistrationEndpoint`](#autotlsregistrationendpoint)
     - [`AutoTLS.RegistrationToken`](#autotlsregistrationtoken)
     - [`AutoTLS.RegistrationDelay`](#autotlsregistrationdelay)
     - [`AutoTLS.CAEndpoint`](#autotlscaendpoint)
+    - [`AutoTLS.TrustedCARootsPEM`](#autotlstrustedcarootspem)
+    - [`AutoTLS.AllowPrivateForgeAddrs`](#autotlsallowprivateforgeaddrs)
   - [`AutoConf`](#autoconf)
     - [`AutoConf.URL`](#autoconfurl)
     - [`AutoConf.Enabled`](#autoconfenabled)
@@ -232,6 +237,11 @@ config file at runtime.
   - [`DNS`](#dns)
     - [`DNS.Resolvers`](#dnsresolvers)
     - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
+  - [`HTTPProvider`](#httpprovider)
+    - [`HTTPProvider.Enabled`](#httpproviderenabled)
+    - [`HTTPProvider.Libp2p`](#httpproviderlibp2p)
+    - [`HTTPProvider.Cleartext`](#httpprovidercleartext)
+    - [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs)
   - [`HTTPRetrieval`](#httpretrieval)
     - [`HTTPRetrieval.Enabled`](#httpretrievalenabled)
     - [`HTTPRetrieval.Allowlist`](#httpretrievalallowlist)
@@ -795,6 +805,39 @@ Default: `true` (if `AutoTLS.Enabled`)
 
 Type: `flag`
 
+### `AutoTLS.IPCerts`
+
+Optional. Lets a node get its TLS certificate for its own IP address, straight from the certificate authority, instead of registering a name with the `libp2p.direct` broker.
+
+The only thing this needs is a `/tcp/443` listener in [`Addresses.Swarm`](#addressesswarm) that the internet can reach, for example `/ip4/0.0.0.0/tcp/443`. The authority checks the address by connecting back to it on port 443 and speaking TLS, which the node answers on the very listener it serves peers on. Nothing else is exposed, and no extra port is opened.
+
+A node that gets such a certificate announces `/ip4/<your-ip>/tcp/443/tls/ws` (and, with [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs), the matching `/tls/http`). Browsers and other peers connect to the IP directly, so no DNS lookup and no third-party service sit between a client and the node.
+
+The listener also decides which of the two paths a node takes, and it is one or the other. With a port 443 listener, a node asks only for a certificate for its own address; if it cannot get one, it logs an error and keeps trying, and never registers a name instead. Without a port 443 listener, a node uses the broker. Set this to `false` to use the broker on a node that does listen on 443.
+
+**Note:**
+
+- Certificates for IP addresses are short-lived, currently valid for about six days, and are renewed a few days ahead of expiry. A node that stays offline past expiry stops announcing its `/tls/ws` address until it has renewed.
+- Binding port 443 needs root or `CAP_NET_BIND_SERVICE` on Linux. Kubo has to listen on 443 itself, including behind a router: forward the router's port 443 to port 443 on this node, not to some other port.
+- Address changes are handled: a certificate is requested per reachable address, and an address that goes away stops being renewed and announced. A node whose public address is not on any of its own interfaces, which is the normal case behind a router, waits for other peers to tell it that address, and says so in the log meanwhile.
+- Requests are paced to stay inside the authority's [rate limits](https://letsencrypt.org/docs/rate-limits/): a failure is retried after an hour, doubling to at most a day, and the wait is written to disk before each attempt, so a node that keeps crashing cannot spend its budget one restart at a time.
+- Let's Encrypt issues IP certificates only under its short-lived [profile](https://letsencrypt.org/docs/profiles/), and only for `http-01` or `tls-alpn-01` validation. Kubo uses `tls-alpn-01`, which is why port 443 is the only port that works. Kubo always asks for that profile, so a private authority set through [`AutoTLS.CAEndpoint`](#autotlscaendpoint) has to offer a profile by that name, or issue no certificate at all. Such a deployment wants this set to `false`.
+- On upgrade, a node that already has a `libp2p.direct` certificate and listens on 443 switches to the direct path: it stops announcing the brokered name and leaves that certificate to expire.
+
+Default: `true` (applies when `AutoTLS.Enabled` and `Addresses.Swarm` has a `/tcp/443` listener)
+
+Type: `flag`
+
+### `AutoTLS.IPCertsPort`
+
+Optional. Overrides the TCP port the certificate authority is expected to connect to when it checks an IP address for [`AutoTLS.IPCerts`](#autotlsipcerts).
+
+Advanced, meant for testing against a local ACME server. Public authorities always connect to port 443 and ignore anything else, so changing this on a production node leaves it with no certificate at all: there is no broker behind this path to catch the failure.
+
+Default: `443`
+
+Type: `optionalInteger`
+
 ### `AutoTLS.ShortAddrs`
 
 Optional. Controls if final AutoTLS listeners are announced under shorter `/dnsX/A.B.C.D.peerid.libp2p.direct/tcp/4001/tls/ws` addresses instead of fully resolved `/ip4/A.B.C.D/tcp/4001/tls/sni/A-B-C-D.peerid.libp2p.direct/tls/ws`.
@@ -840,6 +883,18 @@ Do not change this unless you self-host [p2p-forge] under own domain.
 > (proving ownership of PeerID), probes if your Kubo node can correctly answer to a [libp2p Identify](https://github.com/libp2p/specs/tree/master/identify) query.
 > This ensures only a correctly configured, publicly dialable Kubo can initiate [ACME DNS-01 challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) for `peerid.libp2p.direct`.
 
+> [!TIP]
+> Two optional query parameters help with local debugging and end-to-end tests. Kubo strips them before handing the URL to [p2p-forge] and preserves any unrelated query parameters. Both expect a literal `host:port`; bracket IPv6 hosts, e.g. `[::1]:9000`.
+>
+> - `?dial=host:port` sends the registration request to `host:port` while keeping the URL Kubo advertises (and signs over for PeerID-auth) unchanged. This lets a local [p2p-forge] instance on a loopback port answer requests whose `Host` header must still match the production registration hostname.
+> - `?dns=host:port` points the DNS-01 propagation pre-flight check at this DNS server instead of the system resolver. Needed when the forge's domain is not in public DNS (e.g. a private `.test` suffix used in tests).
+>
+> Both overrides apply only to the forge registration request and its DNS-01 pre-flight check. They do not affect `AutoTLS.CAEndpoint` or any other URL. Example combining both:
+>
+> ```
+> http://registration.libp2p.test/?dial=127.0.0.1:42013&dns=127.0.0.1:5353
+> ```
+
 Default: `https://registration.libp2p.direct` (public good run by [Interplanetary Shipyard](https://ipshipyard.com))
 
 Type: `optionalString`
@@ -875,6 +930,28 @@ Do not change this unless you self-host [p2p-forge] under own domain.
 Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddyserver/certmagic#pkg-constants) (see [community.letsencrypt.org discussion](https://community.letsencrypt.org/t/feedback-on-raising-certificates-per-registered-domain-to-enable-peer-to-peer-networking/223003))
 
 Type: `optionalString`
+
+### `AutoTLS.TrustedCARootsPEM`
+
+Optional PEM-encoded bundle of CA certificates for connections to the ACME endpoint set in [`AutoTLS.CAEndpoint`](#autotlscaendpoint).
+
+When set, the bundle becomes the only trust anchor for those connections: the system trust store is not consulted. A bundle that does not include the CA behind the endpoint breaks issuance, so include everything the ACME connection needs.
+
+Set this when the endpoint is a CA whose root is not in the system store: private or self-hosted ACME deployments, or the in-process test CA used by the end-to-end test in `test/autotls/`. Leave it unset for public CAs such as Let's Encrypt.
+
+Default: not set (system trust store is used)
+
+Type: `optionalString`
+
+### `AutoTLS.AllowPrivateForgeAddrs`
+
+Optional. Lifts the requirement that this node reports a publicly reachable address before requesting a certificate.
+
+Set this for private or intranet deployments where reachability is asymmetric or implicit, and for tests that run entirely on loopback. Leave it off on public nodes: the default avoids wasting ACME issuance on a node that no one can reach.
+
+Default: `false`
+
+Type: `flag`
 
 ## `Bitswap`
 
@@ -1364,6 +1441,8 @@ Type: `flag`
 ### `Gateway.RetrievalTimeout`
 
 Maximum duration Kubo will wait for content retrieval (new bytes to arrive).
+
+This covers any wait for new bytes, including reads from the local datastore, not only network retrieval from other peers. If your datastore is not truly local, for example backed by NFS or an object store like S3, slow reads from it can also trip this timeout. Raise the value when the backend can be slower than the default allows.
 
 **Timeout behavior:**
 
@@ -3944,11 +4023,79 @@ Default: Respect DNS Response TTL
 
 Type: `optionalDuration`
 
+## `HTTPProvider`
+
+`HTTPProvider` is the **server** side of HTTP retrieval in Kubo. It exposes the local trustless gateway (in [`NoFetch`](#gatewaynofetch) mode) over plain HTTP/2 so any standard HTTP client (a browser, `curl`, or any HTTP library) can fetch verifiable blocks from this node without a libp2p stack. The matching **client** side lives under [`HTTPRetrieval`](#httpretrieval).
+
+### Mental model: `HTTPProvider` vs `Gateway`
+
+`HTTPProvider` and [`Gateway`](#gateway) serve different audiences with different rules. Keep them straight:
+
+- `HTTPProvider` serves **raw data to the network**. It runs on Kubo's swarm port (`4001` by default), reads only from the local blockstore, and returns only raw blocks (`?format=raw`). It does **not** trigger network retrieval for missing data, and it does **not** deserialize content. Other peers fetch from it.
+- [`Gateway`](#gateway) serves **deserialized data to the local user**. It runs on a loopback port (`127.0.0.1:8080` by default), walks DAGs, deserializes UnixFS, follows redirects, and fetches missing data from the network. You (or a local app on your machine) browse with it.
+
+The split is intentional. A public-facing HTTP source on the swarm port should not deserialize content for unknown clients or recurse out to the network on their behalf. A recursive browser endpoint should stay on loopback, not be exposed to the open internet.
+
+### How the HTTP listener is wired up
+
+- The HTTP listener reuses the same `/tcp` socket as the `/ws` listener through Kubo's shared-TCP demuxer. No extra port is opened.
+- Today the HTTP listener requires a WebSocket listener on the same TCP port to exist. With [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket) disabled, this surface is unavailable: the daemon then serves only the libp2p-stream transport ([`HTTPProvider.Libp2p`](#httpproviderlibp2p)), and refuses to start when the config asks for anything more ([`HTTPProvider.Cleartext`](#httpprovidercleartext) or [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) enabled, or `Libp2p` disabled). When `/ws` is present, the matching `/http` multiaddr is announced only if [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) is on.
+- When [`AutoTLS.AutoWSS`](#autotlsautowss) is enabled, the same handler is also served behind the `/tls/ws` listener on the same host and port, reusing the AutoTLS certificate; no separate TLS setup is required. The matching `/tls/http` multiaddr is announced only if [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) is on.
+
+> [!IMPORTANT]
+> Experimental and off by default. Enable it on publicly dialable nodes where you want plain-HTTP clients to fetch blocks directly.
+
+Default: `{}`
+
+Type: `object`
+
+### `HTTPProvider.Enabled`
+
+Master switch for `HTTPProvider`. When `true`, the trustless gateway handler is installed behind every `/ws` and `/tls/ws` listener: non-WebSocket HTTP requests on those ports reach it (over TLS as HTTP/2 only, HTTP/1.1 there gets `426 Upgrade Required`; cleartext accepts both), and [`HTTPProvider.Libp2p`](#httpproviderlibp2p) defaults to `true`. On a node with [`AutoTLS`](#autotls) this means the gateway becomes reachable over public HTTPS on the swarm port as soon as the switch flips, even while [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) is off: unannounced, but reachable. The [`HTTPProvider.Cleartext`](#httpprovidercleartext) and [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs) sub-toggles stay off until set explicitly.
+
+Every surface except [`HTTPProvider.Libp2p`](#httpproviderlibp2p) needs the WebSocket transport: with [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket) disabled, the daemon refuses to start unless the libp2p-stream transport is the only surface enabled.
+
+Default: `false`
+
+Type: `flag`
+
+### `HTTPProvider.Libp2p`
+
+Exposes the trustless gateway over a libp2p stream, as specified by the [libp2p Gateway spec](https://specs.ipfs.tech/http-gateways/libp2p-gateway/). The handler is mounted under the `/ipfs/gateway` protocol ID and advertised via `.well-known/libp2p/protocols`.
+
+Default: `true` when `HTTPProvider.Enabled=true`
+
+Type: `flag`
+
+### `HTTPProvider.Cleartext`
+
+Auto-appends a plaintext `/ws` listener to each `/tcp/N` already in [`Addresses.Swarm`](#addressesswarm). The new `/ws` shares the existing TCP port via the shared-TCP demuxer, so no extra socket is opened.
+
+Intended for deployments where the operator handles TLS termination upstream: a reverse proxy such as Caddy, Traefik, or nginx sits in front of Kubo and forwards either HTTP/1.1 or HTTP/2 cleartext to this node. With [`AutoTLS`](#autotls), Kubo already serves `/tls/ws` and `/tls/http` directly with a real certificate, so a cleartext path is unnecessary and would expose the trustless gateway and WebSocket upgrade unencrypted on the public network. Flip it on knowingly.
+
+The corresponding `/http` announcement is controlled by [`HTTPProvider.AnnounceMultiaddrs`](#httpproviderannouncemultiaddrs).
+
+Default: `false`
+
+Type: `flag`
+
+### `HTTPProvider.AnnounceMultiaddrs`
+
+Derives an HTTP-flavored multiaddr from each WebSocket listener on this peer and includes it in the announced address set: `/ws` becomes `/http`, `/tls/ws` becomes `/tls/http`, `/tls/sni/<host>/ws` becomes `/tls/sni/<host>/http`. The HTTP endpoint shares the same TCP port and TLS certificate as the WebSocket listener, so this is purely an announcement; no extra socket is opened.
+
+This is what lets [`HTTPRetrieval`](#httpretrieval) clients discover this peer as an HTTP source through identify, the DHT, and IPNI without out-of-band knowledge.
+
+Subject to [`Addresses.NoAnnounce`](#addressesnoannounce) filters, like any other announced multiaddr.
+
+Off by default even when [`HTTPProvider.Enabled`](#httpproviderenabled) is `true`: turning the gateway handler on does not automatically broadcast this node as an HTTP source. Flip this on once you are ready to advertise.
+
+Default: `false`
+
+Type: `flag`
+
 ## `HTTPRetrieval`
 
-`HTTPRetrieval` is configuration for pure HTTP retrieval based on Trustless HTTP Gateways'
-[Block Responses (`application/vnd.ipld.raw`)](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw)
-which can be used in addition to or instead of retrieving blocks with [Bitswap over Libp2p](#bitswap).
+`HTTPRetrieval` is the **client** side of HTTP retrieval in Kubo. It lets the node fetch blocks from peers that advertise an HTTP gateway endpoint, using pure HTTP requests based on the Trustless Gateway [Block Responses (`application/vnd.ipld.raw`)](https://specs.ipfs.tech/http-gateways/trustless-gateway/#block-responses-application-vnd-ipld-raw) spec. HTTP fetches can run in addition to or instead of [Bitswap over Libp2p](#bitswap). The matching **server** side lives under [`HTTPProvider`](#httpprovider).
 
 Default: `{}`
 

@@ -19,7 +19,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGatewayOverLibp2p(t *testing.T) {
+// TestHTTPProviderOverLibp2p exercises the libp2p-stream transport of the
+// HTTPProvider feature: the trustless gateway handler reachable via the
+// /ipfs/gateway protocol over a libp2p stream. The peer hosting the data
+// also mounts an HTTP-to-libp2p proxy listener so requests can be made by
+// stock HTTP clients.
+func TestHTTPProviderOverLibp2p(t *testing.T) {
 	t.Parallel()
 	nodes := harness.NewT(t).NewNodes(2).Init()
 
@@ -58,13 +63,14 @@ func TestGatewayOverLibp2p(t *testing.T) {
 	p2pProxyNodeHTTPListenAddr, err := manet.ToNetAddr(p2pProxyNodeHTTPListenMA)
 	require.NoError(t, err)
 
-	t.Run("DoesNotWorkWithoutExperimentalConfig", func(t *testing.T) {
+	t.Run("DoesNotWorkWithoutHTTPProvider", func(t *testing.T) {
 		_, err := http.Get(fmt.Sprintf("http://%s/ipfs/%s?format=raw", p2pProxyNodeHTTPListenAddr, cidDataOnGatewayNode))
 		require.Error(t, err)
 	})
 
-	// Enable the experimental feature and reconnect the nodes
-	gwNode.IPFS("config", "--json", "Experimental.GatewayOverLibp2p", "true")
+	// Enable HTTPProvider and the libp2p-stream transport, then reconnect.
+	gwNode.IPFS("config", "--json", "HTTPProvider.Enabled", "true")
+	gwNode.IPFS("config", "--json", "HTTPProvider.Libp2p", "true")
 	gwNode.StopDaemon().StartDaemon()
 	t.Cleanup(func() { gwNode.StopDaemon() })
 	nodes.Connect()

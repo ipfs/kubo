@@ -136,7 +136,7 @@ make -O test_go_lint # run linter (use this instead of golangci-lint directly)
 
 If you change dependencies in any `go.mod`, you must run `make mod_tidy`, and you must run it before committing, pushing, or opening a PR. The repo has three `go.mod` files (root, `docs/examples/kubo-as-a-library`, and `test/dependencies`) that have to stay on the same dependency versions. `make mod_tidy` runs `go mod tidy` in every one of them; a bare `go mod tidy` only touches the module you run it in, which lets the pins drift out of sync between modules (for example the root pointing at one boxo commit while `test/dependencies` points at another). Run it before building or testing too, since it also updates `go.sum`.
 
-If you modify any `.go` files outside of `test/`, you must run `make build` before running integration tests.
+If you modify any `.go` files outside of `test/`, you must run `make build` before running integration tests. Integration tests spawn a real `ipfs daemon` from `cmd/ipfs/ipfs` and `go test ./test/cli/...` does not rebuild that binary, so daemon-side changes (config schema, FX providers, transport options, default values) appear to be silently ignored when the binary is stale. Common symptoms: a new config flag has no effect, an expected listener never binds, an FX-injected handler is nil. If a CLI test behaves differently from a manual `cmd/ipfs/ipfs daemon` run, suspect a stale binary first.
 
 ## Testing
 
