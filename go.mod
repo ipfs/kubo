@@ -278,4 +278,4 @@ exclude (
 	github.com/libp2p/go-libp2p v6.0.23+incompatible
 )
 
-replace github.com/ipfs/boxo => github.com/karawitan/boxo v0.42.3-0.20260907071254-76cf61a1f633
+replace github.com/ipfs/boxo => github.com/karawitan/boxo v0.42.3-0.20260907201906-df6852a09b58
