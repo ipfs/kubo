@@ -53,6 +53,12 @@ When a kubo task needs a boxo change, or a boxo PR needs kubo validation (boxo's
 - Keep the companion kubo PR a draft while it pins an unmerged boxo branch, and link the boxo PR from its description. After the boxo PR merges, repoint at boxo `main` (`go get github.com/ipfs/boxo@main && make mod_tidy`); once boxo tags a release, bump PRs use the tag and the title `chore: upgrade to boxo vX.Y.Z`.
 - A kubo PR bumping boxo describes the user-visible changes it pulls in as kubo behavior (config names from `docs/config.md`, observable effects), never as boxo API symbols, and its changelog highlights do not link boxo PRs.
 
+## Transitive dependency bumps
+
+Kubo's storage and networking come from direct dependencies that own their own stacks: the `github.com/ipfs/go-ds-*` datastores, `github.com/libp2p/go-libp2p` and `github.com/libp2p/go-libp2p-*`, and `github.com/ipshipyard/p2p-forge`. Each releases against a specific set of transitive dependencies (pebble, quic-go, swiss, and so on) and runs its own test suite against them. A newer pin in kubo's `go.mod` wins under Go's minimal version selection, so kubo would run a combination the upstream never tested.
+
+Never bump a dependency one of these pulls in (whether or not kubo also imports it directly) ahead of the upstream, even for a one-line fix. The order is an upstream PR bumping it, green upstream CI, an upstream release, then a kubo PR that bumps the direct dependency with `go get <module>@vX.Y.Z && make mod_tidy`, which moves the transitive pin along with it.
+
 ## Stability: What You Must Not Break
 
 Backward compatibility is the top priority, above new features and above internal elegance. [CONTRIBUTING.md](CONTRIBUTING.md) explains why the project holds this line and who it is for.

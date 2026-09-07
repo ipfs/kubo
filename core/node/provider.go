@@ -803,8 +803,8 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 			dhtprovider.WithRouter(impl),
 			dhtprovider.WithMessageSender(impl.MessageSender()),
 			dhtprovider.WithSelfAddrs(selfAddrsFunc),
-			dhtprovider.WithAddLocalRecord(func(h mh.Multihash) error {
-				return impl.Provide(context.Background(), cid.NewCidV1(cid.Raw, h), false)
+			dhtprovider.WithAddLocalRecord(func(ctx context.Context, h mh.Multihash) error {
+				return impl.Provide(ctx, cid.NewCidV1(cid.Raw, h), false)
 			}),
 
 			dhtprovider.WithReplicationFactor(amino.DefaultBucketSize),
