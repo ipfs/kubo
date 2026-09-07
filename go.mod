@@ -277,3 +277,5 @@ exclude (
 	github.com/ipfs/go-ipfs-cmds v2.0.1+incompatible
 	github.com/libp2p/go-libp2p v6.0.23+incompatible
 )
+
+replace github.com/ipfs/boxo => github.com/karawitan/boxo v0.42.3-0.20260907071254-76cf61a1f633

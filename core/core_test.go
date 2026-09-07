@@ -9,6 +9,7 @@ import (
 
 	"github.com/ipfs/kubo/repo"
 
+	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/filestore"
 	"github.com/ipfs/boxo/keystore"
 	datastore "github.com/ipfs/go-datastore"
@@ -225,4 +226,86 @@ func TestHasActiveDHTClient(t *testing.T) {
 			t.Error("Expected true for valid accelerated DHT client")
 		}
 	})
+}
+
+// TestBootstrapWithEmptyPeerListAndStaleBackupPeers is a kubo-level regression
+// test for https://github.com/ipfs/kubo/issues/11452: when no bootstrap peers
+// are configured, the bootstrap process must not dial stale backup peers
+// persisted from previous runs under TempBootstrapPeersKey.
+//
+// The dialing behavior itself is fixed and unit-tested in boxo
+// (bootstrap.bootstrapRound skips the backup list when BootstrapPeers() is
+// empty). This test verifies the kubo wiring end to end: IpfsNode.Bootstrap
+// runs without error with an empty Bootstrap config and a populated
+// TempBootstrapPeersKey, and starts a bootstrapper (the periodic process runs,
+// but each round is a no-op for the backup list).
+func TestBootstrapWithEmptyPeerListAndStaleBackupPeers(t *testing.T) {
+	ctx := context.Background()
+
+	ds := syncds.MutexWrap(datastore.NewMapDatastore())
+
+	// Seed the datastore with stale backup peers, as if left over from a
+	// previous run that had bootstrap peers configured. These are the peers
+	// that were dialed every 30s in the original bug. We write the JSON
+	// []string form that saveTempBootstrapPeers produces.
+	staleBytes := []byte(`["/dns4/bootstrap.libp2p.io/tcp/4001/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN","/dns4/ams-1.routing.cloudflare.ipfs.team/tcp/443/https/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"]`)
+	if err := ds.Put(ctx, TempBootstrapPeersKey, staleBytes); err != nil {
+		t.Fatalf("failed to seed stale backup peers: %v", err)
+	}
+
+	c := config.Config{}
+	c.Identity = testIdentity
+	c.Bootstrap = nil // no bootstrap peers configured
+	c.Routing.Type = config.NewOptionalString("none")
+
+	r := &repo.Mock{
+		C: c,
+		D: ds,
+	}
+
+	// IpfsNode.Bootstrap calls bootstrap.Bootstrap, which needs a real host.
+	h, err := golib.New(golib.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
+	if err != nil {
+		t.Fatalf("failed to create libp2p host: %v", err)
+	}
+	t.Cleanup(func() { _ = h.Close() })
+
+	peerID, err := peer.Decode(testIdentity.PeerID)
+	if err != nil {
+		t.Fatalf("failed to decode peer ID: %v", err)
+	}
+
+	node := &IpfsNode{
+		Identity: peerID,
+		PeerHost: h,
+		Routing: routinghelpers.NewComposableParallel([]*routinghelpers.ParallelRouter{
+			{Router: routinghelpers.Null{}, IgnoreError: true},
+		}),
+		Repo: r,
+	}
+
+	// Explicitly pass an empty bootstrap peer function so loadBootstrapPeers
+	// (which would consult config) is not used; we want the empty-list path.
+	// BootstrapConfigWithPeers gives us sane defaults (Period, etc.).
+	cfg := bootstrap.BootstrapConfigWithPeers(nil)
+	cfg.BootstrapPeers = func() []peer.AddrInfo { return nil }
+	if err := node.Bootstrap(cfg); err != nil {
+		t.Fatalf("Bootstrap returned error with empty peer list and stale backup peers: %v", err)
+	}
+	if node.Bootstrapper == nil {
+		t.Fatal("Bootstrapper should be set (the periodic process runs; rounds are no-ops for the backup list)")
+	}
+	t.Cleanup(func() { _ = node.Bootstrapper.Close() })
+
+	// The stale backup peers must still be present in the datastore (we did
+	// not dial them, and the save process only runs after the first round
+	// completes and only saves currently-connected peers, of which there are
+	// none). This confirms we did not corrupt or clear the key.
+	got, err := ds.Get(ctx, TempBootstrapPeersKey)
+	if err != nil {
+		t.Fatalf("TempBootstrapPeersKey missing after Bootstrap: %v", err)
+	}
+	if string(got) != string(staleBytes) {
+		t.Errorf("TempBootstrapPeersKey modified by Bootstrap: got %q, want %q", string(got), string(staleBytes))
+	}
 }

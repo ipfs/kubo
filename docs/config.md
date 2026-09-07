@@ -919,6 +919,8 @@ The special value `"auto"` automatically uses curated, up-to-date bootstrap peer
 - **Automatic updates**: New bootstrap peers are added as the network evolves
 - **Custom control**: Add your own trusted peers alongside or instead of the defaults
 
+An empty list disables all bootstrap dialing, including saved backup peers from previous runs. This is the way to make a node fully local-only/offline (for example together with `Routing.Type=none` or `ipfs daemon --routing=none`): no configured bootstrap peers means nothing to recover from, so the backup list is not consulted. Note that `Peering.Peers` and mDNS are independent of `Bootstrap` and may still dial peers.
+
 Default: `["auto"]`
 
 Type: `array[string]` ([multiaddrs][multiaddr] or `"auto"`)
