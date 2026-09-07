@@ -22,7 +22,7 @@ require (
 	github.com/hashicorp/go-version v1.9.0
 	github.com/ipfs-shipyard/nopfs v0.0.14
 	github.com/ipfs-shipyard/nopfs/ipfs v0.25.0
-	github.com/ipfs/boxo v0.42.3-0.20260904132258-02026ddcf262
+	github.com/ipfs/boxo v0.42.3-0.20260907225511-2edf737db3aa
 	github.com/ipfs/go-block-format v0.2.4
 	github.com/ipfs/go-cid v0.6.2
 	github.com/ipfs/go-cidutil v0.1.2
@@ -277,5 +277,3 @@ exclude (
 	github.com/ipfs/go-ipfs-cmds v2.0.1+incompatible
 	github.com/libp2p/go-libp2p v6.0.23+incompatible
 )
-
-replace github.com/ipfs/boxo => github.com/karawitan/boxo v0.42.3-0.20260907201906-df6852a09b58
