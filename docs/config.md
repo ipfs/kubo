@@ -919,6 +919,8 @@ The special value `"auto"` automatically uses curated, up-to-date bootstrap peer
 - **Automatic updates**: New bootstrap peers are added as the network evolves
 - **Custom control**: Add your own trusted peers alongside or instead of the defaults
 
+An empty list turns off all bootstrap dialing, including backup peers saved from earlier runs. The node then connects only to `Peering.Peers`, peers found through mDNS, and peers you connect manually. Backup peers are dialed only after the configured peers, when those leave the node below the minimum peer count.
+
 Default: `["auto"]`
 
 Type: `array[string]` ([multiaddrs][multiaddr] or `"auto"`)
