@@ -310,8 +310,8 @@ func Init(repoPath string, conf *config.Config) error {
 		return nil
 	}
 
-	// a bad Datastore.Spec must fail before the config is written, or the
-	// next 'ipfs init' refuses to touch the half-made repo
+	// reject a bad Datastore.Spec before the config is written, otherwise
+	// the next 'ipfs init' refuses to touch the half-made repo
 	if _, err := AnyDatastoreConfig(conf.Datastore.Spec); err != nil {
 		return fmt.Errorf("invalid Datastore.Spec: %w", err)
 	}
@@ -512,9 +512,9 @@ func (r *FSRepo) openDatastore() error {
 		return err
 	}
 	if oldSpec != spec.String() {
-		return fmt.Errorf("config Datastore.Spec %s does not match the repo's datastore_spec file %s; "+
-			"the datastore layout, including the flatfs shardFunc, is fixed when the repo is created, "+
-			"so revert Datastore.Spec, or create a new repo with 'ipfs init' and move your data there",
+		return fmt.Errorf("config Datastore.Spec %s does not match the repo's datastore_spec file %s. "+
+			"The datastore layout, including the flatfs shardFunc, is fixed when the repo is created. "+
+			"Revert Datastore.Spec, or create a new repo with 'ipfs init' and move your data there",
 			spec.String(), oldSpec)
 	}
 

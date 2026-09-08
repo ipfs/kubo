@@ -1160,7 +1160,7 @@ datastores to provide extra functionality (eg metrics, logging, or caching).
 > For more information on possible values for this configuration option, see [`kubo/docs/datastores.md`](datastores.md)
 
 > [!NOTE]
-> The datastore layout, including the flatfs `shardFunc`, is fixed when the repo is created. Kubo refuses to open a repo whose `Datastore.Spec` no longer matches its `datastore_spec` file, and `ipfs config profile apply` refuses a profile that would change the layout. To change the layout, create a new repo with the wanted profiles and move the data there.
+> The datastore layout, including the flatfs `shardFunc`, is fixed when the repo is created. Kubo refuses to open a repo whose `Datastore.Spec` no longer matches its `datastore_spec` file. `ipfs config profile apply` refuses a profile that would change the layout. To change the layout, create a new repo with the wanted profiles and move the data there.
 
 Default (the [`flatfs-levelds` profile](#flatfs-levelds-profile): blocks in flatfs, everything else in leveldb):
 
@@ -1243,7 +1243,7 @@ With `flatfs-pebbleds` profile (blocks in flatfs, everything else in pebble inst
 }
 ```
 
-`formatMajorVersion` is set to the newest format of the pebble version bundled with Kubo at `ipfs init` time, so the number varies between releases. See [`datastores.md#use-of-formatmajorversion`](datastores.md#use-of-formatmajorversion).
+`ipfs init` sets `formatMajorVersion` to the newest format of the pebble version bundled with Kubo, so the number varies between releases. See [`datastores.md#use-of-formatmajorversion`](datastores.md#use-of-formatmajorversion).
 
 Type: `object`
 
@@ -4561,9 +4561,9 @@ Alias of the [`flatfs-levelds` profile](#flatfs-levelds-profile), the default da
 
 ### `flatfs-levelds` profile
 
-The default datastore layout: blocks in flatfs, one file per block; all other keys (pins, MFS root, provider records, IPNS records) in leveldb. flatfs holds only blocks because it is safe only for content-addressed data; see [`datastores.md#flatfs`](datastores.md#flatfs). [`flatfs`](#flatfs-profile) is an alias of this profile; [`flatfs-pebbleds`](#flatfs-pebbleds-profile) uses pebble instead of leveldb.
+The default datastore layout: blocks in flatfs, one file per block. All other keys (pins, MFS root, provider records, IPNS records) go to leveldb. flatfs holds only blocks because it is safe only for content-addressed data, see [`datastores.md#flatfs`](datastores.md#flatfs). [`flatfs`](#flatfs-profile) is an alias of this profile. [`flatfs-pebbleds`](#flatfs-pebbleds-profile) uses pebble instead of leveldb.
 
-Flatfs is the most battle-tested and reliable datastore.
+flatfs is the most battle-tested and reliable datastore.
 
 You should use this datastore if:
 
@@ -4583,7 +4583,7 @@ You should use this datastore if:
 
 ### `flatfs-levelds-measure` profile
 
-Configures the node to store blocks in flatfs and everything else in leveldb, with metrics. This is the same as [`flatfs-levelds` profile](#flatfs-levelds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call; for debugging, right-sizing, and testing.
+Configures the node to store blocks in flatfs and everything else in leveldb, with metrics. This is the same as [`flatfs-levelds` profile](#flatfs-levelds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call. Use it for debugging, right-sizing, and testing.
 
 ### `flatfs-measure` profile
 
@@ -4594,13 +4594,13 @@ Alias of the [`flatfs-levelds-measure` profile](#flatfs-levelds-measure-profile)
 Experimental, opt-in profile that stores blocks in flatfs and everything else in pebble.
 
 > [!WARNING]
-> This profile is experimental and opt-in. Pebble has seen less production use in Kubo than leveldb; report problems in [kubo issues](https://github.com/ipfs/kubo/issues).
+> This profile is experimental and opt-in. Pebble has less production use in Kubo than leveldb. Report problems in [kubo issues](https://github.com/ipfs/kubo/issues).
 
-The [`flatfs-levelds` profile](#flatfs-levelds-profile) layout with pebble in place of leveldb: blocks go to flatfs, one file per block; all other keys (pins, MFS root, provider records, IPNS records) go to pebble.
+Same as the [`flatfs-levelds` profile](#flatfs-levelds-profile) layout, with pebble in place of leveldb: blocks go to flatfs, one file per block. All other keys (pins, MFS root, provider records, IPNS records) go to pebble.
 
 You should use this profile if:
 
-- You want pebble instead of leveldb for the rest: pebble compacts deleted keys promptly, leveldb can keep them around long after bulk deletes (see [`datastores.md#levelds`](datastores.md#levelds)).
+- You want pebble instead of leveldb for the non-block keys. Pebble compacts deleted keys promptly. leveldb can keep them long after bulk deletes (see [`datastores.md#levelds`](datastores.md#levelds)).
 - You want to keep blocks out of pebble, for example because large imports into [`pebbleds`](#pebbleds-profile) are slow on your disk.
 
 > [!WARNING]
@@ -4611,14 +4611,14 @@ You should use this profile if:
 
 ### `flatfs-pebbleds-measure` profile
 
-Experimental, opt-in profile that stores blocks in flatfs and everything else in pebble, with metrics. This is the same as [`flatfs-pebbleds` profile](#flatfs-pebbleds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call; for debugging, right-sizing, and testing.
+Experimental, opt-in profile that stores blocks in flatfs and everything else in pebble, with metrics. This is the same as [`flatfs-pebbleds` profile](#flatfs-pebbleds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call. Use it for debugging, right-sizing, and testing.
 
 ### `pebbleds` profile
 
 Experimental, opt-in profile that uses the pebble high-performance datastore for everything.
 
 > [!WARNING]
-> This profile is experimental and opt-in. Pebble has seen less production use in Kubo than leveldb; report problems in [kubo issues](https://github.com/ipfs/kubo/issues).
+> This profile is experimental and opt-in. Pebble has less production use in Kubo than leveldb. Report problems in [kubo issues](https://github.com/ipfs/kubo/issues).
 
 Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and internal usage by CockroachDB.
 You should use this datastore if:
@@ -4638,7 +4638,7 @@ You should use this datastore if:
 
 ### `pebbleds-measure` profile
 
-Experimental, opt-in profile that uses the pebble datastore for everything, with metrics. This is the same as [`pebbleds` profile](#pebbleds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call; for debugging, right-sizing, and testing.
+Experimental, opt-in profile that uses the pebble datastore for everything, with metrics. This is the same as [`pebbleds` profile](#pebbleds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call. Use it for debugging, right-sizing, and testing.
 
 ### `badgerds` profile
 
@@ -4657,9 +4657,9 @@ Configures the node to use the **legacy** badgerv1 datastore.
 > `ipfs dag export/import` or `ipfs pin ls -t recursive|add`, and decommission the
 > old badger-based node. When it comes to block storage, use experimental
 > `pebbleds` only if you are sure modern `flatfs` does not serve your use case
-> (most users will be perfectly fine with `flatfs`; the
+> (most users will be perfectly fine with `flatfs`. The
 > [`flatfs-pebbleds` profile](#flatfs-pebbleds-profile) keeps `flatfs` for
-> blocks and replaces `leveldb` with `pebble` if preferred over `leveldb`).
+> blocks and replaces `leveldb` with `pebble`).
 
 Also, be aware that:
 
@@ -4678,7 +4678,7 @@ Also, be aware that:
 
 ### `badgerds-measure` profile
 
-Configures the node to use the **legacy** badgerv1 datastore with metrics. This is the same as [`badgerds` profile](#badgerds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call; for debugging, right-sizing, and testing. This profile will be removed in a future Kubo release.
+Configures the node to use the **legacy** badgerv1 datastore with metrics. This is the same as [`badgerds` profile](#badgerds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call. Use it for debugging, right-sizing, and testing. This profile will be removed in a future Kubo release.
 
 ### `lowpower` profile
 

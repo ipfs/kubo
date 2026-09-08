@@ -77,7 +77,7 @@ func TestFlatfsPebbledsProfile(t *testing.T) {
 			assert.DirExists(t, filepath.Join(node.Dir, "pebbleds"))
 			assert.NoDirExists(t, filepath.Join(node.Dir, "datastore"))
 
-			// pins live in pebble, blocks in flatfs; both survive a restart
+			// pins live in pebble and blocks in flatfs, both survive a restart
 			node.StartDaemon("--offline")
 			cid := node.IPFSAddStr("hello " + tc.profile)
 			node.StopDaemon()
@@ -191,7 +191,7 @@ func TestDatastoreSpecMismatchError(t *testing.T) {
 	assert.Contains(t, res.Stderr.String(), "fixed when the repo is created")
 }
 
-// Any shardFunc can be set by passing a config file to ipfs init; this is the
+// Any shardFunc can be set by passing a config file to ipfs init. This is the
 // documented route for values the profiles do not cover.
 func TestInitConfigFileShardFunc(t *testing.T) {
 	t.Parallel()

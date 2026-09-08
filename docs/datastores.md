@@ -21,7 +21,7 @@ The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descri
 - `/repo/flatfs/shard/v1/next-to-last/3`
   - Shards on the three next-to-last base32 characters of the key (~32k directories). See [Choosing a `shardFunc`](#choosing-a-shardfunc-for-large-blockstores).
 
-`prefix/N` and `suffix/N` also parse but spread Kubo's keys badly: every base32 sha2-256 multihash starts with `CIQ`, and the last base32 character carries only 2 of its 5 bits. `next-to-last` skips that last character, which is why it is the default.
+`prefix/N` and `suffix/N` also parse, but they spread Kubo's keys badly. Every base32 sha2-256 multihash starts with `CIQ`, and the last base32 character carries only 2 of its 5 bits. `next-to-last` skips that last character. That is why it is the default.
 
 ```json
 {
@@ -37,34 +37,34 @@ The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descri
 > [!WARNING]
 > flatfs is a special-purpose store for content-addressed data (CID to block) and is safe only when mounted at `/blocks`. It is not a general-purpose key-value store:
 >
-> - It assumes a key is the hash of its value. When several writes hit one key at once or in one batch, the first to finish wins and the rest are dropped silently: right for blocks, wrong for anything mutable (pins, MFS root, provider and IPNS records), which needs last-writer-wins from leveldb or pebble.
-> - Keys become file names, so only upper-case letters, digits, and the characters `-`, `+`, `_`, `=` are accepted. Namespaced keys such as `/foo/bar` are rejected.
-> - Queries by key prefix return nothing; only a query over the whole store works.
+> - It assumes a key is the hash of its value. When several writes hit one key at once or in one batch, the first to finish wins and flatfs drops the rest silently. That is right for blocks and wrong for anything mutable (pins, MFS root, provider and IPNS records). Mutable data needs the last-writer-wins behavior of leveldb or pebble.
+> - Keys become file names, so flatfs accepts only upper-case letters, digits, and the characters `-`, `+`, `_`, `=`. It rejects namespaced keys such as `/foo/bar`.
+> - Queries by key prefix return nothing. Only a query over the whole store works.
 >
-> This is why every profile that uses flatfs [mounts](#mount) it at `/blocks` only and keeps the remaining keys in leveldb or pebble: the default `flatfs-levelds` profile (alias `flatfs`) pairs it with leveldb, `flatfs-pebbleds` with pebble. See the [go-ds-flatfs restrictions](https://github.com/ipfs/go-ds-flatfs/blob/master/README.md#restrictions) for details.
+> This is why every profile that uses flatfs [mounts](#mount) it at `/blocks` only and keeps the remaining keys in leveldb or pebble. The default `flatfs-levelds` profile (alias `flatfs`) pairs it with leveldb, and `flatfs-pebbleds` pairs it with pebble. See the [go-ds-flatfs restrictions](https://github.com/ipfs/go-ds-flatfs/blob/master/README.md#restrictions) for details.
 
 ### Choosing a `shardFunc` for large blockstores
 
-flatfs stores every block as one file and spreads the files over shard directories named by characters of the block key. The shard function fixes how many directories there are, and with it how many files each directory holds as the repo grows. The default `next-to-last/2` uses 1k directories and is right for most nodes. A node that will hold tens of millions of blocks should be created with `next-to-last/3` (32k directories), because the depth cannot be changed afterwards.
+flatfs stores every block as one file and spreads the files over shard directories named by characters of the block key. The shard function fixes how many directories there are, and with it how many files each directory holds as the repo grows. The default `next-to-last/2` uses 1k directories and is right for most nodes. Create a node that will hold tens of millions of blocks with `next-to-last/3` (32k directories), because the depth cannot change afterwards.
 
 Why directory size matters:
 
-- Everything that walks the blockstore (GC, the [`Datastore.BloomFilterSize`](config.md#datastorebloomfiltersize) rebuild at startup, `Provide.Strategy=all` reprovide cycles, `ipfs repo stat`, `ipfs refs local`, `ipfs repo verify`) lists one shard at a time and holds that shard's names in memory. The total work is the same at either depth; the size of each step is not.
-- The directories are ordinary directories, and everything else that touches them slows down as they grow: `ls`, `du`, `rsync`, backup agents, and any directory scan on a rotational disk. Keeping a directory to a few thousand entries keeps those tools usable.
-- Looking up a single block (`Has`, `Get`, `GetSize`) is one `stat` or `open` of a known path, and filesystems with hashed directories (ext4 `dir_index`, XFS, btrfs, ZFS) do that in constant time whatever the directory size. Shard depth does not change bitswap or gateway latency; for that, size [`Datastore.BlockKeyCacheSize`](config.md#datastoreblockkeycachesize) and [`Datastore.BloomFilterSize`](config.md#datastorebloomfiltersize).
+- Everything that walks the blockstore (GC, the [`Datastore.BloomFilterSize`](config.md#datastorebloomfiltersize) rebuild at startup, `Provide.Strategy=all` reprovide cycles, `ipfs repo stat`, `ipfs refs local`, `ipfs repo verify`) lists one shard at a time and holds that shard's names in memory. The total work is the same at either depth. The size of each step is not.
+- The shards are ordinary directories, and every tool that touches them slows down as they grow: `ls`, `du`, `rsync`, backup agents, and any directory scan on a rotational disk. A directory with a few thousand entries keeps those tools usable.
+- A lookup of a single block (`Has`, `Get`, `GetSize`) is one `stat` or `open` of a known path. Filesystems with hashed directories (ext4 `dir_index`, XFS, btrfs, ZFS) do that in constant time at any directory size. Shard depth does not change bitswap or gateway latency. For that, size [`Datastore.BlockKeyCacheSize`](config.md#datastoreblockkeycachesize) and [`Datastore.BloomFilterSize`](config.md#datastorebloomfiltersize).
 
 | `shardFunc`      | Directories | Files per directory at 60M blocks | How to get it                                  |
 |------------------|------------:|----------------------------------:|------------------------------------------------|
 | `next-to-last/2` | 1024        | ~58k                              | default in every flatfs profile                |
 | `next-to-last/3` | 32768       | ~1.8k                             | config file passed to `ipfs init` (see below)  |
 
-When to opt in: when the repo is expected to grow past about 10M blocks (`NumObjects` in `ipfs repo stat`), the point where the default layout puts more than ~10k files in every directory. With the default 256 KiB chunks that is a few terabytes; a repo of small files or small chunks gets there far sooner. Over the years, several large pinning and gateway operators chose to run `next-to-last/3`, and ipfs-cluster's [production guide](https://ipfscluster.io/documentation/deployment/setup/) says the same ("multi-terabyte repositories"), with XFS or ZFS recommended.
+Opt in when you expect the repo to grow past about 10M blocks (`NumObjects` in `ipfs repo stat`). At that point the default layout puts more than ~10k files in every directory. With the default 256 KiB chunks that is a few terabytes. A repo of small files or small chunks gets there far sooner. Several large pinning and gateway operators run `next-to-last/3`, and ipfs-cluster's [production guide](https://ipfscluster.io/documentation/deployment/setup/) gives the same advice for "multi-terabyte repositories", with XFS or ZFS recommended.
 
-Measure on your own setup first: the disk, the size of your actual blocks, and how many there are all change the performance curve, and Kubo has no measurement of the two depths against each other. If none of this means anything to you, keep the default `next-to-last/2`; this is an extreme, low-level optimization.
+Measure on your own setup first. The disk, the size of your blocks, and their number all change the performance curve, and Kubo has no benchmark of the two depths against each other. If none of this means anything to you, keep the default `next-to-last/2`. This is an extreme, low-level optimization.
 
-What it costs: up to 32k directories, on ext4 a 4 KiB directory block plus an inode each, about 128 MiB once all shards exist. Until the repo holds millions of blocks, most shards hold a handful of files and full listings can be slower than at `/2`.
+What it costs: up to 32k directories. On ext4 each takes a 4 KiB directory block plus an inode, about 128 MiB once all shards exist. Until the repo holds millions of blocks, most shards hold a handful of files, and full listings can be slower than at `/2`.
 
-The depth is fixed when the repo is created. Three places must agree: `shardFunc` in `Datastore.Spec`, the repo's `datastore_spec` file, and `blocks/SHARDING`. Kubo refuses to open a repo where they differ, and `ipfs config profile apply` refuses a profile that would change the layout. No profile sets `next-to-last/3`; set it through the config file that `ipfs init` accepts as its argument:
+The depth is fixed when the repo is created. Three places must agree: `shardFunc` in `Datastore.Spec`, the repo's `datastore_spec` file, and `blocks/SHARDING`. Kubo refuses to open a repo where they differ, and `ipfs config profile apply` refuses a profile that would change the layout. No profile sets `next-to-last/3`. Set it through the config file that `ipfs init` accepts as its argument:
 
 1. Create a throwaway repo with the datastore profile you want. This generates a fresh identity and the full default config:
 
@@ -80,7 +80,7 @@ The depth is fixed when the repo is created. Three places must agree: `shardFunc
    $ rm -rf "$TMP_REPO"
    ```
 
-3. Create the real repo from that file. Do not pass a datastore profile here; datastore profiles replace `Datastore.Spec` and reset `shardFunc` to the default. Other profiles, such as `server`, are fine:
+3. Create the real repo from that file. Do not pass a datastore profile here, because datastore profiles replace `Datastore.Spec` and reset `shardFunc` to the default. Other profiles, such as `server`, are fine:
 
    ```console
    $ ipfs init init-config.json      # or: ipfs init - < init-config.json
@@ -88,9 +88,9 @@ The depth is fixed when the repo is created. Three places must agree: `shardFunc
    /repo/flatfs/shard/v1/next-to-last/3
    ```
 
-Use the raw `config` file, not the output of `ipfs config show`: that output has no private key, and `ipfs init` refuses it. The identity in the file is used as is, so never reuse another node's `config`. A `shardFunc` that does not parse makes `ipfs init` fail before it writes anything, so the directory stays usable for a corrected attempt.
+Use the raw `config` file, not the output of `ipfs config show`. That output has no private key, and `ipfs init` refuses it. `ipfs init` uses the identity in the file as is, so never reuse another node's `config`. A `shardFunc` that does not parse makes `ipfs init` fail before it writes anything, so the directory stays usable for a corrected attempt.
 
-To change the depth of an existing repo, create a new repo with the wanted layout and move the data there: `ipfs dag export` and `ipfs dag import` for whole DAGs, or `ipfs pin ls -t recursive` on the old node and `ipfs pin add` on the new one. Kubo has no command that re-shards a repo in place.
+To change the depth of an existing repo, create a new repo with the wanted layout and move the data there. Use `ipfs dag export` and `ipfs dag import` for whole DAGs, or `ipfs pin ls -t recursive` on the old node and `ipfs pin add` on the new one. Kubo has no command that re-shards a repo in place.
 
 ## levelds
 
@@ -186,9 +186,8 @@ Uses [badger](https://github.com/dgraph-io/badger) as a key-value store.
 > `ipfs dag export/import` or `ipfs pin ls -t recursive|add`, and decommission the
 > old badger-based node. When it comes to block storage, use experimental
 > `pebbleds` only if you are sure modern `flatfs` does not serve your use case
-> (most users will be perfectly fine with `flatfs`; the `flatfs-pebbleds`
-> profile keeps `flatfs` for blocks and replaces `leveldb` with `pebble` if
-> preferred over `leveldb`).
+> (most users will be perfectly fine with `flatfs`. The `flatfs-pebbleds`
+> profile keeps `flatfs` for blocks and replaces `leveldb` with `pebble`).
 
 - `syncWrites`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a 2-3x slowdown when adding files).
 - `truncate`: Truncate the DB if a partially written sector is found (defaults to true). There is no good reason to set this to false unless you want to manually recover partially written (and unpinned) blocks if kubo crashes half-way through a write operation.
@@ -227,7 +226,7 @@ The mountpoints are added as keys within the child datastore definitions.
 
 This datastore is a wrapper that adds metrics tracking to any datastore.
 
-Every operation goes through the wrapper, which adds overhead. The `-measure` profiles (`flatfs-levelds-measure`, `flatfs-pebbleds-measure`, `pebbleds-measure`) are provided for debugging, right-sizing, and testing.
+Every operation goes through the wrapper, which adds overhead. Use the `-measure` profiles (`flatfs-levelds-measure`, `flatfs-pebbleds-measure`, `pebbleds-measure`) for debugging, right-sizing, and testing.
 
 ```json
 {
