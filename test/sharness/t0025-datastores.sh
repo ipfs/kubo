@@ -4,7 +4,7 @@ test_description="Test non-standard datastores"
 
 . lib/test-lib.sh
 
-profiles=("flatfs" "pebbleds" "badgerds")
+profiles=("flatfs-levelds" "flatfs" "flatfs-pebbleds" "pebbleds" "badgerds")
 proot="$(mktemp -d "${TMPDIR:-/tmp}/t0025.XXXXXX")"
 
 for profile in "${profiles[@]}"; do
