@@ -113,7 +113,6 @@ Example:
 | Name                                                                            | Type      | Preloaded | Description                                    |
 |---------------------------------------------------------------------------------|-----------|-----------|------------------------------------------------|
 | [git](https://github.com/ipfs/kubo/tree/master/plugin/plugins/git)           | IPLD      | x         | An IPLD format for git objects.                |
-| [badgerds](https://github.com/ipfs/kubo/tree/master/plugin/plugins/badgerds) | Datastore | x         | A high performance but experimental datastore. |
 | [flatfs](https://github.com/ipfs/kubo/tree/master/plugin/plugins/flatfs)     | Datastore | x         | A stable filesystem-based datastore.           |
 | [levelds](https://github.com/ipfs/kubo/tree/master/plugin/plugins/levelds)   | Datastore | x         | A stable, flexible datastore backend.          |
 | [jaeger](https://github.com/ipfs/go-jaeger-plugin)                              | Tracing   |           | An opentracing backend.                        |

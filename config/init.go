@@ -151,29 +151,6 @@ func pebbleSpecMeasure() map[string]any {
 	}
 }
 
-func badgerSpec() map[string]any {
-	return map[string]any{
-		"type":       "badgerds",
-		"prefix":     "badger.datastore",
-		"path":       "badgerds",
-		"syncWrites": false,
-		"truncate":   true,
-	}
-}
-
-func badgerSpecMeasure() map[string]any {
-	return map[string]any{
-		"type":   "measure",
-		"prefix": "badger.datastore",
-		"child": map[string]any{
-			"type":       "badgerds",
-			"path":       "badgerds",
-			"syncWrites": false,
-			"truncate":   true,
-		},
-	}
-}
-
 func flatfsSpec() map[string]any {
 	return map[string]any{
 		"type": "mount",

@@ -6,7 +6,6 @@ field in the ipfs configuration file.
 - [flatfs](#flatfs)
 - [levelds](#levelds)
 - [pebbleds](#pebbleds)
-- [badgerds](#badgerds)
 - [mount](#mount)
 - [measure](#measure)
 
@@ -140,39 +139,6 @@ When IPFS is initialized to use the pebbleds datastore (`ipfs init --profile=peb
 Without the `"formatMajorVersion"` in the pebble datastore config, the database format is automatically upgraded to the latest version. If this happens, then it is possible a downgrade back to the previous version of kubo will not work if new format is not compatible with the pebble datastore in the previous version of kubo.
 
 When installing a new version of kubo when `"formatMajorVersion"` is configured, migration does not upgrade this to the latest available version. This is done because a user may have reasons not to upgrade the pebble database format, and may want to be able to downgrade kubo if something else is not working in the new version. If the configured pebble database format in the old kubo is not supported in the new kubo, then the configured version must be updated and the old kubo run, before installing the new kubo.
-
-## badgerds
-
-Uses [badger](https://github.com/dgraph-io/badger) as a key-value store.
-
-> [!CAUTION]
-> **Badger v1 datastore is deprecated and will be removed in a future Kubo release.**
->
-> This is based on very old badger 1.x, which has not been maintained by its
-> upstream maintainers for years and has known bugs (startup timeouts, shutdown
-> hangs, file descriptor
-> exhaustion, and more). Do not use it for new deployments.
->
-> **To migrate:** create a new `IPFS_PATH` with `flatfs`
-> (`ipfs init --profile=flatfs`), move pinned data via
-> `ipfs dag export/import` or `ipfs pin ls -t recursive|add`, and decommission the
-> old badger-based node. When it comes to block storage, use experimental
-> `pebbleds` only if you are sure modern `flatfs` does not serve your use case
-> (most users will be perfectly fine with `flatfs`, it is also possible to keep
-> `flatfs` for blocks and replace `leveldb` with `pebble` if preferred over
-> `leveldb`).
-
-- `syncWrites`: Flush every write to disk before continuing. Setting this to false is safe as kubo will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a 2-3x slowdown when adding files).
-- `truncate`: Truncate the DB if a partially written sector is found (defaults to true). There is no good reason to set this to false unless you want to manually recover partially written (and unpinned) blocks if kubo crashes half-way through a write operation.
-
-```json
-{
-	"type": "badgerds",
-	"path": "<location of badger inside repo>",
-	"syncWrites": true|false,
-	"truncate": true|false,
-}
-```
 
 ## mount
 

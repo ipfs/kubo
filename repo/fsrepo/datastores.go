@@ -80,6 +80,26 @@ func AnyDatastoreConfig(params map[string]any) (DatastoreConfig, error) {
 	if !ok {
 		return nil, fmt.Errorf("'type' field missing or not a string")
 	}
+	if which == "badgerds" {
+		return nil, fmt.Errorf(`badger v1 datastore support has been removed
+
+The 'badgerds' datastore was based on badger 1.x, which has not been
+maintained by its upstream maintainers for years and had known bugs
+(startup timeouts, shutdown hangs, file descriptor exhaustion, and more).
+It was deprecated in Kubo v0.40 and has now been removed.
+
+To migrate to a supported datastore:
+  1. Create a new IPFS_PATH with flatfs (or experimental pebbleds
+     if flatfs does not serve your use case):
+       export IPFS_PATH=/path/to/new/repo
+       ipfs init --profile=flatfs
+  2. Move pinned data via 'ipfs dag export/import'
+     or 'ipfs pin ls -t recursive|add'
+  3. Decommission the old badger-based node
+
+See https://github.com/ipfs/kubo/blob/master/docs/datastores.md
+    https://github.com/ipfs/kubo/issues/11186`)
+	}
 	fun, ok := datastores[which]
 	if !ok {
 		return nil, fmt.Errorf("unknown datastore type: %s", which)

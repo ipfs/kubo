@@ -224,60 +224,6 @@ NOTE: This profile may only be applied when first initializing node at IPFS_PATH
 			return nil
 		},
 	},
-	"badgerds": {
-		Description: `DEPRECATED: Configures the node to use the legacy badgerv1 datastore.
-This profile will be removed in a future Kubo release.
-New deployments should use 'flatfs' or 'pebbleds' instead.
-
-NOTE: this is badger 1.x, which has known bugs and is no longer supported by the upstream team.
-It is provided here only for pre-existing users, allowing them to migrate away to more modern datastore.
-
-Other caveats:
-
-* This datastore will not properly reclaim space when your datastore is
-  smaller than several gigabytes.  If you run IPFS with --enable-gc, you plan
-  on storing very little data in your IPFS node, and disk usage is more
-  critical than performance, consider using flatfs.
-* This datastore uses up to several gigabytes of memory.
-* Good for medium-size datastores, but may run into performance issues
-  if your dataset is bigger than a terabyte.
-
-To migrate: create a new IPFS_PATH with 'ipfs init --profile=flatfs',
-move pinned data via 'ipfs dag export/import' or 'ipfs pin ls -t recursive|add',
-and decommission the old badger-based node.
-When it comes to block storage, use experimental 'pebbleds' only if you are sure
-modern 'flatfs' does not serve your use case (most users will be perfectly fine
-with flatfs, it is also possible to keep flatfs for blocks and replace leveldb
-with pebble if preferred over leveldb).
-
-See configuration documentation at:
-https://github.com/ipfs/kubo/blob/master/docs/datastores.md#badgerds
-
-NOTE: This profile may only be applied when first initializing node at IPFS_PATH
-      via 'ipfs init --profile badgerds'
-`,
-
-		InitOnly: true,
-		Transform: func(c *Config) error {
-			c.Datastore.Spec = badgerSpec()
-			return nil
-		},
-	},
-	"badgerds-measure": {
-		Description: `DEPRECATED: Configures the node to use the legacy badgerv1 datastore with metrics wrapper.
-This profile will be removed in a future Kubo release.
-New deployments should use 'flatfs' or 'pebbleds' instead.
-
-NOTE: This profile may only be applied when first initializing node at IPFS_PATH
-      via 'ipfs init --profile badgerds-measure'
-`,
-
-		InitOnly: true,
-		Transform: func(c *Config) error {
-			c.Datastore.Spec = badgerSpecMeasure()
-			return nil
-		},
-	},
 	"lowpower": {
 		Description: `Reduces daemon overhead on the system. May affect node
 functionality - performance of content discovery and data

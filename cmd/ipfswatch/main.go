@@ -20,7 +20,6 @@ import (
 	corehttp "github.com/ipfs/kubo/core/corehttp"
 	"github.com/ipfs/kubo/misc/fsutil"
 	"github.com/ipfs/kubo/plugin"
-	pluginbadgerds "github.com/ipfs/kubo/plugin/plugins/badgerds"
 	pluginflatfs "github.com/ipfs/kubo/plugin/plugins/flatfs"
 	pluginlevelds "github.com/ipfs/kubo/plugin/plugins/levelds"
 	pluginpebbleds "github.com/ipfs/kubo/plugin/plugins/pebbleds"
@@ -97,7 +96,6 @@ func run(ipfsPath, watchPath string) error {
 	}
 
 	if err = loadDatastorePlugins(slices.Concat(
-		pluginbadgerds.Plugins,
 		pluginflatfs.Plugins,
 		pluginlevelds.Plugins,
 		pluginpebbleds.Plugins,

@@ -272,8 +272,6 @@ config file at runtime.
     - [`flatfs-measure` profile](#flatfs-measure-profile)
     - [`pebbleds` profile](#pebbleds-profile)
     - [`pebbleds-measure` profile](#pebbleds-measure-profile)
-    - [`badgerds` profile](#badgerds-profile)
-    - [`badgerds-measure` profile](#badgerds-measure-profile)
     - [`lowpower` profile](#lowpower-profile)
     - [`announce-off` profile](#announce-off-profile)
     - [`announce-on` profile](#announce-on-profile)
@@ -4566,46 +4564,6 @@ You should use this datastore if:
 ### `pebbleds-measure` profile
 
 Configures the node to use the pebble datastore with metrics. This is the same as [`pebbleds` profile](#pebble-profile) with the addition of the `measure` datastore wrapper.
-
-### `badgerds` profile
-
-Configures the node to use the **legacy** badgerv1 datastore.
-
-> [!CAUTION]
-> **Badger v1 datastore is deprecated and will be removed in a future Kubo release.**
->
-> This is based on very old badger 1.x, which has not been maintained by its
-> upstream maintainers for years and has known bugs (startup timeouts, shutdown
-> hangs, file descriptor
-> exhaustion, and more). Do not use it for new deployments.
->
-> **To migrate:** create a new `IPFS_PATH` with `flatfs`
-> (`ipfs init --profile=flatfs`), move pinned data via
-> `ipfs dag export/import` or `ipfs pin ls -t recursive|add`, and decommission the
-> old badger-based node. When it comes to block storage, use experimental
-> `pebbleds` only if you are sure modern `flatfs` does not serve your use case
-> (most users will be perfectly fine with `flatfs`, it is also possible to keep
-> `flatfs` for blocks and replace `leveldb` with `pebble` if preferred over
-> `leveldb`).
-
-Also, be aware that:
-
-- This datastore will not properly reclaim space when your datastore is
-  smaller than several gigabytes. If you run IPFS with `--enable-gc`, you plan on storing very little data in
-  your IPFS node, and disk usage is more critical than performance, consider using
-  `flatfs`.
-- This datastore uses up to several gigabytes of memory.
-- Good for medium-size datastores, but may run into performance issues if your dataset is bigger than a terabyte.
-
-> [!WARNING]
-> This profile may only be applied when first initializing the node via `ipfs init --profile badgerds`
-
-> [!NOTE]
-> See other caveats and configuration options at [`datastores.md#badgerds`](datastores.md#badgerds)
-
-### `badgerds-measure` profile
-
-Configures the node to use the **legacy** badgerv1 datastore with metrics. This is the same as [`badgerds` profile](#badger-profile) with the addition of the `measure` datastore wrapper. This profile will be removed in a future Kubo release.
 
 ### `lowpower` profile
 
