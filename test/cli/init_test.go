@@ -152,6 +152,27 @@ func TestInit(t *testing.T) {
 		assert.Equal(t, "/ip4/127.0.0.1/tcp/0", out)
 	})
 
+	t.Run("ipfs init from 'ipfs config show' output fails", func(t *testing.T) {
+		t.Parallel()
+		nodes := harness.NewT(t).NewNodes(2)
+		nodes[0].Init()
+		// config show strips the private key, so the file cannot seed a repo
+		shown := nodes[0].IPFS("config", "show").Stdout.String()
+		path := fp.Join(nodes[1].Dir, "shown.json")
+		require.NoError(t, os.WriteFile(path, []byte(shown), 0o600))
+
+		res := nodes[1].RunIPFS("init", path)
+		require.NotEqual(t, 0, res.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "Identity.PrivKey")
+		assert.NoFileExists(t, fp.Join(nodes[1].Dir, "config"))
+
+		// the daemon's --init path takes the same file and must refuse it too
+		res = nodes[1].RunIPFS("daemon", "--init", "--init-config="+path, "--offline")
+		require.NotEqual(t, 0, res.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "Identity.PrivKey")
+		assert.NoFileExists(t, fp.Join(nodes[1].Dir, "config"))
+	})
+
 	t.Run("ipfs init should not run while daemon is running", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init().StartDaemon()
