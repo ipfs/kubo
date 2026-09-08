@@ -6,7 +6,6 @@
 ipldgit github.com/ipfs/kubo/plugin/plugins/git *
 iplddagjose github.com/ipfs/kubo/plugin/plugins/dagjose *
 
-badgerds github.com/ipfs/kubo/plugin/plugins/badgerds *
 flatfs github.com/ipfs/kubo/plugin/plugins/flatfs *
 levelds github.com/ipfs/kubo/plugin/plugins/levelds *
 pebbleds github.com/ipfs/kubo/plugin/plugins/pebbleds *

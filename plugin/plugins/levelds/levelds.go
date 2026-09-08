@@ -42,7 +42,7 @@ type datastoreConfig struct {
 	compression ldbopts.Compression
 }
 
-// DatastoreConfigParser returns a configuration stub for a badger datastore
+// DatastoreConfigParser returns a configuration stub for a leveldb datastore
 // from the given parameters.
 func (*leveldsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 	return func(params map[string]any) (fsrepo.DatastoreConfig, error) {

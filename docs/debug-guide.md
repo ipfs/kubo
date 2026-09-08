@@ -117,7 +117,7 @@ the quickest way to easily point out where the hot spots in the code are.
 
 ### Analyzing vars and memory statistics
 
-The output is JSON formatted and includes badger store statistics, the command line run, and the output from Go's [runtime.ReadMemStats](https://golang.org/pkg/runtime/#ReadMemStats). The [MemStats](https://golang.org/pkg/runtime/#MemStats) has useful information about memory allocation and garbage collection.
+The output is JSON formatted and includes datastore statistics, the command line run, and the output from Go's [runtime.ReadMemStats](https://golang.org/pkg/runtime/#ReadMemStats). The [MemStats](https://golang.org/pkg/runtime/#MemStats) has useful information about memory allocation and garbage collection.
 
 ### Tracing
 
