@@ -255,6 +255,7 @@ config file at runtime.
     - [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
     - [`Import.UnixFSHAMTDirectorySizeEstimation`](#importunixfshamtdirectorysizeestimation)
     - [`Import.UnixFSDAGLayout`](#importunixfsdaglayout)
+    - [`Import.UnixFSPBNodeFieldOrder`](#importunixfspbnodefieldorder)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -921,6 +922,8 @@ The special value `"auto"` automatically uses curated, up-to-date bootstrap peer
 - **Reliable startup**: Your node can always find the network, even if some bootstrap peers go offline
 - **Automatic updates**: New bootstrap peers are added as the network evolves
 - **Custom control**: Add your own trusted peers alongside or instead of the defaults
+
+An empty list turns off all bootstrap dialing, including backup peers saved from earlier runs. The node then connects only to `Peering.Peers`, peers found through mDNS, and peers you connect manually. Backup peers are dialed only after the configured peers, when those leave the node below the minimum peer count.
 
 Default: `["auto"]`
 
@@ -4315,6 +4318,32 @@ Accepted values:
 Commands affected: `ipfs add`
 
 Default: `balanced`
+
+Type: `optionalString`
+
+### `Import.UnixFSPBNodeFieldOrder`
+
+Controls the order of the top-level `PBNode` protobuf fields written when
+creating `dag-pb` nodes.
+
+Accepted values:
+
+- `links-first` (default): canonical DAG-PB order, `Links` before `Data`.
+- `data-first`: `Data` before `Links`, so streaming readers can process
+  UnixFS metadata (for example HAMT fanout) before reading links. Changes
+  the CID of every written `dag-pb` node that has both fields.
+
+Only writes are affected; reading accepts both orders regardless of this
+setting. This is a low-level opt-in: no configuration profile enables
+`data-first`, and the `unixfs-v0-2015` and `unixfs-v1-2025` profiles set
+`links-first` explicitly. Enable `data-first` only when every consumer of
+your CIDs expects it, and note that MFS directories rewritten by
+`ipfs files` operations are re-encoded and get new CIDs. See
+[IPIP-550](https://github.com/ipfs/specs/pull/550) for details.
+
+Commands affected: `ipfs add`, `ipfs files` (MFS), `ipfs object patch`
+
+Default: `links-first`
 
 Type: `optionalString`
 
