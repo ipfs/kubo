@@ -65,6 +65,7 @@ config file at runtime.
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
     - [`Gateway.DeserializedResponses`](#gatewaydeserializedresponses)
     - [`Gateway.AllowCodecConversion`](#gatewayallowcodecconversion)
+    - [`Gateway.DeprecatedXIpfsPath`](#gatewaydeprecatedxipfspath)
     - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
     - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
     - [`Gateway.RetrievalTimeout`](#gatewayretrievaltimeout)
@@ -254,6 +255,7 @@ config file at runtime.
     - [`Import.UnixFSHAMTDirectorySizeThreshold`](#importunixfshamtdirectorysizethreshold)
     - [`Import.UnixFSHAMTDirectorySizeEstimation`](#importunixfshamtdirectorysizeestimation)
     - [`Import.UnixFSDAGLayout`](#importunixfsdaglayout)
+    - [`Import.UnixFSPBNodeFieldOrder`](#importunixfspbnodefieldorder)
   - [`Version`](#version)
     - [`Version.AgentSuffix`](#versionagentsuffix)
     - [`Version.SwarmCheckEnabled`](#versionswarmcheckenabled)
@@ -267,7 +269,11 @@ config file at runtime.
     - [`autoconf-on` profile](#autoconf-on-profile)
     - [`autoconf-off` profile](#autoconf-off-profile)
     - [`flatfs` profile](#flatfs-profile)
+    - [`flatfs-levelds` profile](#flatfs-levelds-profile)
+    - [`flatfs-levelds-measure` profile](#flatfs-levelds-measure-profile)
     - [`flatfs-measure` profile](#flatfs-measure-profile)
+    - [`flatfs-pebbleds` profile](#flatfs-pebbleds-profile)
+    - [`flatfs-pebbleds-measure` profile](#flatfs-pebbleds-measure-profile)
     - [`pebbleds` profile](#pebbleds-profile)
     - [`pebbleds-measure` profile](#pebbleds-measure-profile)
     - [`badgerds` profile](#badgerds-profile)
@@ -917,6 +923,8 @@ The special value `"auto"` automatically uses curated, up-to-date bootstrap peer
 - **Automatic updates**: New bootstrap peers are added as the network evolves
 - **Custom control**: Add your own trusted peers alongside or instead of the defaults
 
+An empty list turns off all bootstrap dialing, including backup peers saved from earlier runs. The node then connects only to `Peering.Peers`, peers found through mDNS, and peers you connect manually. Backup peers are dialed only after the configured peers, when those leave the node below the minimum peer count.
+
 Default: `["auto"]`
 
 Type: `array[string]` ([multiaddrs][multiaddr] or `"auto"`)
@@ -1151,7 +1159,10 @@ datastores to provide extra functionality (eg metrics, logging, or caching).
 > [!NOTE]
 > For more information on possible values for this configuration option, see [`kubo/docs/datastores.md`](datastores.md)
 
-Default:
+> [!NOTE]
+> The datastore layout, including the flatfs `shardFunc`, is fixed when the repo is created. Kubo refuses to open a repo whose `Datastore.Spec` no longer matches its `datastore_spec` file. `ipfs config profile apply` refuses a profile that would change the layout. To change the layout, create a new repo with the wanted profiles and move the data there.
+
+Default (the [`flatfs-levelds` profile](#flatfs-levelds-profile): blocks in flatfs, everything else in leveldb):
 
 ```
 {
@@ -1176,7 +1187,7 @@ Default:
 }
 ```
 
-With `flatfs-measure` profile:
+With `flatfs-levelds-measure` profile:
 
 ```
 {
@@ -1185,7 +1196,7 @@ With `flatfs-measure` profile:
     "child": {
     "path": "blocks",
     "shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
-    "sync": true,
+    "sync": false,
     "type": "flatfs"
     },
     "mountpoint": "/blocks",
@@ -1206,6 +1217,33 @@ With `flatfs-measure` profile:
   "type": "mount"
 }
 ```
+
+With `flatfs-pebbleds` profile (blocks in flatfs, everything else in pebble instead of leveldb):
+
+```
+{
+  "mounts": [
+  {
+    "mountpoint": "/blocks",
+    "path": "blocks",
+    "prefix": "flatfs.datastore",
+    "shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+    "sync": false,
+    "type": "flatfs"
+  },
+  {
+    "formatMajorVersion": 24,
+    "mountpoint": "/",
+    "path": "pebbleds",
+    "prefix": "pebble.datastore",
+    "type": "pebbleds"
+  }
+  ],
+  "type": "mount"
+}
+```
+
+`ipfs init` sets `formatMajorVersion` to the newest format of the pebble version bundled with Kubo, so the number varies between releases. See [`datastores.md#use-of-formatmajorversion`](datastores.md#use-of-formatmajorversion).
 
 Type: `object`
 
@@ -1305,6 +1343,27 @@ Instead of relying on gateway-side conversion, fetch the raw block using
 - Allows clients to use any codec without waiting for gateway support
 - Enables ecosystem innovation without gateway operator coordination
 - Works with libraries like [@helia/verified-fetch](https://www.npmjs.com/package/@helia/verified-fetch) in JavaScript
+
+Default: `false`
+
+Type: `flag`
+
+### `Gateway.DeprecatedXIpfsPath`
+
+An optional flag to restore the deprecated `X-Ipfs-Path` response header,
+superseded by
+[`Ipfs-Uri`](https://specs.ipfs.tech/http-gateways/path-gateway/#ipfs-uri-response-header)
+([IPIP-548](https://github.com/ipfs/specs/pull/548)).
+
+> [!IMPORTANT]
+> Using `X-Ipfs-Path` is not safe when non-ASCII filenames are involved: HTTP
+> headers cannot carry such bytes, so values arrive garbled. Enable this flag
+> only to facilitate migration to
+> [`Ipfs-Uri`](https://specs.ipfs.tech/http-gateways/path-gateway/#ipfs-uri-response-header),
+> which carries an [`ipfs://`](https://specs.ipfs.tech/ipfs-uri/) or
+> [`ipns://`](https://specs.ipfs.tech/ipns-uri/) address that is safe for any
+> filename. Even when enabled, the legacy header is still skipped when the
+> value would include non-ASCII byte sequences.
 
 Default: `false`
 
@@ -2068,6 +2127,9 @@ Default: `"cache"`
 > See [fuse.md](./fuse.md) for setup instructions and platform-specific notes.
 
 FUSE mount point configuration options.
+
+> [!WARNING]
+> While `/ipns` or `/mfs` is mounted, change what they hold through the mounted filesystem only. Writing to the same MFS tree with `ipfs files` commands at the same time is not supported: each side keeps its own view of the tree, so a write made on one side can be lost when the other writes back, and a file deleted and created again with `ipfs files` still looks like the same file to programs watching it on the mount. Unmount before using `ipfs files` on a mounted tree.
 
 All mounts expose the `ipfs.cid` extended attribute on files and directories, returning the CID of the underlying DAG node:
 
@@ -3603,6 +3665,10 @@ It is possible to inspect the runtime limits via `ipfs swarm resources --help`.
 > `Swarm.ResourceMgr.MaxMemory` is the memory limit for go-libp2p networking stack alone, and not for entire Kubo or Bitswap.
 >
 > To set memory limit for the entire Kubo process, use [`GOMEMLIMIT` environment variable](http://web.archive.org/web/20240222201412/https://kupczynski.info/posts/go-container-aware/) which all Go programs recognize, and then set `Swarm.ResourceMgr.MaxMemory` to less than your custom `GOMEMLIMIT`.
+> For a worked example on constrained hardware, see [Kubo on low-memory devices](production/low-memory.md).
+
+> [!CAUTION]
+> Leave this unset unless you know what you are doing. Setting it too low cripples connectivity: the daemon keeps running and looks online, but the resource manager refuses new connections ("Protected from exceeding resource limits" in logs, inspect with `ipfs swarm resources`). See [libp2p resource management](libp2p-resource-management.md).
 
 Default: `[TOTAL_SYSTEM_MEMORY]/2`
 Type: [`optionalBytes`](#optionalbytes)
@@ -4255,6 +4321,32 @@ Default: `balanced`
 
 Type: `optionalString`
 
+### `Import.UnixFSPBNodeFieldOrder`
+
+Controls the order of the top-level `PBNode` protobuf fields written when
+creating `dag-pb` nodes.
+
+Accepted values:
+
+- `links-first` (default): canonical DAG-PB order, `Links` before `Data`.
+- `data-first`: `Data` before `Links`, so streaming readers can process
+  UnixFS metadata (for example HAMT fanout) before reading links. Changes
+  the CID of every written `dag-pb` node that has both fields.
+
+Only writes are affected; reading accepts both orders regardless of this
+setting. This is a low-level opt-in: no configuration profile enables
+`data-first`, and the `unixfs-v0-2015` and `unixfs-v1-2025` profiles set
+`links-first` explicitly. Enable `data-first` only when every consumer of
+your CIDs expects it, and note that MFS directories rewritten by
+`ipfs files` operations are re-encoded and get new CIDs. See
+[IPIP-550](https://github.com/ipfs/specs/pull/550) for details.
+
+Commands affected: `ipfs add`, `ipfs files` (MFS), `ipfs object patch`
+
+Default: `links-first`
+
+Type: `optionalString`
+
 ## `Version`
 
 Options to configure agent version announced to the swarm, and leveraging
@@ -4427,9 +4519,9 @@ Used for testing.
 
 ### `default-datastore` profile
 
-Configures the node to use the default datastore (flatfs).
+Configures the node to use the default datastore layout: blocks in flatfs, everything else in leveldb. Same as the [`flatfs-levelds` profile](#flatfs-levelds-profile).
 
-Read the "flatfs" profile description for more information on this datastore.
+Read the [`flatfs-levelds` profile](#flatfs-levelds-profile) description for more information on this datastore.
 
 This profile may only be applied when first initializing the node.
 
@@ -4462,8 +4554,16 @@ Use this for private networks or when you want explicit control over all endpoin
 
 ### `flatfs` profile
 
-Configures the node to use the flatfs datastore.
-Flatfs is the default, most battle-tested and reliable datastore.
+Alias of the [`flatfs-levelds` profile](#flatfs-levelds-profile), the default datastore layout: blocks in flatfs, everything else in leveldb.
+
+> [!WARNING]
+> This profile may only be applied when first initializing the node via `ipfs init --profile flatfs`
+
+### `flatfs-levelds` profile
+
+The default datastore layout: blocks in flatfs, one file per block. All other keys (pins, MFS root, provider records, IPNS records) go to leveldb. flatfs holds only blocks because it is safe only for content-addressed data, see [`datastores.md#flatfs`](datastores.md#flatfs). [`flatfs`](#flatfs-profile) is an alias of this profile. [`flatfs-pebbleds`](#flatfs-pebbleds-profile) uses pebble instead of leveldb.
+
+flatfs is the most battle-tested and reliable datastore.
 
 You should use this datastore if:
 
@@ -4476,18 +4576,49 @@ You should use this datastore if:
 - You are ok with the default speed of data import, or prefer to use `--nocopy`.
 
 > [!WARNING]
-> This profile may only be applied when first initializing the node via `ipfs init --profile flatfs`
+> This profile may only be applied when first initializing the node via `ipfs init --profile flatfs-levelds`
 
 > [!NOTE]
-> See caveats and configuration options at [`datastores.md#flatfs`](datastores.md#flatfs)
+> See caveats and configuration options at [`datastores.md#flatfs`](datastores.md#flatfs) and [`datastores.md#levelds`](datastores.md#levelds)
+
+### `flatfs-levelds-measure` profile
+
+Configures the node to store blocks in flatfs and everything else in leveldb, with metrics. This is the same as [`flatfs-levelds` profile](#flatfs-levelds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call. Use it for debugging, right-sizing, and testing.
 
 ### `flatfs-measure` profile
 
-Configures the node to use the flatfs datastore with metrics. This is the same as [`flatfs` profile](#flatfs-profile) with the addition of the `measure` datastore wrapper.
+Alias of the [`flatfs-levelds-measure` profile](#flatfs-levelds-measure-profile).
+
+### `flatfs-pebbleds` profile
+
+Experimental, opt-in profile that stores blocks in flatfs and everything else in pebble.
+
+> [!WARNING]
+> This profile is experimental and opt-in. Pebble has less production use in Kubo than leveldb. Report problems in [kubo issues](https://github.com/ipfs/kubo/issues).
+
+Same as the [`flatfs-levelds` profile](#flatfs-levelds-profile) layout, with pebble in place of leveldb: blocks go to flatfs, one file per block. All other keys (pins, MFS root, provider records, IPNS records) go to pebble.
+
+You should use this profile if:
+
+- You want pebble instead of leveldb for the non-block keys. Pebble compacts deleted keys promptly. leveldb can keep them long after bulk deletes (see [`datastores.md#levelds`](datastores.md#levelds)).
+- You want to keep blocks out of pebble, for example because large imports into [`pebbleds`](#pebbleds-profile) are slow on your disk.
+
+> [!WARNING]
+> This profile may only be applied when first initializing the node via `ipfs init --profile flatfs-pebbleds`
+
+> [!NOTE]
+> See caveats and configuration options at [`datastores.md#flatfs`](datastores.md#flatfs) and [`datastores.md#pebbleds`](datastores.md#pebbleds)
+
+### `flatfs-pebbleds-measure` profile
+
+Experimental, opt-in profile that stores blocks in flatfs and everything else in pebble, with metrics. This is the same as [`flatfs-pebbleds` profile](#flatfs-pebbleds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call. Use it for debugging, right-sizing, and testing.
 
 ### `pebbleds` profile
 
-Configures the node to use the pebble high-performance datastore.
+Experimental, opt-in profile that uses the pebble high-performance datastore for everything.
+
+> [!WARNING]
+> This profile is experimental and opt-in. Pebble has less production use in Kubo than leveldb. Report problems in [kubo issues](https://github.com/ipfs/kubo/issues).
 
 Pebble is a LevelDB/RocksDB inspired key-value store focused on performance and internal usage by CockroachDB.
 You should use this datastore if:
@@ -4507,7 +4638,7 @@ You should use this datastore if:
 
 ### `pebbleds-measure` profile
 
-Configures the node to use the pebble datastore with metrics. This is the same as [`pebbleds` profile](#pebble-profile) with the addition of the `measure` datastore wrapper.
+Experimental, opt-in profile that uses the pebble datastore for everything, with metrics. This is the same as [`pebbleds` profile](#pebbleds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call. Use it for debugging, right-sizing, and testing.
 
 ### `badgerds` profile
 
@@ -4526,9 +4657,9 @@ Configures the node to use the **legacy** badgerv1 datastore.
 > `ipfs dag export/import` or `ipfs pin ls -t recursive|add`, and decommission the
 > old badger-based node. When it comes to block storage, use experimental
 > `pebbleds` only if you are sure modern `flatfs` does not serve your use case
-> (most users will be perfectly fine with `flatfs`, it is also possible to keep
-> `flatfs` for blocks and replace `leveldb` with `pebble` if preferred over
-> `leveldb`).
+> (most users will be perfectly fine with `flatfs`. The
+> [`flatfs-pebbleds` profile](#flatfs-pebbleds-profile) keeps `flatfs` for
+> blocks and replaces `leveldb` with `pebble`).
 
 Also, be aware that:
 
@@ -4547,7 +4678,7 @@ Also, be aware that:
 
 ### `badgerds-measure` profile
 
-Configures the node to use the **legacy** badgerv1 datastore with metrics. This is the same as [`badgerds` profile](#badger-profile) with the addition of the `measure` datastore wrapper. This profile will be removed in a future Kubo release.
+Configures the node to use the **legacy** badgerv1 datastore with metrics. This is the same as [`badgerds` profile](#badgerds-profile) with the addition of the [`measure`](datastores.md#measure) datastore wrapper. The wrapper adds overhead to every datastore call. Use it for debugging, right-sizing, and testing. This profile will be removed in a future Kubo release.
 
 ### `lowpower` profile
 
@@ -4561,6 +4692,7 @@ Reduces daemon overhead on the system by disabling optional swarm services.
 > [!NOTE]
 > This profile is provided for legacy reasons.
 > With modern Kubo setting the above should not be necessary.
+> For running on constrained hardware, see [Kubo on low-memory devices](production/low-memory.md): it covers these settings individually, plus memory limits (systemd, `GOMEMLIMIT`) and DHT announcement sizing.
 
 ### `announce-off` profile
 

@@ -17,7 +17,7 @@ jobs:
   # Unit tests with coverage collection (uploaded to Codecov)
   unit-tests:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       GOTRACEBACK: single  # reduce noise on test timeout panics
@@ -90,7 +90,7 @@ jobs:
   # (Go-based replacement for legacy test/sharness shell scripts)
   cli-tests:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       GOTRACEBACK: single  # reduce noise on test timeout panics
@@ -153,7 +153,7 @@ jobs:
   # Runs both FUSE unit tests (./fuse/...) and CLI integration tests (./test/cli/fuse/...)
   fuse-tests:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     concurrency:
       group: fuse-tests-${{ github.repository }}
       cancel-in-progress: false
@@ -184,8 +184,7 @@ jobs:
           fi
       - name: Clean up stale FUSE mounts
         run: |
-          # On shared self-hosted runners, leftover mounts from previous
-          # runs can exhaust the kernel FUSE mount limit (mount_max).
+          # Leftover mounts can exhaust the kernel FUSE mount limit (mount_max).
           # Unit tests mount with FsName "kubo-test"; CLI tests mount
           # under the harness temp dir (ipfs/ipns/mfs subdirectories).
           awk '$1 == "kubo-test" || $2 ~ /\/tmp\/.*\/(ipfs|ipns|mfs)$/ { print $2 }' /proc/mounts 2>/dev/null \
@@ -205,7 +204,7 @@ jobs:
   # Example tests (kubo-as-a-library)
   example-tests:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       GOTRACEBACK: single

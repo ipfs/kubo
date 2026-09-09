@@ -1,16 +1,17 @@
-// Package telemetry reports anonymized, aggregate usage data about a Kubo node
-// so maintainers can see which features are actually used. It is enabled by
-// default and sends nothing that identifies a person, a file, or a peer.
+// Package telemetry can report anonymized, aggregate usage data about a Kubo
+// node to an HTTP collector. Kubo ships with no collector, so a node collects
+// nothing and writes no identifier unless its operator sets
+// Plugins.Plugins.telemetry.Config.Endpoint. A report never carries anything
+// that identifies a person, a file, or a peer.
 //
 // Operators can turn it off at runtime with IPFS_TELEMETRY=off, with
 // DO_NOT_TRACK=1, with Plugins.Plugins.telemetry.Config.Mode, or by disabling
-// the plugin. Anyone building Kubo themselves can strip the built-in collector
-// out of the binary by blanking defaultEndpoint at link time:
+// the plugin. A distributor who runs a collector for their own builds can set
+// it at link time:
 //
-//	go build -ldflags "-X github.com/ipfs/kubo/plugin/plugins/telemetry.defaultEndpoint=" ./cmd/ipfs
+//	go build -ldflags "-X github.com/ipfs/kubo/plugin/plugins/telemetry.defaultEndpoint=https://telemetry.example.com" ./cmd/ipfs
 //
-// A build like that never reports anywhere unless its operator configures an
-// Endpoint. See docs/telemetry.md for the operator-facing version of all this.
+// See docs/telemetry.md for the operator-facing version of all this.
 package telemetry
 
 import (
@@ -62,19 +63,14 @@ const (
 	httpTimeout      = 30 * time.Second // timeout for telemetry HTTP requests
 )
 
-// defaultEndpoint is the collector Kubo reports to when the operator has not
-// configured one. It is a var, not a const, so a custom build can remove the
-// built-in destination without patching source:
+// defaultEndpoint is the collector a node reports to when the operator has
+// not configured one. Kubo ships it empty: with no endpoint there is nowhere
+// to send to, so the node collects nothing and writes no identifier. It is a
+// var, not a const, so a distributor running their own collector can set it
+// at link time without patching source:
 //
-//	go build -ldflags "-X github.com/ipfs/kubo/plugin/plugins/telemetry.defaultEndpoint=" ./cmd/ipfs
-//
-// With no endpoint there is nowhere to send to, so such a build collects
-// nothing and never writes a telemetry identifier. Distributors who do not want
-// their users reporting to the address below should do exactly that.
-//
-// Shipping a Kubo release with telemetry off works the same way: blank this and
-// nothing else has to change.
-var defaultEndpoint = "https://telemetry.ipshipyard.dev"
+//	go build -ldflags "-X github.com/ipfs/kubo/plugin/plugins/telemetry.defaultEndpoint=https://telemetry.example.com" ./cmd/ipfs
+var defaultEndpoint = ""
 
 // errEndpointRetired means the collector asked to stop receiving reports. See
 // telemetryPlugin.retire.
@@ -257,14 +253,7 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 	case "off":
 		p.mode = modeOff
 		log.Debug("telemetry disabled via opt-out")
-		// Remove the stored identifier when the user explicitly opts out.
-		if _, err := os.Stat(p.uuidFilename); err == nil {
-			if err := os.Remove(p.uuidFilename); err != nil {
-				log.Debugf("failed to remove telemetry UUID file: %s", err)
-			} else {
-				log.Debug("removed existing telemetry UUID file due to opt-out")
-			}
-		}
+		p.removeUUID()
 		return nil
 	case "auto":
 		// Enabled, and the startup notice is shown on every run rather than
@@ -275,10 +264,24 @@ func (p *telemetryPlugin) Init(env *plugin.Environment) error {
 		p.mode = modeOn
 		p.optedIn = true
 	default:
-		// Unset, or a value we do not recognize: telemetry stays on, which is
-		// the default. A node's first run prints a notice naming the endpoint
+		// Unset, or a value we do not recognize: on, if there is an endpoint
+		// to send to. A node's first run prints a notice naming the endpoint
 		// and the ways to opt out, 15 minutes before anything is sent.
 		p.mode = modeOn
+	}
+
+	// No endpoint means nowhere to send. This is how Kubo ships, so collect
+	// nothing, and drop an identifier left behind by a version that had a
+	// built-in collector.
+	if p.endpoint == "" {
+		p.mode = modeOff
+		if p.optedIn {
+			log.Warn("telemetry is enabled but no endpoint is configured; set Plugins.Plugins.telemetry.Config.Endpoint to your collector URL (see docs/telemetry.md)")
+		} else {
+			log.Debug("no telemetry endpoint configured, sending nothing")
+		}
+		p.removeUUID()
+		return nil
 	}
 
 	// A collector can retire itself (see retire), which stops reports from
@@ -345,9 +348,19 @@ func (p *telemetryPlugin) retire() {
 	if err := os.WriteFile(p.retiredFilename, []byte(note), 0600); err != nil {
 		log.Debugf("failed to write %s: %s", p.retiredFilename, err)
 	}
-	if err := os.Remove(p.uuidFilename); err != nil && !os.IsNotExist(err) {
-		log.Debugf("failed to remove telemetry UUID file: %s", err)
+	p.removeUUID()
+}
+
+// removeUUID deletes the stored node identifier, if any. Nothing will use it
+// once the node stops reporting.
+func (p *telemetryPlugin) removeUUID() {
+	if err := os.Remove(p.uuidFilename); err != nil {
+		if !os.IsNotExist(err) {
+			log.Debugf("failed to remove telemetry UUID file: %s", err)
+		}
+		return
 	}
+	log.Debug("removed existing telemetry UUID file")
 }
 
 func (p *telemetryPlugin) loadUUID() error {
@@ -444,18 +457,6 @@ func (p *telemetryPlugin) Start(n *core.IpfsNode) error {
 
 	if !n.IsDaemon || !n.IsOnline {
 		log.Debugf("skipping telemetry. Daemon: %t. Online: %t", n.IsDaemon, n.IsOnline)
-		return nil
-	}
-
-	// No endpoint means nowhere to send, so skip rather than generate a UUID.
-	// Reachable in builds that blanked defaultEndpoint at link time, which is
-	// how you build a Kubo that never reports (see the package comment).
-	if p.endpoint == "" {
-		if p.optedIn {
-			log.Warn("telemetry is enabled but no endpoint is configured; set Plugins.Plugins.telemetry.Config.Endpoint to your collector URL (see docs/telemetry.md)")
-		} else {
-			log.Debug("this build has no telemetry endpoint, sending nothing")
-		}
 		return nil
 	}
 

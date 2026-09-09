@@ -11,11 +11,15 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ipfs/boxo/mfs"
 
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
@@ -78,7 +82,16 @@ func setupIpnsTest(t *testing.T, nd *core.IpfsNode, cfgs ...config.Mounts) (*cor
 	key, err := coreAPI.Key().Self(nd.Context())
 	require.NoError(t, err)
 
-	root, err := CreateRoot(nd.Context(), coreAPI, nd.Blockstore, map[string]iface.Key{"local": key}, "", "", nd.Repo.Path(), cfg, config.Import{})
+	// Settle the repo path before the mount starts serving. Statfs reads it
+	// from a FUSE handler goroutine, so a test that assigns it afterwards
+	// races the server. The in-memory test repo reports no path, and Statfs
+	// needs a real directory to stat.
+	repoPath := nd.Repo.Path()
+	if repoPath == "" {
+		repoPath = t.TempDir()
+	}
+
+	root, err := CreateRoot(nd.Context(), coreAPI, nd.Blockstore, map[string]iface.Key{"local": key}, "", "", repoPath, cfg, config.Import{})
 	require.NoError(t, err)
 
 	mntDir := t.TempDir()
@@ -132,6 +145,32 @@ func TestIpnsLocalLink(t *testing.T) {
 	require.Equal(t, nd.Identity.String(), target)
 }
 
+// TestRenameOntoNamespaceRoot moves a file from a key directory onto the
+// /ipns root, which holds no files and cannot take it. The move has to fail
+// with the file still where it was: the mount used to unlink the source
+// before finding out it had nowhere to put it, and the file was gone.
+func TestRenameOntoNamespaceRoot(t *testing.T) {
+	nd, mnt := setupIpnsTest(t, nil)
+	keyDir := mnt.Dir + "/" + nd.Identity.String()
+
+	src := keyDir + "/keepme"
+	content := []byte("still here")
+	require.NoError(t, os.WriteFile(src, content, 0o644))
+
+	require.Error(t, os.Rename(src, mnt.Dir+"/keepme"))
+
+	// Ask MFS, not the mount. The kernel still has the entry cached, so a
+	// read through the mount answers from the handle it already holds and
+	// succeeds for a second either way, whether or not the file is still
+	// in the tree.
+	_, err := mfs.Lookup(mnt.Root.Roots[nd.Identity.String()], "/keepme")
+	require.NoError(t, err, "the file must survive a rename that could not be carried out")
+
+	got, err := os.ReadFile(src)
+	require.NoError(t, err)
+	require.Equal(t, content, got)
+}
+
 // TestNamespaceRootMode verifies that the /ipns root has execute-only
 // mode (not listable, only traversable).
 func TestNamespaceRootMode(t *testing.T) {
@@ -140,6 +179,40 @@ func TestNamespaceRootMode(t *testing.T) {
 	info, err := os.Stat(mnt.Dir)
 	require.NoError(t, err)
 	require.Equal(t, os.FileMode(0o111), info.Mode().Perm())
+}
+
+// TestKeyDirAttrs verifies that a key directory served by the /ipns root
+// reports the same attributes as any other directory on a writable mount: a
+// stable inode number of its own, a link count, and real permissions. The
+// root answers these lookups itself rather than through writable.Dir, so the
+// reply used to carry nothing but zeroes.
+func TestKeyDirAttrs(t *testing.T) {
+	nd, mnt := setupIpnsTest(t, nil)
+	keyDir := mnt.Dir + "/" + nd.Identity.String()
+
+	stat := func() (uint64, os.FileInfo) {
+		t.Helper()
+		info, err := os.Stat(keyDir)
+		require.NoError(t, err)
+		st, ok := info.Sys().(*syscall.Stat_t)
+		require.True(t, ok)
+		return st.Ino, info
+	}
+
+	ino, info := stat()
+	require.NotZero(t, ino, "key directory should report an inode number")
+	require.Less(t, ino, uint64(fusemnt.AutomaticIno),
+		"inode number should come from the mount, not go-fuse's automatic range")
+	require.True(t, info.IsDir())
+	require.Equal(t, os.FileMode(0o755), info.Mode().Perm())
+	require.EqualValues(t, fusemnt.Nlink, info.Sys().(*syscall.Stat_t).Nlink)
+
+	// Outlast the mount's one second entry timeout so the kernel has to look
+	// the entry up again.
+	time.Sleep(1500 * time.Millisecond)
+
+	again, _ := stat()
+	require.Equal(t, ino, again, "inode number should survive a re-lookup")
 }
 
 // TestFilePersistence verifies that file data survives unmount and remount.
@@ -178,11 +251,6 @@ func TestMultipleDirs(t *testing.T) {
 // files onto a volume that reports zero free space.
 func TestStatfs(t *testing.T) {
 	_, mnt := setupIpnsTest(t, nil)
-
-	// The in-memory test repo returns "" for Path(), so point RepoPath
-	// at a real directory to exercise the syscall path.
-	repoDir := t.TempDir()
-	mnt.Root.RepoPath = repoDir
 
 	fusetest.AssertStatfsNonZero(t, mnt.Dir)
 }

@@ -1,10 +1,10 @@
 # Telemetry
 
-The telemetry plugin sends anonymized usage data about a Kubo node to an HTTP endpoint. It tells Kubo maintainers which features are actually used, so work goes where it helps.
+The telemetry plugin can send anonymized usage data about a Kubo node to an HTTP endpoint. Kubo ships with no endpoint, so a node collects nothing and sends nothing unless you configure one. See [Sending to your own collector](#sending-to-your-own-collector).
 
-Telemetry is enabled by default and reports to `https://telemetry.ipshipyard.dev`. Each report carries a random identifier, coarse buckets, and configuration flags. It never carries personal data, file names, content identifiers, or peer addresses. The first report is sent 15 minutes after the daemon starts, then once a day.
+Each report carries a random identifier, coarse buckets, and configuration flags. It never carries personal data, file names, content identifiers, or peer addresses. The first report is sent 15 minutes after the daemon starts, then once a day.
 
-You can turn it off at any time, and a build of Kubo can ship with the endpoint removed. See [Disabling telemetry](#disabling-telemetry).
+A node that reported to a built-in endpoint under an earlier Kubo version removes its stored identifier on the next daemon start.
 
 **Table of Contents**
 
@@ -12,8 +12,8 @@ You can turn it off at any time, and a build of Kubo can ship with the endpoint 
   - [For one daemon run](#for-one-daemon-run)
   - [For a node](#for-a-node)
   - [For every tool on the machine](#for-every-tool-on-the-machine)
-  - [When building Kubo yourself](#when-building-kubo-yourself)
 - [Sending to your own collector](#sending-to-your-own-collector)
+  - [When building Kubo yourself](#when-building-kubo-yourself)
   - [Modes](#modes)
   - [Configuration](#configuration)
 - [Endpoint API](#endpoint-api)
@@ -27,7 +27,7 @@ You can turn it off at any time, and a build of Kubo can ship with the endpoint 
 
 ## Disabling telemetry
 
-Any of the options below stops the node from sending. Each takes effect on the next daemon start.
+A node with no endpoint sends nothing, and that is the default. The options below turn telemetry off regardless of the endpoint, for a node whose operator or distributor configured one. Each takes effect on the next daemon start.
 
 ### For one daemon run
 
@@ -62,19 +62,9 @@ export DO_NOT_TRACK=1
 
 `IPFS_TELEMETRY` wins over `DO_NOT_TRACK`, so a machine that opts out globally can still keep telemetry on for one node with `IPFS_TELEMETRY=on`.
 
-### When building Kubo yourself
-
-The built-in endpoint lives in one linker-settable variable, so you can build a Kubo that has no telemetry destination at all. Blank it at build time:
-
-```bash
-go build -ldflags "-X github.com/ipfs/kubo/plugin/plugins/telemetry.defaultEndpoint=" -o ipfs ./cmd/ipfs
-```
-
-A binary built this way collects nothing, writes no telemetry identifier, and needs no configuration from the people running it. Distributors and packagers who do not want their users reporting to the Kubo maintainers should use this rather than patching source. The operator of such a build can still point it at their own collector with `Endpoint`.
-
 ## Sending to your own collector
 
-Set `Endpoint` to your own URL to report there instead of the built-in destination:
+Set `Endpoint` to the URL of your collector:
 
 ```json
 {
@@ -90,13 +80,23 @@ Set `Endpoint` to your own URL to report there instead of the built-in destinati
 }
 ```
 
+### When building Kubo yourself
+
+The default endpoint lives in one linker-settable variable, and Kubo ships it empty. A distributor who runs a collector for their own builds can set it at build time, so the people running that build need no configuration:
+
+```bash
+go build -ldflags "-X github.com/ipfs/kubo/plugin/plugins/telemetry.defaultEndpoint=https://telemetry.example.com" -o ipfs ./cmd/ipfs
+```
+
+Every option in [Disabling telemetry](#disabling-telemetry) still applies to such a build. Its first run prints a notice naming the endpoint and the ways to opt out, 15 minutes before anything is sent.
+
 ### Modes
 
 The mode comes from [`IPFS_TELEMETRY`](environment-variables.md#ipfs_telemetry) first, then [`DO_NOT_TRACK`](environment-variables.md#do_not_track), then `Plugins.Plugins.telemetry.Config.Mode`.
 
 | Mode   | Description                                                                                             |
 |--------|---------------------------------------------------------------------------------------------------------|
-| `auto` | Default when the mode is unset. Telemetry is enabled, and a node shows the startup notice on its first run. |
+| `auto` | Default when the mode is unset. Telemetry is enabled if an endpoint is configured, and a node shows the startup notice on its first run. |
 | `on`   | Telemetry is enabled.                                                                                    |
 | `off`  | Telemetry is disabled. Nothing is sent, and the stored identifier is removed.                            |
 
@@ -105,7 +105,7 @@ The mode comes from [`IPFS_TELEMETRY`](environment-variables.md#ipfs_telemetry) 
 | Key        | Type   | Default                            | Description                                                                              |
 |------------|--------|------------------------------------|--------------------------------------------------------------------------------------------|
 | `Mode`     | string | `auto`                             | `auto`, `on` or `off`. See [Modes](#modes).                                              |
-| `Endpoint` | string | `https://telemetry.ipshipyard.dev` | URL the node sends telemetry to.                                                          |
+| `Endpoint` | string | none                               | URL the node sends telemetry to. Without it, nothing is collected or sent.               |
 | `Delay`    | string | `15m`                              | How long to wait after daemon start before the first send. Accepts a Go duration string. |
 
 ## Endpoint API
@@ -182,6 +182,7 @@ To see the exact data your node would send, set `GOLOG_LOG_LEVEL="telemetry=debu
 
 ## Privacy
 
+- **Off by default**: Kubo ships with no endpoint. Nothing is collected or sent until an operator or distributor configures one.
 - **Anonymized**: no personally identifiable information is sent. Sizes and uptimes are reported as coarse buckets, not exact values.
 - **Announced**: the first run of a node prints a notice naming the endpoint and the ways to opt out, 15 minutes before anything is sent.
 - **Yours to turn off**: see [Disabling telemetry](#disabling-telemetry). Opting out removes the stored identifier.

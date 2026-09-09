@@ -57,7 +57,7 @@ jobs:
           path: cmd/ipfs/ipfs
   helia-interop:
     needs: [interop-prep]
-    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
       run:
@@ -155,7 +155,7 @@ jobs:
         working-directory: node_modules/@helia/interop
   ipfs-webui:
     needs: [interop-prep]
-    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "2xlarge"]' || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       NO_SANDBOX: true

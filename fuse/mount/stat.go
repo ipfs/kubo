@@ -26,6 +26,18 @@ const StatBlockSize = 512
 // contract stays stable across Kubo and boxo upgrades.
 const DefaultBlksize = 1024 * 1024
 
+// Nlink is the link count (stat.st_nlink) reported for every entry on a
+// FUSE mount. Left unset it is 0, which POSIX gives to an inode with no
+// remaining names, so tools read a live file as one that is on its way out.
+//
+// 1 is right for files and symlinks: neither IPFS nor MFS has hard links.
+// Directories conventionally count their own entry, their parent's, and one
+// per subdirectory, but reporting 1 for them as well is deliberate. GNU find
+// skips the stat of a directory's children once it has seen st_nlink-2 of
+// them, and would miss entries if the count were a guess; a count below 2
+// tells it to walk the directory properly instead.
+const Nlink = 1
+
 // SizeToStatBlocks converts a byte size to the number of 512-byte blocks
 // reported by POSIX stat(2) in the st_blocks field, rounded up so a
 // non-empty file reports at least one block.
