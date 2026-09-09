@@ -279,6 +279,15 @@ func (loader *PluginLoader) Inject() error {
 				return err
 			}
 		}
+
+		if pl, ok := pl.(plugin.PluginIPLDADL); ok {
+			err := injectIPLDADLPlugin(pl)
+			if err != nil {
+				loader.state = loaderFailed
+				return err
+			}
+		}
+
 		if pl, ok := pl.(plugin.PluginTracer); ok {
 			err := injectTracerPlugin(pl)
 			if err != nil {
@@ -374,6 +383,10 @@ func injectDatastorePlugin(pl plugin.PluginDatastore) error {
 
 func injectIPLDPlugin(pl plugin.PluginIPLD) error {
 	return pl.Register(multicodec.DefaultRegistry)
+}
+
+func injectIPLDADLPlugin(pl plugin.PluginIPLDADL) error {
+	return pl.RegisterADL(coreapi.KnownReifiers)
 }
 
 func injectTracerPlugin(pl plugin.PluginTracer) error {
