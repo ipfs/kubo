@@ -34,6 +34,7 @@ docs/examples/go-ipfs-as-a-library/example-folder/Qm*
 /test/cli/cli-tests.json
 /test/fuse/fuse-unit-tests.json
 /test/fuse/fuse-cli-tests.json
+/test/autotls/autotls-tests.json
 
 # ignore build output from snapcraft
 /ipfs_*.snap

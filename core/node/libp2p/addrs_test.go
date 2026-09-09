@@ -19,6 +19,102 @@ func mustMultiaddrs(t *testing.T, addrs ...string) []ma.Multiaddr {
 	return out
 }
 
+// mustMultiaddrStrings is the inverse of mustMultiaddrs: a slice of strings
+// for stable comparison in test expectations.
+func mustMultiaddrStrings(addrs []ma.Multiaddr) []string {
+	out := make([]string, len(addrs))
+	for i, a := range addrs {
+		out[i] = a.String()
+	}
+	return out
+}
+
+func TestAppendHTTPProviderAddrs(t *testing.T) {
+	cases := []struct {
+		name string
+		in   []string
+		want []string
+	}{
+		{
+			name: "cleartext_ws",
+			in:   []string{"/ip4/1.2.3.4/tcp/4001/ws"},
+			want: []string{"/ip4/1.2.3.4/tcp/4001/ws", "/ip4/1.2.3.4/tcp/4001/http"},
+		},
+		{
+			name: "tls_ws",
+			in:   []string{"/ip4/1.2.3.4/tcp/4001/tls/ws"},
+			want: []string{"/ip4/1.2.3.4/tcp/4001/tls/ws", "/ip4/1.2.3.4/tcp/4001/tls/http"},
+		},
+		{
+			name: "tls_sni_ws",
+			in:   []string{"/ip4/1.2.3.4/tcp/4001/tls/sni/example.libp2p.direct/ws"},
+			want: []string{
+				"/ip4/1.2.3.4/tcp/4001/tls/sni/example.libp2p.direct/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/sni/example.libp2p.direct/http",
+			},
+		},
+		{
+			name: "dns_tls_ws",
+			in:   []string{"/dns4/example.com/tcp/443/tls/ws"},
+			want: []string{"/dns4/example.com/tcp/443/tls/ws", "/dns4/example.com/tcp/443/tls/http"},
+		},
+		{
+			name: "non_ws_addr_unchanged",
+			in: []string{
+				"/ip4/1.2.3.4/tcp/4001",
+				"/ip4/1.2.3.4/udp/4001/quic-v1",
+			},
+			want: []string{
+				"/ip4/1.2.3.4/tcp/4001",
+				"/ip4/1.2.3.4/udp/4001/quic-v1",
+			},
+		},
+		{
+			name: "mixed_preserves_order",
+			in: []string{
+				"/ip4/1.2.3.4/tcp/4001",
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/udp/4001/quic-v1",
+			},
+			want: []string{
+				"/ip4/1.2.3.4/tcp/4001",
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/http",
+				"/ip4/1.2.3.4/udp/4001/quic-v1",
+			},
+		},
+		{
+			name: "preexisting_http_not_duplicated",
+			in: []string{
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/http",
+			},
+			want: []string{
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/http",
+			},
+		},
+		{
+			name: "ws_appears_only_once_when_repeated",
+			in: []string{
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+			},
+			want: []string{
+				"/ip4/1.2.3.4/tcp/4001/tls/ws",
+				"/ip4/1.2.3.4/tcp/4001/tls/http",
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := appendHTTPProviderAddrs(mustMultiaddrs(t, c.in...))
+			require.Equal(t, c.want, mustMultiaddrStrings(got))
+		})
+	}
+}
+
 func TestFindDeadListeners(t *testing.T) {
 	cases := []struct {
 		name        string
@@ -291,5 +387,93 @@ func TestMakeAddrsFactoryDropsEmptyMultiaddrs(t *testing.T) {
 		if len(a) == 0 {
 			t.Fatalf("factory returned an empty multiaddr at index %d", i)
 		}
+	}
+}
+
+// TestParseForgeOverrides exercises the ?dial=/?dns= query-string syntax used
+// to redirect the forge registration request and DNS-01 propagation lookup
+// during tests and local debugging. Both overrides are stripped from the URL
+// handed back to p2p-forge; malformed values are rejected up-front.
+func TestParseForgeOverrides(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name       string
+		input      string
+		wantURL    string
+		wantDial   string
+		wantDNS    string
+		wantErrSub string
+	}{
+		{
+			name:    "no query",
+			input:   "https://registration.libp2p.direct",
+			wantURL: "https://registration.libp2p.direct",
+		},
+		{
+			name:    "unrelated query preserved",
+			input:   "https://registration.libp2p.direct?foo=bar",
+			wantURL: "https://registration.libp2p.direct?foo=bar",
+		},
+		{
+			name:     "dial only is stripped",
+			input:    "http://registration.libp2p.test/?dial=127.0.0.1:42013",
+			wantURL:  "http://registration.libp2p.test/",
+			wantDial: "127.0.0.1:42013",
+		},
+		{
+			name:    "dns only is stripped",
+			input:   "http://registration.libp2p.test/?dns=127.0.0.1:5353",
+			wantURL: "http://registration.libp2p.test/",
+			wantDNS: "127.0.0.1:5353",
+		},
+		{
+			name:     "dial and dns together, both stripped",
+			input:    "http://registration.libp2p.test/?dial=127.0.0.1:42013&dns=127.0.0.1:5353",
+			wantURL:  "http://registration.libp2p.test/",
+			wantDial: "127.0.0.1:42013",
+			wantDNS:  "127.0.0.1:5353",
+		},
+		{
+			name:     "overrides alongside unrelated params",
+			input:    "http://example.test/?foo=bar&dial=127.0.0.1:9000&baz=qux&dns=127.0.0.1:5353",
+			wantURL:  "http://example.test/?baz=qux&foo=bar",
+			wantDial: "127.0.0.1:9000",
+			wantDNS:  "127.0.0.1:5353",
+		},
+		{
+			name:     "ipv6 addresses",
+			input:    "http://example.test/?dial=[::1]:9000&dns=[::1]:5353",
+			wantURL:  "http://example.test/",
+			wantDial: "[::1]:9000",
+			wantDNS:  "[::1]:5353",
+		},
+		{
+			name:       "malformed dial rejected",
+			input:      "http://example.test/?dial=not-a-host-port",
+			wantErrSub: `dial="not-a-host-port"`,
+		},
+		{
+			name:       "malformed dns rejected",
+			input:      "http://example.test/?dns=not-a-host-port",
+			wantErrSub: `dns="not-a-host-port"`,
+		},
+		{
+			name:    "empty override values treated as absent",
+			input:   "http://example.test/?dial=&dns=",
+			wantURL: "http://example.test/?dial=&dns=",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gotURL, ov, err := parseForgeOverrides(tc.input)
+			if tc.wantErrSub != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.wantErrSub)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.wantURL, gotURL)
+			require.Equal(t, tc.wantDial, ov.dial)
+			require.Equal(t, tc.wantDNS, ov.dns)
+		})
 	}
 }

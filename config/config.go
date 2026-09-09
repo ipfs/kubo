@@ -39,6 +39,7 @@ type Config struct {
 	Provider      Provider   // Deprecated: use Provide. Will be removed in a future release.
 	Reprovider    Reprovider // Deprecated: use Provide. Will be removed in a future release.
 	HTTPRetrieval HTTPRetrieval
+	HTTPProvider  HTTPProvider
 	Experimental  Experiments
 	Plugins       Plugins
 	Pinning       Pinning

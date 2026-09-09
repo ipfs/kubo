@@ -139,6 +139,7 @@ help:
 	@echo '  test_unit               - Run unit tests with coverage (excludes test/cli)'
 	@echo '  test_cli                - Run CLI integration tests (requires built binary)'
 	@echo '  test_fuse               - Run FUSE tests (requires /dev/fuse and fusermount)'
+	@echo '  test_autotls            - Run AutoTLS end-to-end canary (in-process Pebble + p2p-forge)'
 	@echo '  test_go_fmt             - Check Go source formatting'
 	@echo '  test_go_build           - Build kubo for all platforms from .github/build-platforms.yml'
 	@echo '  test_go_lint            - Run golangci-lint'

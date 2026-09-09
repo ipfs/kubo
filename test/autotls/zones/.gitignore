@@ -1,0 +1,5 @@
+# The forge canary's DNS zone file is literally named after the forge
+# domain (libp2p.test) so the p2p-forge ipparser plugin can find it.
+# Override the root *.test rule (intended for Go test binaries) for this
+# one directory.
+!libp2p.test

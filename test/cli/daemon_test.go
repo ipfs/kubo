@@ -41,9 +41,10 @@ func TestDaemon(t *testing.T) {
 
 		// Enable experimental features and pubsub via config
 		node.UpdateConfig(func(cfg *config.Config) {
-			cfg.Pubsub.Enabled = config.True          // Instead of --enable-pubsub-experiment
-			cfg.Experimental.P2pHttpProxy = true      // Enable P2P HTTP proxy
-			cfg.Experimental.GatewayOverLibp2p = true // Enable gateway over libp2p
+			cfg.Pubsub.Enabled = config.True     // Instead of --enable-pubsub-experiment
+			cfg.Experimental.P2pHttpProxy = true // Enable P2P HTTP proxy
+			cfg.HTTPProvider.Enabled = config.True
+			cfg.HTTPProvider.Libp2p = config.True // Serve gateway over libp2p stream
 		})
 
 		node.StartDaemon("--enable-gc")
