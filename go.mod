@@ -99,6 +99,11 @@ require (
 )
 
 require (
+	github.com/aschmahmann/wasm-ipld/gobind v0.0.0-20220607151816-3afb0185f645
+	github.com/mitchellh/mapstructure v1.1.2
+)
+
+require (
 	filippo.io/bigmod v0.1.1-0.20260103110540-f8a47775ebe5 // indirect
 	filippo.io/keygen v1.0.0 // indirect
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
@@ -110,6 +115,7 @@ require (
 	github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bytecodealliance/wasmtime-go v0.40.0 // indirect
 	github.com/caddyserver/zerossl v0.1.5 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
