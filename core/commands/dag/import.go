@@ -1,6 +1,7 @@
 package dagcmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -9,11 +10,9 @@ import (
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	ipld "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/core/coreiface/options"
 	gocarv2 "github.com/ipld/go-car/v2"
 
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -33,20 +32,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	api, err := cmdenv.GetApi(env, req)
-	if err != nil {
-		return err
-	}
-
 	blockDecoder := ipldlegacy.NewDecoder()
-
-	// on import ensure we do not reach out to the network for any reason
-	// if a pin based on what is imported + what is in the blockstore
-	// isn't possible: tough luck
-	api, err = api.WithOptions(options.Api.Offline(true))
-	if err != nil {
-		return err
-	}
 
 	pinRootsVal, pinRootsSet := req.Options[pinRootsOptionName].(bool)
 	localOnly, _ := req.Options[localOnlyOptionName].(bool)
@@ -85,17 +71,28 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		defer unlocker.Unlock(req.Context)
 	}
 
-	// this is *not* a transaction
-	// it is simply a way to relieve pressure on the blockstore
-	// similar to pinner.Pin/pinner.Flush
-	batch := ipld.NewBatch(req.Context, api.Dag(),
-		// Default: 128. Means 128 file descriptors needed in flatfs
-		ipld.MaxNodesBatchOption(int(cfg.Import.BatchMaxNodes.WithDefault(config.DefaultBatchMaxNodes))),
-		// Default 100MiB. When setting block size to 1MiB, we can add
-		// ~100 nodes maximum. With default 256KiB block-size, we will
-		// hit the max nodes limit at 32MiB.p
-		ipld.MaxSizeBatchOption(int(cfg.Import.BatchMaxSize.WithDefault(config.DefaultBatchMaxSize))),
-	)
+	// Accumulate raw blocks and flush them in batches via the block
+	// service. This bypasses ipld.Batch, which divides the configured
+	// max batch size and node count by runtime.NumCPU() and requires
+	// decoding every block to an ipld.Node. Writing raw blocks directly
+	// avoids both the NumCPU division and the unnecessary CBOR decode,
+	// which was a significant source of read amplification and CPU
+	// overhead on large imports (see #9678).
+	maxBatchNodes := int(cfg.Import.BatchMaxNodes.WithDefault(config.DefaultBatchMaxNodes))
+	maxBatchSize := int(cfg.Import.BatchMaxSize.WithDefault(config.DefaultBatchMaxSize))
+
+	var pendingBlocks []blocks.Block
+	var pendingSize int
+
+	flushPending := func(ctx context.Context) error {
+		if len(pendingBlocks) == 0 {
+			return nil
+		}
+		err := node.Blocks.AddBlocks(ctx, pendingBlocks)
+		pendingBlocks = pendingBlocks[:0]
+		pendingSize = 0
+		return err
+	}
 
 	roots := cid.NewSet()
 	var blockCount, blockBytesCount uint64
@@ -161,18 +158,19 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 					return importError(previous, block, err)
 				}
 
-				// the double-decode is suboptimal, but we need it for batching
-				nd, err := blockDecoder.DecodeNode(req.Context, block)
-				if err != nil {
-					return importError(previous, block, err)
-				}
-
-				if err := batch.Add(req.Context, nd); err != nil {
-					return importError(previous, block, err)
-				}
+				pendingBlocks = append(pendingBlocks, block)
+				pendingSize += len(block.RawData())
 				blockCount++
 				blockBytesCount += uint64(len(block.RawData()))
 				previous = block
+
+				// Flush when either the node count or byte size limit is hit.
+				// Unlike ipld.Batch, these limits are not divided by NumCPU.
+				if len(pendingBlocks) >= maxBatchNodes || pendingSize >= maxBatchSize {
+					if err := flushPending(req.Context); err != nil {
+						return importError(previous, block, err)
+					}
+				}
 			}
 			return nil
 		}()
@@ -181,7 +179,8 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
-	if err := batch.Commit(); err != nil {
+	// Flush any remaining blocks from the last batch.
+	if err := flushPending(req.Context); err != nil {
 		return err
 	}
 

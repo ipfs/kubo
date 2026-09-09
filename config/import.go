@@ -34,7 +34,7 @@ const (
 	// DefaultBatchMaxSize controls the maximum size of a single
 	// write-batch. The total size of the batch is limited by
 	// BatchMaxnodes and BatchMaxSize.
-	DefaultBatchMaxSize = 100 << 20 // 20MiB
+	DefaultBatchMaxSize = 100 << 20 // 100MiB
 
 	// HAMTSizeEstimation values for Import.UnixFSHAMTDirectorySizeEstimation
 	HAMTSizeEstimationLinks    = "links"    // legacy: estimate using link names + CID byte lengths (default)
