@@ -205,7 +205,9 @@ func TestModeResolution(t *testing.T) {
 			t.Setenv(modeEnvVar, tc.telemetry)
 			t.Setenv(doNotTrackEnvVar, tc.doNotTrack)
 
-			cfg := map[string]any{}
+			// An endpoint is configured so the table exercises the mode alone;
+			// TestEndpointFromBuild covers the no-endpoint default.
+			cfg := map[string]any{"Endpoint": "https://telemetry.example.com"}
 			if tc.configMode != "" {
 				cfg["Mode"] = tc.configMode
 			}
@@ -221,32 +223,52 @@ func TestModeResolution(t *testing.T) {
 	}
 }
 
-// TestEndpointFromBuild covers the built-in endpoint and the build-time knob
-// that removes it, documented in the package comment.
+// TestEndpointFromBuild covers the default build, which has no collector, and
+// the link-time knob a distributor uses to add one (see the package comment).
 func TestEndpointFromBuild(t *testing.T) {
 	t.Setenv(modeEnvVar, "")
 	t.Setenv(doNotTrackEnvVar, "")
 
-	p := &telemetryPlugin{}
-	if err := p.Init(&plugin.Environment{Repo: t.TempDir()}); err != nil {
-		t.Fatalf("Init() failed: %v", err)
-	}
-	if p.endpoint != defaultEndpoint {
-		t.Fatalf("endpoint = %q, want the built-in %q", p.endpoint, defaultEndpoint)
+	if defaultEndpoint != "" {
+		t.Fatalf("defaultEndpoint = %q, Kubo must ship without a collector", defaultEndpoint)
 	}
 
-	// Same as building with -ldflags "-X ...telemetry.defaultEndpoint=".
+	// A node upgraded from a version with a built-in collector still has its
+	// identifier on disk. With nowhere to report, it goes away.
+	repoPath := t.TempDir()
+	p := &telemetryPlugin{}
+	if err := p.Init(&plugin.Environment{Repo: repoPath}); err != nil {
+		t.Fatalf("Init() failed: %v", err)
+	}
+	if err := os.WriteFile(p.uuidFilename, []byte("f81d4fae-7dec-11d0-a765-00a0c91e6bf6"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	p = &telemetryPlugin{}
+	if err := p.Init(&plugin.Environment{Repo: repoPath}); err != nil {
+		t.Fatalf("Init() failed: %v", err)
+	}
+	if p.mode != modeOff {
+		t.Fatalf("mode = %d, want %d with no endpoint", p.mode, modeOff)
+	}
+	if _, err := os.Stat(p.uuidFilename); !os.IsNotExist(err) {
+		t.Fatal("a node with no endpoint should drop its identifier")
+	}
+
+	// Same as building with -ldflags "-X ...telemetry.defaultEndpoint=<url>".
 	t.Cleanup(func(orig string) func() {
 		return func() { defaultEndpoint = orig }
 	}(defaultEndpoint))
-	defaultEndpoint = ""
+	defaultEndpoint = "https://telemetry.example.com"
 
 	p = &telemetryPlugin{}
 	if err := p.Init(&plugin.Environment{Repo: t.TempDir()}); err != nil {
 		t.Fatalf("Init() failed: %v", err)
 	}
-	if p.endpoint != "" {
-		t.Fatalf("endpoint = %q, want none", p.endpoint)
+	if p.endpoint != defaultEndpoint {
+		t.Fatalf("endpoint = %q, want the link-time %q", p.endpoint, defaultEndpoint)
+	}
+	if p.mode != modeOn {
+		t.Fatalf("mode = %d, want %d with a link-time endpoint", p.mode, modeOn)
 	}
 }
 
