@@ -51,6 +51,8 @@ type WasmIPLDADLConfig struct {
 }
 
 func (*wasmipld) Init(env *plugin.Environment) error {
+	registry = &wasmRegistry{}
+
 	config := env.Config
 	if config == nil {
 		return nil
@@ -62,8 +64,6 @@ func (*wasmipld) Init(env *plugin.Environment) error {
 	if err := mapstructure.Decode(config, &cfg); err != nil {
 		return err
 	}
-
-	registry = &wasmRegistry{}
 
 	for _, c := range cfg.Codecs {
 		wasm, err := os.ReadFile(c.WasmPath)
