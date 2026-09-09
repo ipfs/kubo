@@ -11,9 +11,11 @@ work with it via HTTP.
 package coreapi
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 
 	bserv "github.com/ipfs/boxo/blockservice"
 	blockstore "github.com/ipfs/boxo/blockstore"
@@ -30,6 +32,10 @@ import (
 	"github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/internal/fusemount"
 	irouting "github.com/ipfs/kubo/routing"
+	ipldprime "github.com/ipld/go-ipld-prime"
+	"github.com/ipld/go-ipld-prime/datamodel"
+	"github.com/ipld/go-ipld-prime/linking"
+	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
@@ -91,6 +97,25 @@ func NewCoreAPI(n *core.IpfsNode, opts ...options.ApiOption) (coreiface.CoreAPI,
 	}
 
 	return (&CoreAPI{nd: n, parentOpts: *parentOpts}).WithOptions(opts...)
+}
+
+var KnownReifiers map[string]ipldprime.NodeReifier = make(map[string]ipldprime.NodeReifier)
+
+func (api *CoreAPI) LinkSystem() ipldprime.LinkSystem {
+	lsys := cidlink.DefaultLinkSystem()
+	lsys.KnownReifiers = KnownReifiers
+	lsys.StorageReadOpener = func(linkContext linking.LinkContext, link datamodel.Link) (io.Reader, error) {
+		if cl, ok := link.(cidlink.Link); !ok {
+			return nil, fmt.Errorf("cannot process link: %v", link)
+		} else {
+			block, err := api.blocks.GetBlock(linkContext.Ctx, cl.Cid)
+			if err != nil {
+				return nil, err
+			}
+			return bytes.NewReader(block.RawData()), nil
+		}
+	}
+	return lsys
 }
 
 // Unixfs returns the UnixfsAPI interface implementation backed by the go-ipfs node
