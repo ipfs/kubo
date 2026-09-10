@@ -1,6 +1,7 @@
 package libp2p
 
 import (
+	"crypto/tls"
 	"fmt"
 	"os"
 
@@ -17,7 +18,7 @@ import (
 	"go.uber.org/fx"
 )
 
-func Transports(tptConfig config.Transports) any {
+func Transports(tptConfig config.Transports, repoPath string) any {
 	return func(params struct {
 		fx.In
 		Fprint   PNetFingerprint         `optional:"true"`
@@ -34,10 +35,23 @@ func Transports(tptConfig config.Transports) any {
 		}
 
 		if wsEnabled {
+			cache := newManualCertCache()
 			if params.ForgeMgr == nil {
-				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New))
+				// No AutoTLS: only serve TLS when manual cert files are present
+				// for the requested SNI. Connections to domains without a
+				// matching cert file will fail the TLS handshake, which is the
+				// expected behaviour for a missing certificate.
+				tlsCfg := &tls.Config{
+					GetCertificate: manualCertGetter(repoPath, cache, nil),
+				}
+				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New, websocket.WithTLSConfig(tlsCfg)))
 			} else {
-				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New, websocket.WithTLSConfig(params.ForgeMgr.TLSConfig())))
+				// AutoTLS is enabled: check manual cert files first, then fall
+				// back to p2p-forge's certmagic for *.libp2p.direct domains.
+				forgeTLS := params.ForgeMgr.TLSConfig()
+				tlsCfg := forgeTLS.Clone()
+				tlsCfg.GetCertificate = manualCertGetter(repoPath, cache, forgeTLS.GetCertificate)
+				opts.Opts = append(opts.Opts, libp2p.Transport(websocket.New, websocket.WithTLSConfig(tlsCfg)))
 			}
 		}
 

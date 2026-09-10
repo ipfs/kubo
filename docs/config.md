@@ -880,6 +880,31 @@ Default: [certmagic.LetsEncryptProductionCA](https://pkg.go.dev/github.com/caddy
 
 Type: `optionalString`
 
+### Manual TLS Certificates for Custom Domain WSS
+
+Kubo supports manual TLS certificates for [Secure WebSocket](https://github.com/libp2p/specs/blob/master/websockets/README.md) (`/wss`) listeners on custom domains, complementing the automatic [`AutoTLS`](#autotls) feature which only covers `*.libp2p.direct` domains.
+
+To use a custom domain (e.g. `example.net`), place a certificate and its private key in the IPFS repo directory using the SNI hostname as the filename:
+
+```
+$IPFS_PATH/example.net.crt   # PEM-encoded certificate (chain)
+$IPFS_PATH/example.net.key   # PEM-encoded private key
+```
+
+Then add a `/dns/example.net/.../wss` (or `/dns/example.net/.../tls/sni/example.net/ws`) address to [`Addresses.Swarm`](#addressesswarm).
+
+When a TLS client connects and sends the SNI hostname `example.net`, Kubo loads the matching `.crt`/`.key` files and serves that certificate. Loaded certificates are cached in memory and automatically reloaded when the files change on disk.
+
+This feature coexists with `AutoTLS`:
+- If manual cert files exist for the requested SNI hostname, they are used.
+- Otherwise, if `AutoTLS` is enabled, the p2p-forge certificate (for `*.libp2p.direct`) is used.
+- If neither is available, the TLS handshake fails for that hostname.
+
+This follows the same file-convention approach as the [private network `swarm.key`](https://github.com/ipfs/kubo/blob/master/docs/config.md#swarmrelayclientenabled) — no explicit config flag is needed; the feature is active only when cert files are present.
+
+> [!NOTE]
+> This is useful when you already have a TLS certificate for your own domain (e.g. from your own ACME client or a commercial CA) and want to serve WSS directly from Kubo without a reverse proxy like nginx or Caddy.
+
 ## `Bitswap`
 
 High level client and server configuration of the [Bitswap Protocol](https://specs.ipfs.tech/bitswap-protocol/) over libp2p.
