@@ -359,8 +359,6 @@ github.com/ipfs/go-dsqueue v0.2.0 h1:MBi9w3oSiX98Xc+Y7NuJ9G8MI6mAT4IGdO9dHEMCZzU
 github.com/ipfs/go-dsqueue v0.2.0/go.mod h1:8FfNQC4DMF/KkzBXRNB9Rb3MKDW0Sh98HMtXYl1mLQE=
 github.com/ipfs/go-fs-lock v0.1.1 h1:TecsP/Uc7WqYYatasreZQiP9EGRy4ZnKoG4yXxR33nw=
 github.com/ipfs/go-fs-lock v0.1.1/go.mod h1:2goSXMCw7QfscHmSe09oXiR34DQeUdm+ei+dhonqly0=
-github.com/ipfs/go-ipfs-cmds v0.16.1 h1:O3xV6v2LN52wL0odvXX6jqlt7G2scuHzQYl80OJ+TOA=
-github.com/ipfs/go-ipfs-cmds v0.16.1/go.mod h1:UkHLmJ2MlbLPuUJ0wmuF1R91+DGnwKvcCoEW3MR5CNg=
 github.com/ipfs/go-ipfs-delay v0.0.0-20181109222059-70721b86a9a8/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
 github.com/ipfs/go-ipfs-delay v0.0.1 h1:r/UXYyRcddO6thwOnhiznIAiSvxMECGgtv35Xs1IeRQ=
 github.com/ipfs/go-ipfs-delay v0.0.1/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
@@ -427,6 +425,8 @@ github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7V
 github.com/julienschmidt/httprouter v1.3.0 h1:U0609e9tgbseu3rBINet9P48AI/D3oJs4dN7jwJOQ1U=
 github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
 github.com/kami-zh/go-capturer v0.0.0-20171211120116-e492ea43421d/go.mod h1:P2viExyCEfeWGU259JnaQ34Inuec4R38JCyBx2edgD0=
+github.com/karawitan/go-ipfs-cmds v0.17.1-0.20260911042547-5b0201d36047 h1:TmjU4XP+QdGfokKUYX7MaufU9g2gDWV2ZM8gfpCaPNw=
+github.com/karawitan/go-ipfs-cmds v0.17.1-0.20260911042547-5b0201d36047/go.mod h1:383YChlWktWqevJ3X5uPm516w+y134Od2lHDcXkkngs=
 github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvWXihfKN4Q=
 github.com/kisielk/errcheck v1.2.0/go.mod h1:/BMXB+zMLi60iA8Vv6Ksmxu/1UDYcXs4uQLJ+jE2L00=
 github.com/kisielk/errcheck v1.5.0/go.mod h1:pFxgyoBC7bSaBwPgfKdkLd5X25qrDl4LWUI2bnpBCr8=

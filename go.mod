@@ -271,3 +271,5 @@ exclude (
 	github.com/ipfs/go-ipfs-cmds v2.0.1+incompatible
 	github.com/libp2p/go-libp2p v6.0.23+incompatible
 )
+
+replace github.com/ipfs/go-ipfs-cmds => github.com/karawitan/go-ipfs-cmds v0.17.1-0.20260911042547-5b0201d36047

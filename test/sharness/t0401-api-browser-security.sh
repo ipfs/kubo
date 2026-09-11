@@ -75,13 +75,32 @@ test_expect_success "Companion extension is able to access RPC API even when cus
 
 # https://developer.mozilla.org/en-US/docs/Glossary/Preflight_request
 test_expect_success "OPTIONS with preflight request to API with CORS allowlist succeeds" '
-  curl -svX OPTIONS -A "Mozilla" -H "Origin: https://valid.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: origin, x-requested-with" "http://127.0.0.1:$API_PORT/api/v0/id" 2>curl_output &&
-  cat curl_output
+  curl -svX OPTIONS -A "Mozilla" -H "Origin: https://valid.example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: origin, x-requested-with" "http://127.0.0.1:$API_PORT/api/v0/id" 2>options_output &&
+  cat options_output
 '
 
 # OPTION Response from Gateway should contain CORS headers, otherwise JS won't work
 test_expect_success "OPTIONS response for API with CORS allowslist looks good" '
-  grep "< Access-Control-Allow-Origin: https://valid.example.com" curl_output
+  grep "< Access-Control-Allow-Origin: https://valid.example.com" options_output
+'
+
+# https://github.com/ipfs/kubo/issues/9586
+# Access-Control-Allow-Headers configured via API.HTTPHeaders must appear
+# in the preflight (OPTIONS) response. The CORS middleware echoes back the
+# requested headers (case-insensitive match) instead of overwriting them with
+# the default stream output headers.
+test_expect_success "OPTIONS response includes user-configured Access-Control-Allow-Headers" '
+  grep -i "< Access-Control-Allow-Headers:.*x-requested-with" options_output
+'
+
+# https://github.com/ipfs/kubo/issues/9586
+# The actual (non-preflight) response must NOT have Access-Control-Allow-Headers
+# overwritten with the stream output headers (X-Stream-Output etc.).
+# Access-Control-Allow-Headers is a preflight concern managed by the CORS
+# middleware; the response emitter must not set it.
+test_expect_success "POST response does not overwrite Access-Control-Allow-Headers with stream headers" '
+  curl -sD - -X POST -A "Mozilla" -H "Origin: https://valid.example.com" "http://127.0.0.1:$API_PORT/api/v0/id" >post_output &&
+  test_must_fail grep -i "Access-Control-Allow-Headers: X-Stream-Output" post_output
 '
 
 test_expect_success "browser is able to access API with valid Origin matching CORS allowlist" '

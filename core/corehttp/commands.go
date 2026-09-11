@@ -70,6 +70,15 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 	for _, v := range nc.API.HTTPHeaders[cmdsHttp.ACACredentials] {
 		c.SetAllowCredentials(strings.ToLower(v) == "true")
 	}
+	// Access-Control-Allow-Headers is a CORS preflight response header
+	// managed by the CORS library (rs/cors). It must be passed to
+	// AllowedHeaders so the CORS middleware includes user-configured
+	// values in preflight (OPTIONS) responses. Without this, browsers
+	// reject requests that use headers the user explicitly allowed.
+	// See https://github.com/ipfs/kubo/issues/9586
+	if acah := nc.API.HTTPHeaders[cmdsHttp.ACAHeaders]; acah != nil {
+		c.AddAllowedHeaders(acah...)
+	}
 
 	c.Headers = make(map[string][]string, len(nc.API.HTTPHeaders)+1)
 
@@ -78,7 +87,7 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 	for h, v := range nc.API.HTTPHeaders {
 		h = http.CanonicalHeaderKey(h)
 		switch h {
-		case cmdsHttp.ACAOrigin, cmdsHttp.ACAMethods, cmdsHttp.ACACredentials:
+		case cmdsHttp.ACAOrigin, cmdsHttp.ACAMethods, cmdsHttp.ACACredentials, cmdsHttp.ACAHeaders:
 			// these are handled by the CORs library.
 		default:
 			c.Headers[h] = v
