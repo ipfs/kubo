@@ -632,13 +632,21 @@ take effect.
 	}
 	if mount {
 		if err := mountFuse(req, cctx); err != nil {
-			return err
+			// A FUSE mount failure (missing or unusable mount points, no FUSE
+			// support, permission errors, etc.) must not prevent the rest of
+			// the daemon — in particular the HTTP gateway — from starting.
+			// Warn and continue without FUSE mounts instead of aborting.
+			// See https://github.com/ipfs/kubo/issues/8977.
+			fmt.Fprintf(os.Stderr, "Warning: --mount failed; continuing without FUSE mounts: %s\n", err)
+			log.Warnf("--mount failed; continuing without FUSE mounts: %s", err)
+			mount = false
+		} else {
+			defer func() {
+				if _err != nil {
+					nodeMount.Unmount(node)
+				}
+			}()
 		}
-		defer func() {
-			if _err != nil {
-				nodeMount.Unmount(node)
-			}
-		}()
 	}
 
 	// repo blockstore GC - if --enable-gc flag is present
