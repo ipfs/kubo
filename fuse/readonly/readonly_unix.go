@@ -62,6 +62,7 @@ func (r *Root) Statfs(_ context.Context, out *fuse.StatfsOut) syscall.Errno {
 
 func (*Root) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr.Mode = uint32(fusemnt.NamespaceRootMode.Perm())
+	out.Attr.Nlink = fusemnt.Nlink
 	out.SetTimeout(immutableAttrCacheTime)
 	return 0
 }
@@ -117,8 +118,8 @@ func (r *Root) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 		return nil, syscall.ENOENT
 	}
 
-	child := &Node{ipfs: r.ipfs, nd: fnd}
-	stable := stableAttrFor(child)
+	child := &Node{ipfs: r.ipfs, nd: fnd, cid: cidLnk.Cid}
+	stable := stableAttrFor(child, cidLnk.Cid)
 
 	// Fill attrs in the lookup response so the kernel doesn't cache zeros.
 	child.fillAttr(&out.Attr)
@@ -135,8 +136,13 @@ func (*Root) Readdir(_ context.Context) (fs.DirStream, syscall.Errno) {
 // Node is the core object representing a filesystem tree node.
 type Node struct {
 	fs.Inode
-	ipfs   *core.IpfsNode
-	nd     ipld.Node
+	ipfs *core.IpfsNode
+	nd   ipld.Node
+	// cid is the CID this entry resolved to. It is kept separately because
+	// nd is rebuilt by decoding the block, which loses the CID version and
+	// codec the caller asked for: a v1 dag-pb path would otherwise report
+	// its v0 form through the ipfs.cid xattr.
+	cid    cid.Cid
 	cached *ft.FSNode
 }
 
@@ -161,11 +167,35 @@ func (n *Node) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) sy
 // Open creates a DagReader that is reused across sequential Read
 // calls, avoiding re-traversal of the DAG from the root on each read.
 func (n *Node) Open(ctx context.Context, _ uint32) (fs.FileHandle, uint32, syscall.Errno) {
+	// A UnixFS directory can link to a block of any codec, and there is no
+	// DAG to walk in one that is not dag-pb. fillAttr reports those as a file
+	// the size of the block, so hand back exactly those bytes; otherwise stat
+	// promises content that every read refuses to deliver.
+	switch n.nd.(type) {
+	case *mdag.ProtoNode, *mdag.RawNode:
+	default:
+		return &rawFileHandle{data: n.nd.RawData()}, fuse.FOPEN_KEEP_CACHE, 0
+	}
+
 	r, err := uio.NewDagReader(ctx, n.nd, n.ipfs.DAG)
 	if err != nil {
 		return nil, 0, fusemnt.ReadErrno(err)
 	}
 	return &roFileHandle{r: r}, fuse.FOPEN_KEEP_CACHE, 0
+}
+
+// rawFileHandle serves a block's own bytes. Used for entries whose codec
+// carries no UnixFS metadata, where the block is all there is to read.
+type rawFileHandle struct {
+	data []byte
+}
+
+func (fh *rawFileHandle) Read(_ context.Context, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+	if off < 0 || off >= int64(len(fh.data)) {
+		return fuse.ReadResultData(nil), 0
+	}
+	end := min(off+int64(len(dest)), int64(len(fh.data)))
+	return fuse.ReadResultData(fh.data[off:end]), 0
 }
 
 // roFileHandle holds a DagReader for the lifetime of an open file.
@@ -186,6 +216,7 @@ type roFileHandle struct {
 // which clobbers the UnixFS-derived values set below.
 func (n *Node) fillAttr(a *fuse.Attr) {
 	a.Blksize = fusemnt.DefaultBlksize
+	a.Nlink = fusemnt.Nlink
 
 	if rawnd, ok := n.nd.(*mdag.RawNode); ok {
 		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
@@ -199,6 +230,16 @@ func (n *Node) fillAttr(a *fuse.Attr) {
 			log.Errorf("readonly: loadData() failed: %s", err)
 			return
 		}
+	}
+
+	// A UnixFS directory can link to a block of any codec, and loadData only
+	// reads UnixFS metadata out of dag-pb. Report anything else as a file of
+	// the block's own size, which is what reads of it return.
+	if n.cached == nil {
+		a.Mode = uint32(fusemnt.DefaultFileModeRO.Perm())
+		a.Size = uint64(len(n.nd.RawData()))
+		a.Blocks = fusemnt.SizeToStatBlocks(a.Size)
+		return
 	}
 
 	switch n.cached.Type() {
@@ -246,14 +287,19 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 		return nil, syscall.EIO
 	}
 
+	// A block we cannot read is not an entry we can serve: every attribute
+	// of it, down to its type, comes from the block itself.
 	nd, err := n.ipfs.DAG.Get(ctx, link.Cid)
-	if err != nil && !ipld.IsNotFound(err) {
+	if err != nil {
+		if ipld.IsNotFound(err) {
+			return nil, syscall.ENOENT
+		}
 		log.Errorf("fuse lookup %q: %s", name, err)
 		return nil, syscall.EIO
 	}
 
-	child := &Node{ipfs: n.ipfs, nd: nd}
-	stable := stableAttrFor(child)
+	child := &Node{ipfs: n.ipfs, nd: nd, cid: link.Cid}
+	stable := stableAttrFor(child, link.Cid)
 
 	child.fillAttr(&out.Attr)
 	out.SetEntryTimeout(immutableAttrCacheTime)
@@ -276,8 +322,12 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 		}
 		nd, err := n.ipfs.DAG.Get(ctx, lnk.Cid)
 		if err != nil {
-			log.Warn("error fetching directory child node: ", err)
-			return err
+			// Listing the rest of the directory is more use than failing all
+			// of it because one block is missing. Reporting no type leaves
+			// the entry as DT_UNKNOWN, which tells the caller to stat it.
+			log.Warnf("fuse readdir: child %q: %s", name, err)
+			entries = append(entries, fuse.DirEntry{Name: name, Ino: fusemnt.InoFromCid(lnk.Cid)})
+			return nil
 		}
 
 		var mode uint32
@@ -302,7 +352,9 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 				}
 			}
 		}
-		entries = append(entries, fuse.DirEntry{Name: name, Mode: mode})
+		// Ino has to match what Lookup reports for the same name, or d_ino
+		// from getdents disagrees with st_ino from stat.
+		entries = append(entries, fuse.DirEntry{Name: name, Mode: mode, Ino: fusemnt.InoFromCid(lnk.Cid)})
 		return nil
 	})
 	if err != nil {
@@ -332,7 +384,7 @@ func (n *Node) Getxattr(_ context.Context, attr string, dest []byte) (uint32, sy
 	if attr != fusemnt.XattrCID {
 		return 0, fs.ENOATTR
 	}
-	data := []byte(n.nd.Cid().String())
+	data := []byte(n.cid.String())
 	if len(dest) == 0 {
 		return uint32(len(data)), 0
 	}
@@ -372,10 +424,19 @@ func (fh *roFileHandle) Release(_ context.Context) syscall.Errno {
 	return fs.ToErrno(fh.r.Close())
 }
 
-// stableAttrFor returns the StableAttr (file type bits) for a Node.
-func stableAttrFor(n *Node) fs.StableAttr {
+// stableAttrFor describes a node to go-fuse: which object it is (Ino and Gen,
+// both derived from c, the CID the entry resolved to) and what kind of object.
+//
+// Ino and Gen together are the identity go-fuse matches a lookup against, so
+// both are needed to tell two CIDs apart; see fusemnt.InoGenFromCid. They are
+// derived rather than counted because /ipfs content never changes under a CID:
+// a node go-fuse already holds for that CID is still accurate and is reused
+// rather than rebuilt.
+func stableAttrFor(n *Node, c cid.Cid) fs.StableAttr {
+	ino, gen := fusemnt.InoGenFromCid(c)
+	attr := fs.StableAttr{Ino: ino, Gen: gen} // Mode 0 is S_IFREG
 	if _, ok := n.nd.(*mdag.RawNode); ok {
-		return fs.StableAttr{} // S_IFREG
+		return attr
 	}
 	if n.cached == nil {
 		_ = n.loadData()
@@ -383,12 +444,12 @@ func stableAttrFor(n *Node) fs.StableAttr {
 	if n.cached != nil {
 		switch n.cached.Type() {
 		case ft.TDirectory, ft.THAMTShard:
-			return fs.StableAttr{Mode: syscall.S_IFDIR}
+			attr.Mode = syscall.S_IFDIR
 		case ft.TSymlink:
-			return fs.StableAttr{Mode: syscall.S_IFLNK}
+			attr.Mode = syscall.S_IFLNK
 		}
 	}
-	return fs.StableAttr{} // S_IFREG
+	return attr
 }
 
 // Interface checks.

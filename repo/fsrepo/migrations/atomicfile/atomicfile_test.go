@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -168,6 +169,39 @@ func TestMultipleAbortsSafe(t *testing.T) {
 	err = af.Abort()
 	// Error is acceptable since file is already removed, but it should not panic
 	t.Logf("Second Abort() returned: %v", err)
+}
+
+// TestLongFileName verifies a target with a name at the file system limit can
+// still be written, since the temp file needs room for a prefix and a suffix.
+func TestLongFileName(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, strings.Repeat("a", 251)+".txt")
+
+	af, err := New(path, 0644)
+	require.NoError(t, err)
+
+	_, err = af.Write([]byte("test"))
+	require.NoError(t, err)
+	require.NoError(t, af.Close())
+
+	assert.FileExists(t, path)
+}
+
+// TestClose_RenameError verifies the temp file, which may hold sensitive data,
+// is removed when the target cannot be replaced.
+func TestClose_RenameError(t *testing.T) {
+	dir := t.TempDir()
+	// A directory cannot be replaced by renaming a file over it.
+	path := filepath.Join(dir, "blocking")
+	require.NoError(t, os.Mkdir(path, 0755))
+
+	af, err := New(path, 0644)
+	require.NoError(t, err)
+
+	tempName := af.File.Name()
+
+	require.Error(t, af.Close())
+	assert.NoFileExists(t, tempName)
 }
 
 // TestNoTempFilesAfterOperations verifies no .tmp-* files remain after operations

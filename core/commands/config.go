@@ -542,6 +542,23 @@ func transformConfig(configRoot string, configName string, transformer config.Tr
 		return nil, nil, err
 	}
 
+	// Datastore.Spec describes what is on disk. A profile that changes it
+	// leaves a repo that no longer opens.
+	oldDS, err := fsrepo.AnyDatastoreConfig(oldCfg.Datastore.Spec)
+	if err != nil {
+		return nil, nil, err
+	}
+	newDS, err := fsrepo.AnyDatastoreConfig(newCfg.Datastore.Spec)
+	if err != nil {
+		return nil, nil, err
+	}
+	if oldDS.DiskSpec().String() != newDS.DiskSpec().String() {
+		return nil, nil, fmt.Errorf("profile %q changes the datastore layout, which is fixed when the repo is created. "+
+			"Create a new repo with 'ipfs init --profile=%s' and move your data there "+
+			"with 'ipfs dag export' and 'ipfs dag import', or with 'ipfs pin ls -t recursive' and 'ipfs pin add'",
+			configName, configName)
+	}
+
 	if !dryRun {
 		_, err = r.BackupConfig("pre-" + configName + "-")
 		if err != nil {

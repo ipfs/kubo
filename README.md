@@ -78,6 +78,8 @@ Kubo runs on most Linux, macOS, and Windows systems. For optimal performance, we
 > [!CAUTION]
 > Systems with less than the recommended memory may experience instability, frequent OOM errors or restarts, and missing data announcement (reprovider window), which can make data fully or partially inaccessible to other peers. Running Kubo on underprovisioned hardware is at your own risk.
 
+For running Kubo on constrained hardware such as a Raspberry Pi, see [Kubo on low-memory devices](docs/production/low-memory.md).
+
 ### Official Prebuilt Binaries
 
 Download from https://dist.ipfs.tech#kubo or [GitHub Releases](https://github.com/ipfs/kubo/releases/latest).

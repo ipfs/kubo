@@ -8,6 +8,7 @@ const (
 	DefaultInlineDNSLink         = false
 	DefaultDeserializedResponses = true
 	DefaultDisableHTMLErrors     = false
+	DefaultDeprecatedXIpfsPath   = false
 	DefaultExposeRoutingAPI      = true
 	DefaultDiagnosticServiceURL  = "https://check.ipfs.network"
 	DefaultAllowCodecConversion  = false
@@ -83,6 +84,13 @@ type Gateway struct {
 	// DisableHTMLErrors disables pretty HTML pages when an error occurs. Instead, a `text/plain`
 	// page will be sent with the raw error message.
 	DisableHTMLErrors Flag
+
+	// DeprecatedXIpfsPath restores the deprecated X-Ipfs-Path response
+	// header, superseded by Ipfs-Uri (IPIP-0548). Unsafe: the legacy value
+	// cannot represent every UnixFS file name, so even when enabled the
+	// header is skipped when the value would include non-ASCII byte
+	// sequences. Enable only to facilitate migration to Ipfs-Uri.
+	DeprecatedXIpfsPath Flag
 
 	// PublicGateways configures behavior of known public gateways.
 	// Each key is a fully qualified domain name (FQDN).

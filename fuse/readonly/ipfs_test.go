@@ -36,12 +36,16 @@ import (
 	importer "github.com/ipfs/boxo/ipld/unixfs/importer"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	"github.com/ipfs/boxo/path"
+	cid "github.com/ipfs/go-cid"
+	cbor "github.com/ipfs/go-ipld-cbor"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-test/random"
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/ipfs/kubo/fuse/fusetest"
 	fusemnt "github.com/ipfs/kubo/fuse/mount"
+	mh "github.com/multiformats/go-multihash"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
 )
 
 func testMount(t *testing.T, root fs.InodeEmbedder) string {
@@ -161,6 +165,201 @@ func TestBareFileCID(t *testing.T) {
 			t.Fatalf("content mismatch: got %d bytes, want %d", len(got), len(content))
 		}
 	})
+}
+
+// TestInodeNumbersFromCID verifies that /ipfs entries are numbered from the
+// CID they resolve to, so a file keeps one inode number no matter which path
+// reaches it or how often the kernel looks it up.
+func TestInodeNumbersFromCID(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	api, err := coreapi.NewCoreAPI(nd)
+	require.NoError(t, err)
+
+	content := []byte("inode numbering test content")
+	file, err := api.Unixfs().Add(t.Context(), files.NewBytesFile(content))
+	require.NoError(t, err)
+
+	dir, err := api.Unixfs().Add(t.Context(), files.NewMapDirectory(map[string]files.Node{
+		"child": files.NewBytesFile(content),
+	}))
+	require.NoError(t, err)
+
+	ino := func(path string) uint64 {
+		t.Helper()
+		info, err := os.Stat(path)
+		require.NoError(t, err)
+		st, ok := info.Sys().(*syscall.Stat_t)
+		require.True(t, ok)
+		return st.Ino
+	}
+
+	direct := ino(gopath.Join(mntDir, file.RootCid().String()))
+	require.NotZero(t, direct, "file should report an inode number")
+	// Numbers at or above this point are the ones go-fuse hands out when a
+	// filesystem does not number a node itself.
+	require.Less(t, direct, uint64(fusemnt.AutomaticIno),
+		"inode number should be derived from the CID, not left to go-fuse")
+
+	require.Equal(t, direct, ino(gopath.Join(mntDir, file.RootCid().String())),
+		"repeated lookups of one path should agree")
+	require.Equal(t, direct, ino(gopath.Join(mntDir, dir.RootCid().String(), "child")),
+		"the same content reached through another path is the same object")
+}
+
+// TestSameBlockUnderTwoCodecs reads one block through both a dag-pb and a raw
+// CID. They name different files, since the raw CID is the block itself and
+// the dag-pb CID is the UnixFS file inside it, so they have to be numbered
+// apart: go-fuse serves two entries that agree on their whole identity from
+// one node, and the first one read would then answer for both.
+func TestSameBlockUnderTwoCodecs(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	api, err := coreapi.NewCoreAPI(nd)
+	require.NoError(t, err)
+
+	content := []byte("one block, two codecs")
+	added, err := api.Unixfs().Add(t.Context(), files.NewBytesFile(content),
+		options.Unixfs.CidVersion(1), options.Unixfs.RawLeaves(false))
+	require.NoError(t, err)
+
+	pbCid := added.RootCid()
+	rawCid := cid.NewCidV1(cid.Raw, pbCid.Hash())
+
+	block, err := nd.Blockstore.Get(t.Context(), pbCid)
+	require.NoError(t, err)
+
+	stat := func(c cid.Cid) (uint64, []byte) {
+		t.Helper()
+		p := gopath.Join(mntDir, c.String())
+		info, err := os.Stat(p)
+		require.NoError(t, err)
+		st, ok := info.Sys().(*syscall.Stat_t)
+		require.True(t, ok)
+		data, err := os.ReadFile(p)
+		require.NoError(t, err)
+		return st.Ino, data
+	}
+
+	pbIno, pbData := stat(pbCid)
+	rawIno, rawData := stat(rawCid)
+
+	require.NotEqual(t, pbIno, rawIno, "two CIDs for one block should be numbered apart")
+	require.Equal(t, content, pbData, "the dag-pb CID should read as the UnixFS file")
+	require.Equal(t, block.RawData(), rawData, "the raw CID should read as the block itself")
+}
+
+// TestLookupOfUnreadableChild covers the two children a UnixFS directory can
+// hold that this mount cannot read as a UnixFS file: one in a codec it does
+// not decode, and one whose block is not in the blockstore. A stat of either
+// used to dereference the UnixFS metadata it never got and take the whole
+// daemon down with it.
+func TestLookupOfUnreadableChild(t *testing.T) {
+	dirWithChild := func(t *testing.T, nd *core.IpfsNode, name string, child ipld.Node) string {
+		t.Helper()
+		db, err := uio.NewDirectory(nd.DAG)
+		require.NoError(t, err)
+		require.NoError(t, db.AddChild(t.Context(), name, child))
+		dir, err := db.GetNode()
+		require.NoError(t, err)
+		require.NoError(t, nd.DAG.Add(t.Context(), dir))
+		return dir.Cid().String()
+	}
+
+	t.Run("dag-cbor child", func(t *testing.T) {
+		nd, mntDir := setupIpfsTest(t, nil)
+
+		child, err := cbor.WrapObject(map[string]string{"hello": "world"}, mh.SHA2_256, -1)
+		require.NoError(t, err)
+		require.NoError(t, nd.DAG.Add(t.Context(), child))
+
+		dir := dirWithChild(t, nd, "obj", child)
+		info, err := os.Stat(gopath.Join(mntDir, dir, "obj"))
+		require.NoError(t, err)
+		require.False(t, info.IsDir())
+		require.EqualValues(t, len(child.RawData()), info.Size(),
+			"a block this mount cannot decode should report its own size")
+
+		got, err := os.ReadFile(gopath.Join(mntDir, dir, "obj"))
+		require.NoError(t, err, "a size stat reports has to be a size reads can deliver")
+		require.Equal(t, child.RawData(), got)
+	})
+
+	t.Run("missing block", func(t *testing.T) {
+		// An offline node, so that a block nobody has is reported missing
+		// rather than waited for.
+		offline, err := core.NewNode(t.Context(), &core.BuildCfg{})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = offline.Close() })
+		_, mntDir := setupIpfsTest(t, offline)
+
+		child := dag.NodeWithData(ft.FilePBData([]byte("gone"), 4))
+		dir := dirWithChild(t, offline, "gone", child)
+		require.NoError(t, offline.DAG.Remove(t.Context(), child.Cid()))
+
+		_, err = os.Stat(gopath.Join(mntDir, dir, "gone"))
+		require.Error(t, err, "a child whose block is missing should not resolve")
+	})
+}
+
+// A listing has to survive one child whose block is missing. The other
+// entries are still worth having, and the caller finds out what is wrong with
+// the bad one by stat'ing it.
+func TestReaddirWithUnreadableChild(t *testing.T) {
+	offline, err := core.NewNode(t.Context(), &core.BuildCfg{})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = offline.Close() })
+	_, mntDir := setupIpfsTest(t, offline)
+
+	good := dag.NodeWithData(ft.FilePBData([]byte("here"), 4))
+	gone := dag.NodeWithData(ft.FilePBData([]byte("gone"), 4))
+	// AddChild only links a node, it does not store it, and an entry whose
+	// block was never stored is missing in the same way as one that was.
+	require.NoError(t, offline.DAG.Add(t.Context(), good))
+	require.NoError(t, offline.DAG.Add(t.Context(), gone))
+
+	db, err := uio.NewDirectory(offline.DAG)
+	require.NoError(t, err)
+	require.NoError(t, db.AddChild(t.Context(), "good", good))
+	require.NoError(t, db.AddChild(t.Context(), "gone", gone))
+	dirNode, err := db.GetNode()
+	require.NoError(t, err)
+	require.NoError(t, offline.DAG.Add(t.Context(), dirNode))
+	require.NoError(t, offline.DAG.Remove(t.Context(), gone.Cid()))
+
+	entries, err := os.ReadDir(gopath.Join(mntDir, dirNode.Cid().String()))
+	require.NoError(t, err, "one missing block should not fail the whole listing")
+
+	var names []string
+	for _, e := range entries {
+		names = append(names, e.Name())
+	}
+	// The unreadable name is reported with no type and no inode number, which
+	// readdirplus and Go's dirent parsing then drop; what matters is that the
+	// readable half of the directory is still there.
+	require.Contains(t, names, "good")
+}
+
+// The ipfs.cid xattr has to answer with the CID the caller used to get here.
+// The mount rebuilds the node by decoding the block, which loses the version
+// and codec of the path it came from.
+func TestXattrCIDMatchesPath(t *testing.T) {
+	nd, mntDir := setupIpfsTest(t, nil)
+
+	api, err := coreapi.NewCoreAPI(nd)
+	require.NoError(t, err)
+
+	added, err := api.Unixfs().Add(t.Context(),
+		files.NewBytesFile([]byte("xattr cid version")),
+		options.Unixfs.CidVersion(1),
+		options.Unixfs.RawLeaves(false))
+	require.NoError(t, err)
+	want := added.RootCid().String()
+
+	dest := make([]byte, 256)
+	sz, err := unix.Getxattr(gopath.Join(mntDir, want), fusemnt.XattrCID, dest)
+	require.NoError(t, err)
+	require.Equal(t, want, string(dest[:sz]))
 }
 
 // Test reading a directory that contains both dag-pb and raw-leaf children.
@@ -490,7 +689,7 @@ func TestXattrCID(t *testing.T) {
 
 	t.Run("file", func(t *testing.T) {
 		obj, _ := randObj(t, nd, 100)
-		node := &Node{ipfs: nd, nd: obj}
+		node := &Node{ipfs: nd, nd: obj, cid: obj.Cid()}
 
 		dest := make([]byte, 256)
 		sz, errno := node.Listxattr(t.Context(), dest)
@@ -522,7 +721,7 @@ func TestXattrCID(t *testing.T) {
 		if err := nd.DAG.Add(nd.Context(), dirNode); err != nil {
 			t.Fatal(err)
 		}
-		node := &Node{ipfs: nd, nd: dirNode}
+		node := &Node{ipfs: nd, nd: dirNode, cid: dirNode.Cid()}
 
 		dest := make([]byte, 256)
 		sz, errno := node.Listxattr(t.Context(), dest)
@@ -852,7 +1051,7 @@ func TestUnknownXattr(t *testing.T) {
 	nd, _ := setupIpfsTest(t, nil)
 
 	obj, _ := randObj(t, nd, 100)
-	node := &Node{ipfs: nd, nd: obj}
+	node := &Node{ipfs: nd, nd: obj, cid: obj.Cid()}
 
 	dest := make([]byte, 256)
 	_, errno := node.Getxattr(t.Context(), "user.bogus", dest)

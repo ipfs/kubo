@@ -24,6 +24,7 @@ import (
 	"time"
 
 	racedet "github.com/ipfs/go-detect-race"
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 	"github.com/ipfs/kubo/fuse/writable"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
@@ -215,6 +216,25 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 
 		_, err := os.Stat(sub)
 		require.True(t, os.IsNotExist(err))
+	})
+
+	// A rename may only replace a directory when that directory is empty.
+	// MFS removes a directory and everything under it without complaint, so
+	// the mount has to check: `mv -T src dst` used to take dst's contents
+	// with it. mv(1) does its own checking, so drive rename(2) directly.
+	t.Run("RenameOntoNonEmptyDirectory", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+		src := filepath.Join(dir, "rename_src")
+		dst := filepath.Join(dir, "rename_dst")
+		require.NoError(t, os.Mkdir(src, 0o755))
+		require.NoError(t, os.Mkdir(dst, 0o755))
+		moved := WriteFileOrFail(t, 50, filepath.Join(src, "moved"))
+		keep := WriteFileOrFail(t, 50, filepath.Join(dst, "keep"))
+
+		require.ErrorIs(t, syscall.Rename(src, dst), syscall.ENOTEMPTY)
+
+		VerifyFile(t, filepath.Join(dst, "keep"), keep)
+		VerifyFile(t, filepath.Join(src, "moved"), moved)
 	})
 
 	t.Run("RemoveNonEmptyDirectory", func(t *testing.T) {
@@ -436,6 +456,158 @@ func RunWritableSuite(t *testing.T, mount MountFunc) {
 		require.NoError(t, f.Close())
 
 		VerifyFile(t, path, newData)
+	})
+
+	// A file's inode number has to outlive the kernel dropping its directory
+	// entry and looking it up again, which happens once EntryTimeout passes.
+	// When it does not, a program that compares a file's identity over time
+	// concludes the file was swapped underneath it: vim abandons a save with
+	// "E949: File changed while writing".
+	t.Run("InodeNumbers", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+
+		var mnt unix.Stat_t
+		require.NoError(t, unix.Stat(dir, &mnt))
+		require.NotZero(t, mnt.Ino, "mount point should report an inode number")
+
+		path := filepath.Join(dir, "stable")
+		require.NoError(t, os.WriteFile(path, []byte("first"), 0o644))
+
+		var first unix.Stat_t
+		require.NoError(t, unix.Stat(path, &first))
+		require.NotZero(t, first.Ino, "file should report an inode number")
+		// go-fuse numbers whatever the filesystem leaves to it from
+		// AutomaticIno up, handing out a new number for every node it builds.
+		// A number in that range means the mount is not numbering its own
+		// entries.
+		require.Less(t, first.Ino, uint64(fusemnt.AutomaticIno),
+			"inode number should come from the mount, not go-fuse's automatic range")
+
+		// Outlast the entry timeout of the writable mounts (one second) so
+		// the kernel has to ask for the entry again.
+		time.Sleep(1500 * time.Millisecond)
+
+		var again unix.Stat_t
+		require.NoError(t, unix.Stat(path, &again))
+		require.Equal(t, first.Ino, again.Ino, "inode number should survive a re-lookup")
+
+		// A name that is removed and created again names a different file, so
+		// it must not inherit the old number. go-fuse matches nodes by inode
+		// number, and would hand back the removed entry's node; MFS has that
+		// one marked as unlinked and drops writes made through it.
+		require.NoError(t, os.Remove(path))
+		require.NoError(t, os.WriteFile(path, []byte("second"), 0o644))
+
+		var recreated unix.Stat_t
+		require.NoError(t, unix.Stat(path, &recreated))
+		require.NotEqual(t, first.Ino, recreated.Ino,
+			"a name that was removed and created again should get a new inode number")
+		VerifyFile(t, path, []byte("second"))
+
+		// A directory listing reports an inode number per entry of its own,
+		// and tools that read it (ls -i, find) never learn of the one stat
+		// would give them. The two have to agree.
+		assertDirEntryInos(t, dir)
+	})
+
+	// Renaming moves a file, it does not replace it, so the inode number goes
+	// with it. Backup tools that track files by identity (tar
+	// --listed-incremental, file watchers) re-copy a file whose number
+	// changed, and a directory rename must not renumber what is inside it.
+	t.Run("InodeNumbersAcrossRename", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+
+		src := filepath.Join(dir, "before")
+		require.NoError(t, os.WriteFile(src, []byte("payload"), 0o644))
+
+		subdir := filepath.Join(dir, "olddir")
+		require.NoError(t, os.Mkdir(subdir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(subdir, "child"), []byte("payload"), 0o644))
+
+		ino := func(path string) uint64 {
+			t.Helper()
+			var st unix.Stat_t
+			require.NoError(t, unix.Stat(path, &st))
+			return st.Ino
+		}
+
+		fileBefore := ino(src)
+		dirBefore := ino(subdir)
+		childBefore := ino(filepath.Join(subdir, "child"))
+
+		dst := filepath.Join(dir, "after")
+		moved := filepath.Join(dir, "newdir")
+		require.NoError(t, os.Rename(src, dst))
+		require.NoError(t, os.Rename(subdir, moved))
+
+		require.Equal(t, fileBefore, ino(dst), "a renamed file keeps its inode number")
+		require.Equal(t, dirBefore, ino(moved), "a renamed directory keeps its inode number")
+
+		// The kernel answered those from the directory entries it moved
+		// itself. Outlasting the entry timeout makes it ask the mount, which
+		// is where a renamed entry used to come back as a different file.
+		time.Sleep(1500 * time.Millisecond)
+
+		require.Equal(t, fileBefore, ino(dst), "and keeps it once the kernel asks again")
+		require.Equal(t, dirBefore, ino(moved), "and so does the directory")
+		require.Equal(t, childBefore, ino(filepath.Join(moved, "child")),
+			"an entry inside a renamed directory keeps its inode number")
+
+		// The renamed directory is a live MFS handle, not the one that was
+		// unlinked: writes through it have to reach the tree.
+		child := filepath.Join(moved, "child")
+		require.NoError(t, os.WriteFile(child, []byte("rewritten"), 0o644))
+		VerifyFile(t, child, []byte("rewritten"))
+	})
+
+	// A rename leaves the kernel holding the entry it moved, and that entry
+	// carries the MFS handle the rename unlinked. Writing through the new
+	// name straight away has to reach the tree; it used to be accepted and
+	// then dropped, and the file read back with its old contents once the
+	// entry cache expired.
+	t.Run("WriteAfterRename", func(t *testing.T) {
+		dir := mount(t, writable.Config{})
+
+		src := filepath.Join(dir, "before")
+		dst := filepath.Join(dir, "after")
+		require.NoError(t, os.WriteFile(src, []byte("one"), 0o644))
+		require.NoError(t, os.Rename(src, dst))
+		require.NoError(t, os.WriteFile(dst, []byte("two"), 0o644))
+
+		// Outlast the entry timeout so the kernel asks the mount again
+		// instead of answering from the node it moved.
+		time.Sleep(1500 * time.Millisecond)
+		VerifyFile(t, dst, []byte("two"))
+
+		// Same for a directory: an entry created under the new name has to
+		// land there, and the old name must not come back.
+		oldDir := filepath.Join(dir, "olddir2")
+		newDir := filepath.Join(dir, "newdir2")
+		require.NoError(t, os.Mkdir(oldDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(oldDir, "kept"), []byte("kept"), 0o644))
+		require.NoError(t, os.Rename(oldDir, newDir))
+		require.NoError(t, os.WriteFile(filepath.Join(newDir, "fresh"), []byte("fresh"), 0o644))
+
+		time.Sleep(1500 * time.Millisecond)
+		VerifyFile(t, filepath.Join(newDir, "fresh"), []byte("fresh"))
+		VerifyFile(t, filepath.Join(newDir, "kept"), []byte("kept"))
+		_, err := os.Stat(oldDir)
+		require.True(t, os.IsNotExist(err), "the name a rename moved away from must stay gone")
+
+		// And an entry the kernel had already looked up before the rename.
+		// Its handle hangs off the directory the rename replaced, a level
+		// below the entry that moved.
+		oldParent := filepath.Join(dir, "oldparent")
+		newParent := filepath.Join(dir, "newparent")
+		require.NoError(t, os.Mkdir(oldParent, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(oldParent, "child"), []byte("one"), 0o644))
+		VerifyFile(t, filepath.Join(oldParent, "child"), []byte("one")) // make the kernel hold it
+
+		require.NoError(t, os.Rename(oldParent, newParent))
+		require.NoError(t, os.WriteFile(filepath.Join(newParent, "child"), []byte("two"), 0o644))
+
+		time.Sleep(1500 * time.Millisecond)
+		VerifyFile(t, filepath.Join(newParent, "child"), []byte("two"))
 	})
 
 	// rsync default save: create temp file, write, rename over target.

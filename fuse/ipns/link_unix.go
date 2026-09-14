@@ -9,6 +9,8 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
+
+	fusemnt "github.com/ipfs/kubo/fuse/mount"
 )
 
 type Link struct {
@@ -19,6 +21,7 @@ type Link struct {
 func (l *Link) Getattr(_ context.Context, _ fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	log.Debug("Link attr.")
 	out.Attr.Mode = 0o555
+	out.Attr.Nlink = fusemnt.Nlink
 	return 0
 }
 

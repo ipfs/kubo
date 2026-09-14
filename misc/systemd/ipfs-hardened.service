@@ -55,6 +55,12 @@ CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 # enable to specify a higher limit for open files/connections
 #LimitNOFILE=1000000
 
+# enable memory limits on low-memory devices (example values for 8 GiB of RAM)
+# see https://github.com/ipfs/kubo/blob/master/docs/production/low-memory.md
+#Environment=GOMEMLIMIT=4GiB
+#MemoryHigh=6G
+#MemoryMax=7G
+
 #don't use swap
 MemorySwapMax=0
 

@@ -44,7 +44,11 @@ func GatewayOption(paths ...string) ServeOption {
 		}
 
 		handler := gateway.NewHandler(config, backend)
-		handler = gateway.NewHeaders(headers).ApplyCors().Wrap(handler)
+		h := gateway.NewHeaders(headers)
+		if config.DeprecatedXIpfsPath {
+			h = h.WithDeprecatedXIpfsPath()
+		}
+		handler = h.ApplyCors().Wrap(handler)
 		if fn := newServerDomainAttrFn(n); fn != nil {
 			handler = withMetricLabels(handler, fn)
 		}
@@ -74,7 +78,11 @@ func HostnameOption() ServeOption {
 
 		var handler http.Handler
 		handler = gateway.NewHostnameHandler(config, backend, childMux)
-		handler = gateway.NewHeaders(headers).ApplyCors().Wrap(handler)
+		h := gateway.NewHeaders(headers)
+		if config.DeprecatedXIpfsPath {
+			h = h.WithDeprecatedXIpfsPath()
+		}
+		handler = h.ApplyCors().Wrap(handler)
 		if fn := newServerDomainAttrFn(n); fn != nil {
 			handler = withMetricLabels(handler, fn)
 		}
@@ -384,6 +392,7 @@ func getGatewayConfig(n *core.IpfsNode) (gateway.Config, map[string][]string, er
 		DeserializedResponses:   cfg.Gateway.DeserializedResponses.WithDefault(config.DefaultDeserializedResponses),
 		AllowCodecConversion:    cfg.Gateway.AllowCodecConversion.WithDefault(config.DefaultAllowCodecConversion),
 		DisableHTMLErrors:       cfg.Gateway.DisableHTMLErrors.WithDefault(config.DefaultDisableHTMLErrors),
+		DeprecatedXIpfsPath:     cfg.Gateway.DeprecatedXIpfsPath.WithDefault(config.DefaultDeprecatedXIpfsPath),
 		NoDNSLink:               cfg.Gateway.NoDNSLink,
 		PublicGateways:          map[string]*gateway.PublicGateway{},
 		RetrievalTimeout:        cfg.Gateway.RetrievalTimeout.WithDefault(config.DefaultRetrievalTimeout),

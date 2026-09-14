@@ -106,7 +106,7 @@ var bitswapStatCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(bitswapVerboseOptionName, "v", "Print extra information"),
-		cmds.BoolOption(bitswapHumanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
+		cmds.BoolOption(bitswapHumanOptionName, "Print sizes in human readable format (e.g., 1.2 kB, 234 MB, 2.0 GB)."),
 	},
 	Type: bitswap.Stat{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {

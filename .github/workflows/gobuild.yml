@@ -16,7 +16,7 @@ concurrency:
 jobs:
   go-build:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    runs-on: ${{ fromJSON(github.repository == 'ipfs/kubo' && '["self-hosted", "linux", "x64", "4xlarge"]' || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       TEST_DOCKER: 0

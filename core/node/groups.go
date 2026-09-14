@@ -10,6 +10,7 @@ import (
 
 	blockstore "github.com/ipfs/boxo/blockstore"
 	offline "github.com/ipfs/boxo/exchange/offline"
+	merkledag "github.com/ipfs/boxo/ipld/merkledag"
 	uio "github.com/ipfs/boxo/ipld/unixfs/io"
 	util "github.com/ipfs/boxo/util"
 	"github.com/ipfs/go-log/v2"
@@ -453,6 +454,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	uio.HAMTShardingSize = int(shardSizeThreshold)
 	uio.DefaultShardWidth = int(shardMaxFanout)
 	uio.HAMTSizeEstimation = cfg.Import.HAMTSizeEstimationMode()
+	merkledag.DefaultPBNodeFieldOrder = cfg.Import.PBNodeFieldOrderMode()
 
 	providerStrategy := cfg.Provide.Strategy.WithDefault(config.DefaultProvideStrategy)
 

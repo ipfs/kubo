@@ -48,6 +48,7 @@ If you're experiencing an issue with IPFS, please [file an issue](https://github
 
 - [Reverse proxy setup](production/reverse-proxy.md)
 - [Firewall setup (ufw)](production/firewall.md)
+- [Low-memory devices (Raspberry Pi and similar)](production/low-memory.md)
 
 ## Specifications
 

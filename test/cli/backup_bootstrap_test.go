@@ -10,11 +10,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestBackupBootstrapPeers covers a node whose configured bootstrap peers are
+// unreachable: it falls back to peers saved from an earlier run. Nothing
+// listens on the bootstrap address below, so every dial to it fails.
 func TestBackupBootstrapPeers(t *testing.T) {
+	const unreachableBootstrapPeer = "/ip4/127.0.0.1/tcp/1/p2p/12D3KooWAr43wwcGtURU6Ck6R7cbvfii2unzaK2moqNYQmBQwWgN"
+
 	nodes := harness.NewT(t).NewNodes(3).Init()
 	nodes.ForEachPar(func(n *harness.Node) {
 		n.UpdateConfig(func(cfg *config.Config) {
-			cfg.Bootstrap = []string{}
+			cfg.Bootstrap = []string{unreachableBootstrapPeer}
 			cfg.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", harness.NewRandPort())}
 			cfg.Discovery.MDNS.Enabled = false
 			cfg.Internal.BackupBootstrapInterval = config.NewOptionalDuration(250 * time.Millisecond)

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/ipfs/kubo/repo"
 
+	"github.com/ipfs/boxo/bootstrap"
 	"github.com/ipfs/boxo/filestore"
 	"github.com/ipfs/boxo/keystore"
 	datastore "github.com/ipfs/go-datastore"
@@ -20,9 +22,11 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInitialization(t *testing.T) {
@@ -225,4 +229,47 @@ func TestHasActiveDHTClient(t *testing.T) {
 			t.Error("Expected true for valid accelerated DHT client")
 		}
 	})
+}
+
+// TestBootstrapEmptyListSkipsBackupPeers covers the Bootstrap: null config
+// path. A node that once ran with bootstrap peers keeps a backup peer list
+// under TempBootstrapPeersKey; with the configured list now empty, that
+// backup list must not be dialed. See https://github.com/ipfs/kubo/issues/11452
+func TestBootstrapEmptyListSkipsBackupPeers(t *testing.T) {
+	ctx := t.Context()
+
+	mn := mocknet.New()
+	t.Cleanup(func() { _ = mn.Close() })
+	h, err := mn.GenPeer()
+	require.NoError(t, err)
+	backup, err := mn.GenPeer()
+	require.NoError(t, err)
+	require.NoError(t, mn.LinkAll())
+
+	ds := syncds.MutexWrap(datastore.NewMapDatastore())
+	saved := []peer.AddrInfo{{ID: backup.ID(), Addrs: backup.Addrs()}}
+	savedBytes, err := json.Marshal(config.BootstrapPeerStrings(saved))
+	require.NoError(t, err)
+	require.NoError(t, ds.Put(ctx, TempBootstrapPeersKey, savedBytes))
+
+	c := config.Config{Identity: testIdentity}
+	c.Bootstrap = nil
+	c.AutoConf.Enabled = config.False
+
+	node := &IpfsNode{
+		Identity: h.ID(),
+		PeerHost: h,
+		Routing: routinghelpers.NewComposableParallel([]*routinghelpers.ParallelRouter{
+			{Router: routinghelpers.Null{}, IgnoreError: true},
+		}),
+		Repo: &repo.Mock{C: c, D: ds},
+	}
+
+	// BootstrapPeers is left nil so the (empty) list is read from config.
+	require.NoError(t, node.Bootstrap(bootstrap.DefaultBootstrapConfig))
+	t.Cleanup(func() { _ = node.Bootstrapper.Close() })
+
+	// Bootstrap returns after the first round has run.
+	require.Equal(t, network.NotConnected, h.Network().Connectedness(backup.ID()),
+		"backup peer was dialed although no bootstrap peers are configured")
 }

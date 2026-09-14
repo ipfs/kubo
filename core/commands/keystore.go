@@ -26,6 +26,7 @@ import (
 	options "github.com/ipfs/kubo/core/coreiface/options"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	migrations "github.com/ipfs/kubo/repo/fsrepo/migrations"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations/atomicfile"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	mbase "github.com/multiformats/go-multibase"
@@ -161,6 +162,16 @@ Exports a named libp2p key to disk.
 By default, the output will be stored at './<key-name>.key', but an alternate
 path can be specified with '--output=<path>' or '-o=<path>'.
 
+The key is written with owner-only permissions (0600). Where the path resolves
+to a regular file, or to nothing yet, the key goes to a temporary file that is
+renamed over the target: the previous contents survive a failed export, the
+parent directory has to be writable, and a target that cannot be replaced,
+such as a bind-mounted file, is reported as an error. Symlinks are followed.
+
+Where the path resolves to a character device or a pipe, such as '/dev/null',
+or '/dev/stdout' when it is a terminal or a pipe, the key is streamed to it
+unchanged. Any other target is refused.
+
 It is possible to export a private key to interoperable PEM PKCS8 format by explicitly
 passing '--format=pem-pkcs8-cleartext'. The resulting PEM file can then be consumed
 elsewhere. For example, using openssl to get a PEM with public key:
@@ -277,38 +288,150 @@ elsewhere. For example, using openssl to get a PEM with public key:
 				outPath = filepath.Clean(outPath)
 			}
 
-			// create file with owner-only permissions to protect private key material
-			file, err := os.OpenFile(outPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+			return writeExportedKey(outPath, outReader, exportFormat)
+		},
+	},
+}
+
+// exportedKeyFileMode keeps exported private key material readable by its
+// owner only.
+const exportedKeyFileMode = 0o600
+
+// inPlaceModes are the target types that cannot be replaced by rename and are
+// therefore written in place.
+const inPlaceModes = os.ModeCharDevice | os.ModeNamedPipe
+
+// maxSymlinkHops bounds how far a chain of symlinks is followed.
+const maxSymlinkHops = 8
+
+// writeExportedKey writes exported key material to outPath.
+//
+// A path that resolves to a regular file, or to nothing yet, is written to a
+// temporary file that is renamed over the target. The key is therefore never
+// exposed through the permissions of a file that already existed, and a
+// failed export leaves the previous file untouched. Replacing rather than
+// writing in place needs a writable parent directory, and fails on a target
+// that cannot be renamed over, such as a bind-mounted file. Symlinks are
+// followed and the key lands where they point.
+//
+// A path that resolves to a character device or a pipe cannot be renamed over
+// and is written in place, without permission enforcement, because the
+// operating system owns those objects. Every other target is refused.
+func writeExportedKey(outPath string, outReader io.Reader, exportFormat string) error {
+	writeKey := func(w io.Writer) error {
+		switch exportFormat {
+		case keyFormatPemCleartextOption:
+			privKeyBytes, err := io.ReadAll(outReader)
 			if err != nil {
 				return err
 			}
-			defer file.Close()
 
-			switch exportFormat {
-			case keyFormatPemCleartextOption:
-				privKeyBytes, err := io.ReadAll(outReader)
-				if err != nil {
-					return err
-				}
-
-				err = pem.Encode(file, &pem.Block{
-					Type:  "PRIVATE KEY",
-					Bytes: privKeyBytes,
-				})
-				if err != nil {
-					return fmt.Errorf("encoding PEM block: %w", err)
-				}
-
-			case keyFormatLibp2pCleartextOption:
-				_, err = io.Copy(file, outReader)
-				if err != nil {
-					return err
-				}
+			if err := pem.Encode(w, &pem.Block{
+				Type:  "PRIVATE KEY",
+				Bytes: privKeyBytes,
+			}); err != nil {
+				return fmt.Errorf("encoding PEM block: %w", err)
 			}
+		case keyFormatLibp2pCleartextOption:
+			if _, err := io.Copy(w, outReader); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unrecognized export format: %s", exportFormat)
+		}
+		return nil
+	}
 
-			return nil
-		},
-	},
+	// Stat resolves symlinks: -o /dev/stdout is a link into /proc/self/fd.
+	info, err := os.Stat(outPath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err == nil {
+		if info.Mode()&inPlaceModes != 0 {
+			return writeExportedKeyInPlace(outPath, writeKey)
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("refusing to export key to %s: not a regular file, character device or pipe", outPath)
+		}
+	}
+
+	// The key is written next to the target and renamed over it, so replace
+	// what a symlink points at rather than the symlink itself.
+	outPath, err = resolveSymlink(outPath)
+	if err != nil {
+		return err
+	}
+
+	file, err := atomicfile.New(outPath, exportedKeyFileMode)
+	if err != nil {
+		return fmt.Errorf("creating temporary file for %s: %w", outPath, err)
+	}
+	if err := writeKey(file); err != nil {
+		return errors.Join(err, file.Abort())
+	}
+	// Flush before the rename, so a crash cannot leave an empty file where the
+	// previous export was.
+	if err := file.Sync(); err != nil {
+		return errors.Join(fmt.Errorf("flushing %s: %w", outPath, err), file.Abort())
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("writing %s: %w", outPath, err)
+	}
+	return nil
+}
+
+// resolveSymlink returns the path a chain of symlinks ends at.
+// filepath.EvalSymlinks cannot be used on the path as a whole: it fails when
+// the last link points at a file that does not exist yet, and such a link
+// still says where the key belongs. A path that cannot be inspected is
+// returned unchanged, so that the caller's write reports the problem.
+func resolveSymlink(path string) (string, error) {
+	for range maxSymlinkHops {
+		info, err := os.Lstat(path)
+		if err != nil || info.Mode()&os.ModeSymlink == 0 {
+			return path, nil
+		}
+		target, err := os.Readlink(path)
+		if err != nil {
+			return "", err
+		}
+		if !filepath.IsAbs(target) {
+			// A relative target starts at the directory the link lives in,
+			// with that directory's own links resolved. Joining it onto the
+			// path as typed would collapse ".." through them and name a file
+			// the kernel never points at.
+			dir, err := filepath.EvalSymlinks(filepath.Dir(path))
+			if err != nil {
+				return "", err
+			}
+			target = filepath.Join(dir, target)
+		}
+		path = target
+	}
+	return "", fmt.Errorf("too many levels of symbolic links: %s", path)
+}
+
+// writeExportedKeyInPlace writes to an existing character device or pipe. The
+// target type is confirmed on the open descriptor, so a path swapped for a
+// regular file after the stat cannot receive the key.
+func writeExportedKeyInPlace(outPath string, writeKey func(io.Writer) error) (err error) {
+	// No O_TRUNC: devices and pipes ignore it, and a regular file that reached
+	// this path through a race must not be emptied.
+	file, err := os.OpenFile(outPath, os.O_WRONLY, 0)
+	if err != nil {
+		return err
+	}
+	defer func() { err = errors.Join(err, file.Close()) }()
+
+	info, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	if info.Mode()&inPlaceModes == 0 {
+		return fmt.Errorf("refusing to export key to %s: it changed type while being opened", outPath)
+	}
+	return writeKey(file)
 }
 
 var keyImportCmd = &cmds.Command{

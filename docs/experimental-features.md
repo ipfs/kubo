@@ -135,7 +135,7 @@ And then add a file at a specific URL using `ipfs urlstore add <url>`
 
 ## Private Networks
 
-It allows ipfs to only connect to other peers who have a shared secret key.
+This allows Kubo to only connect to other peers who have a shared secret key.
 
 ### State
 
@@ -150,7 +150,7 @@ Stable but not quite ready for prime-time.
 
 ### How to enable
 
-Generate a pre-shared-key using [ipfs-swarm-key-gen](https://github.com/Kubuxu/go-ipfs-swarm-key-gen)):
+Generate a pre-shared key using [ipfs-swarm-key-gen](https://github.com/Kubuxu/go-ipfs-swarm-key-gen):
 ```
 go install github.com/Kubuxu/go-ipfs-swarm-key-gen/ipfs-swarm-key-gen@latest
 ipfs-swarm-key-gen > ~/.ipfs/swarm.key
