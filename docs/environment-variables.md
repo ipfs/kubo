@@ -210,7 +210,7 @@ If the lock cannot be acquired because someone else has the lock, and `IPFS_WAIT
 
 ## `IPFS_TELEMETRY`
 
-Controls the behavior of the [telemetry plugin](telemetry.md). Valid values are:
+Controls the behavior of the [telemetry plugin](telemetry.md). The plugin sends nothing unless an endpoint is configured, so this variable matters only for a node that has one. Valid values are:
 
 - `on`: Enables telemetry.
 - `off`: Disables telemetry. Nothing is sent, and the stored anonymous identifier is removed.

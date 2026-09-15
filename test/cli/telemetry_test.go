@@ -143,7 +143,7 @@ func TestTelemetry(t *testing.T) {
 		output := stdout.String() + stderr.String()
 
 		// Check that UUID file was removed
-		assert.Contains(t, output, "removed existing telemetry UUID file due to opt-out", "Expected UUID removal message")
+		assert.Contains(t, output, "removed existing telemetry UUID file", "Expected UUID removal message")
 
 		// Stop daemon
 		node.StopDaemon()
@@ -217,18 +217,21 @@ func TestTelemetry(t *testing.T) {
 		node.StopDaemon()
 	})
 
-	t.Run("enabled by default shows info message", func(t *testing.T) {
+	t.Run("no endpoint by default: nothing is sent and no identifier is kept", func(t *testing.T) {
 		t.Parallel()
 
-		// Create a new node and re-enable the plugin (the harness disables it).
-		// Leave everything else at defaults: telemetry is on and reports to the
-		// built-in endpoint. Nothing is sent during this test, the first
-		// collection is 15 minutes out.
+		// Re-enable the plugin (the harness disables it) and leave everything
+		// else at defaults. Kubo ships without a collector, so the plugin has
+		// nowhere to send to.
 		node := harness.NewT(t).NewNode().Init()
 		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
 		clearTelemetryEnv(node)
+		node.Runner.Env["GOLOG_LOG_LEVEL"] = "telemetry=debug"
 
-		// Capture daemon output
+		// An identifier left by a version that had a built-in collector.
+		uuidPath := filepath.Join(node.Dir, "telemetry_uuid")
+		require.NoError(t, os.WriteFile(uuidPath, []byte("f81d4fae-7dec-11d0-a765-00a0c91e6bf6"), 0600))
+
 		stdout := &harness.Buffer{}
 		stderr := &harness.Buffer{}
 
@@ -241,25 +244,14 @@ func TestTelemetry(t *testing.T) {
 
 		time.Sleep(500 * time.Millisecond)
 
-		// Get daemon output
 		output := stdout.String() + stderr.String()
+		assert.Contains(t, output, "no telemetry endpoint configured, sending nothing")
+		assert.NotContains(t, output, "Anonymous telemetry", "No notice without a collector to name")
 
-		// First run: the notice explains what happens and how to opt out.
-		assert.Contains(t, output, "Anonymous telemetry")
-		assert.Contains(t, output, "https://telemetry.ipshipyard.dev", "Expected the built-in endpoint in the notice")
-		assert.Contains(t, output, "No data sent yet", "Expected no data sent message")
-		assert.Contains(t, output, "To opt-out before collection starts", "Expected opt-out instructions")
-		assert.Contains(t, output, "IPFS_TELEMETRY=off", "Expected the Kubo opt-out in the notice")
-		assert.Contains(t, output, "DO_NOT_TRACK=1", "Expected the cross-tool opt-out in the notice")
-		assert.Contains(t, output, "Learn more:", "Expected learn more link")
-
-		// Stop daemon
 		node.StopDaemon()
 
-		// Verify UUID file was created
-		uuidPath := filepath.Join(node.Dir, "telemetry_uuid")
 		_, err := os.Stat(uuidPath)
-		assert.NoError(t, err, "UUID file should exist when daemon started without telemetry opt-out")
+		assert.True(t, os.IsNotExist(err), "identifier should be removed when there is nowhere to report")
 	})
 
 	t.Run("endpoint answering 410 Gone stops telemetry for good", func(t *testing.T) {
@@ -377,9 +369,9 @@ func TestTelemetry(t *testing.T) {
 		// Create a new node
 		node := harness.NewT(t).NewNode().Init()
 		node.SetIPFSConfig("Plugins.Plugins.telemetry.Disabled", false)
+		clearTelemetryEnv(node)
 
-		// Send to the mock endpoint instead of the built-in one, right away
-		// instead of 15 minutes in.
+		// Send to the mock endpoint right away instead of 15 minutes in.
 		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Mode", "on")
 		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Delay", "100ms")
 		node.IPFS("config", "Plugins.Plugins.telemetry.Config.Endpoint", mockServer.URL)
