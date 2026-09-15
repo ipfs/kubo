@@ -29,7 +29,6 @@ We will ask early testers to participate at two points in the process:
 - [ ] Pinata (@obo20)
 - [ ] Shipyard (@cewood, @ns4plabs)
 - [ ] Siderus (@koalalorenzo)
-- [ ] Textile (@sanderpick)
 - [ ] @RubenKelevra
 
 ## How to sign up?

@@ -44,14 +44,14 @@ Kubo was the first [IPFS](https://docs.ipfs.tech/concepts/what-is-ipfs/) impleme
 After [installing Kubo](#install), verify it works:
 
 ```console
-$ ipfs init
+$ ipfs init --profile=unixfs-v1-2025
 generating ED25519 keypair...done
 peer identity: 12D3KooWGcSLQdLDBi2BvoP8WnpdHvhWPbxpGcqkf93rL2XMZK7R
 
 $ ipfs daemon &
 Daemon is ready
 
-$ echo "hello IPFS" | ipfs add -q --cid-version 1
+$ echo "hello IPFS" | ipfs add -q
 bafkreicouv3sksjuzxb3rbb6rziy6duakk2aikegsmtqtz5rsuppjorxsa
 
 $ ipfs cat bafkreicouv3sksjuzxb3rbb6rziy6duakk2aikegsmtqtz5rsuppjorxsa
