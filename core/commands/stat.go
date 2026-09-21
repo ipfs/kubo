@@ -125,6 +125,9 @@ Example:
 		if err != nil {
 			return err
 		}
+		if interval <= 0 {
+			return cmds.Errorf(cmds.ErrClient, "interval must be greater than zero")
+		}
 
 		doPoll, _ := req.Options[statPollOptionName].(bool)
 		for {
