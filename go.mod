@@ -51,7 +51,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/libp2p/go-doh-resolver v0.6.0
-	github.com/libp2p/go-libp2p v0.49.0
+	github.com/libp2p/go-libp2p v0.50.0
 	github.com/libp2p/go-libp2p-http v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.42.2
 	github.com/libp2p/go-libp2p-kbucket v0.9.0
@@ -276,7 +276,3 @@ exclude (
 	github.com/ipfs/go-ipfs-cmds v2.0.1+incompatible
 	github.com/libp2p/go-libp2p v6.0.23+incompatible
 )
-
-// TODO: drop once a go-libp2p release requires quic-go >= v0.62.0 and
-// webtransport-go >= v0.13.0.
-replace github.com/libp2p/go-libp2p => github.com/lidel/go-libp2p v0.0.0-20260914191659-9c4ee60cf924

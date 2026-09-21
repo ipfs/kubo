@@ -9,7 +9,7 @@ replace github.com/ipfs/kubo => ./../../..
 require (
 	github.com/ipfs/boxo v0.43.0
 	github.com/ipfs/kubo v0.0.0-00010101000000-000000000000
-	github.com/libp2p/go-libp2p v0.49.0
+	github.com/libp2p/go-libp2p v0.50.0
 	github.com/multiformats/go-multiaddr v0.16.1
 )
 
@@ -225,7 +225,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
-
-// TODO: drop once a go-libp2p release requires quic-go >= v0.62.0 and
-// webtransport-go >= v0.13.0.
-replace github.com/libp2p/go-libp2p => github.com/lidel/go-libp2p v0.0.0-20260914191659-9c4ee60cf924
