@@ -224,9 +224,9 @@ func LegacyProviderOpt(reprovideInterval time.Duration, strategy string, acceler
 				provider.ProvideWorkerCount(provideWorkerCount),
 			}
 			if !acceleratedDHTClient && reprovideInterval > 0 {
-				// The estimation kinda suck if you are running with accelerated DHT client,
-				// given this message is just trying to push people to use the acceleratedDHTClient
-				// let's not report on through if it's in use
+				// Throughput estimates are not useful with the accelerated DHT client.
+				// This warning is intended to guide users toward enabling it, so skip
+				// throughput reporting when it is already enabled.
 				opts = append(opts,
 					provider.ThroughputReport(func(reprovide bool, complete bool, keysProvided uint, duration time.Duration) bool {
 						avgProvideSpeed := duration / time.Duration(keysProvided)
