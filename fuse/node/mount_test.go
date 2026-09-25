@@ -16,6 +16,7 @@ import (
 )
 
 func mkdir(t *testing.T, path string) {
+	t.Helper()
 	err := os.Mkdir(path, os.ModeDir|os.ModePerm)
 	if err != nil {
 		t.Fatal(err)
