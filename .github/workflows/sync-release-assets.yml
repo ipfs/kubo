@@ -18,7 +18,7 @@ jobs:
     runs-on: "ubuntu-latest"
     timeout-minutes: 15
     steps:
-      - uses: ipfs/download-ipfs-distribution-action@v1
+      - uses: ipfs/download-ipfs-distribution-action@v2
       - uses: ipfs/start-ipfs-daemon-action@v1
         with:
           args: --init --init-profile=flatfs,server --enable-gc=false
