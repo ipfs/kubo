@@ -421,3 +421,31 @@ func TestP2PForeground(t *testing.T) {
 		}
 	})
 }
+
+// A forward target has to name the peer to dial. Before this was checked, a
+// target without /p2p/<peer-id> created a forwarder to an empty peer ID, and
+// the next 'ipfs p2p ls' or 'ipfs p2p close' panicked while holding the
+// listener registry lock, hanging every later p2p command until restart.
+func TestP2PForwardRequiresPeerID(t *testing.T) {
+	t.Parallel()
+
+	node := harness.NewT(t).NewNode().Init()
+	node.IPFS("config", "--json", "Experimental.Libp2pStreamMounting", "true")
+	node.StartDaemon()
+	defer node.StopDaemon()
+
+	for _, target := range []string{
+		fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", harness.NewRandPort()),
+		fmt.Sprintf("/dns4/localhost/tcp/%d", harness.NewRandPort()),
+	} {
+		t.Run(target, func(t *testing.T) {
+			listen := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", harness.NewRandPort())
+			res := node.RunIPFS("p2p", "forward", "/x/nopeer", listen, target)
+			require.Error(t, res.Err, "forward to a target without a peer ID must fail")
+			require.Contains(t, res.Stderr.String(), "peer ID")
+
+			// No forwarder was left behind, and p2p ls still answers.
+			waitForListenerCount(t, node, 0)
+		})
+	}
+}
