@@ -37,7 +37,7 @@ func LatestDistVersion(ctx context.Context, fetcher Fetcher, dist string, stable
 }
 
 // DistVersions returns all versions of the specified distribution, that are
-// available on the distriburion site.  List is in ascending order, unless
+// available on the distribution site.  List is in ascending order, unless
 // sortDesc is true.
 func DistVersions(ctx context.Context, fetcher Fetcher, dist string, sortDesc bool) ([]string, error) {
 	versionBytes, err := fetcher.Fetch(ctx, path.Join(dist, distVersions))
