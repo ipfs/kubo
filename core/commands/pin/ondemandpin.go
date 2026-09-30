@@ -28,7 +28,8 @@ the count stays above max for a grace period. Roughly like ipfs-cluster
 replication factors
 (https://ipfscluster.io/documentation/guides/pinning/#replication-factors),
 except each node decides on its own from the DHT. Requires
-Experimental.OnDemandPinningEnabled.
+Experimental.OnDemandPinningEnabled. Set OnDemandPinning.UnpinEnabled=false
+to pin without ever unpinning.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{

@@ -492,6 +492,42 @@ func TestCheckerDryRunDoesNotPinOrUnpin(t *testing.T) {
 	assert.Equal(t, "would-unpin", rec.LastResult)
 }
 
+// UnpinEnabled=false still pins under-replicated CIDs but never unpins,
+// and does not run the grace timer.
+func TestCheckerUnpinDisabledNeverUnpins(t *testing.T) {
+	ctx := context.Background()
+	store := NewStore(dssync.MutexWrap(datastore.NewMapDatastore()))
+	r := newMockRouting()
+	p := newMockPins()
+	clock := newFakeClock()
+	checker := NewChecker(store, p, nil, r, &mockProvider{}, peer.ID("self"), config.OnDemandPinning{
+		UnpinEnabled: config.False,
+	})
+	checker.checkInterval = time.Minute
+	checker.unpinGracePeriod = 200 * time.Millisecond
+	checker.now = clock.Now
+	checker.graceJitter = func() time.Duration { return 0 }
+
+	c := testCID(t, "unpin-disabled")
+	require.NoError(t, store.Add(ctx, c))
+	r.setProviders(c, peer.ID("p1"))
+
+	checker.checkAll(ctx)
+	require.True(t, p.isPinned(c), "under-replicated CID must still be pinned")
+
+	clock.Advance(time.Minute)
+	r.setProviders(c, providers(8)...)
+	checker.checkAll(ctx)
+	rec := mustGet(t, store, c)
+	assert.Equal(t, "unpin-disabled", rec.LastResult)
+	assert.True(t, rec.UnpinAt.IsZero(), "grace timer must not run when unpin is disabled")
+	assert.True(t, rec.LastAboveTarget.IsZero())
+
+	clock.Advance(time.Hour)
+	checker.checkAll(ctx)
+	assert.True(t, p.isPinned(c), "UnpinEnabled=false must never unpin")
+}
+
 func TestEnqueueIsReliable(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

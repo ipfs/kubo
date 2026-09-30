@@ -131,6 +131,7 @@ config file at runtime.
     - [`OnDemandPinning.ReplicationTargetMax`](#ondemandpinningreplicationtargetmax)
     - [`OnDemandPinning.CheckInterval`](#ondemandpinningcheckinterval)
     - [`OnDemandPinning.UnpinGracePeriod`](#ondemandpinningunpingraceperiod)
+    - [`OnDemandPinning.UnpinEnabled`](#ondemandpinningunpinenabled)
     - [`OnDemandPinning.DryRun`](#ondemandpinningdryrun)
   - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
@@ -1247,7 +1248,7 @@ Enables on-demand pinning. When enabled, the node runs a background checker
 that periodically evaluates DHT provider counts for CIDs registered via
 `ipfs pin ondemand add`. CIDs with fewer providers than the replication target
 are pinned; pins are removed after replication stays above target for a grace
-period (default 24h). Requires usable content routing and
+period (default 72h). Requires usable content routing and
 [`Provide.Enabled`](#provideenabled).
 
 See [`OnDemandPinning`](#ondemandpinning) for configuration.
@@ -2296,6 +2297,18 @@ unpin while stale records still make the count look healthy.
 Default: `"72h"`
 
 Type: `optionalDuration`
+
+### `OnDemandPinning.UnpinEnabled`
+
+When `false`, the checker still pins registered CIDs that fall below
+`ReplicationTargetMin`, but it never removes a pin on its own and does not run
+the grace timer. Use this for a "pin only, never unpin" mode that cannot
+delete anything. Removing a registration with `ipfs pin ondemand rm` still
+unpins checker-owned pins.
+
+Default: `true`
+
+Type: `flag`
 
 ### `OnDemandPinning.DryRun`
 
