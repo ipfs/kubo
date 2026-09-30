@@ -39,6 +39,8 @@ var PinCmd = &cmds.Command{
 		"verify": verifyPinCmd,
 		"update": updatePinCmd,
 		"remote": remotePinCmd,
+
+		"ondemand": onDemandPinCmd,
 	},
 }
 
