@@ -616,14 +616,18 @@ ipfs config --json Experimental.GatewayOverLibp2p true
 
 Experimental, disabled by default.
 
-On-demand pinning lets a node pin content when DHT provider counts fall below
-a minimum, and unpin after they stay above a maximum for a grace period
-(plus a short random delay). Values between min and max are left alone.
-Provider counts come from `FindProviders`, not from the peer routing table.
+On-demand pinning is a "replication keeper": it lets a node pin registered
+content when DHT provider counts fall below a minimum, and unpin after they
+stay above a maximum for a grace period (plus a short random delay). Values
+between min and max are left alone. Provider counts come from `FindProviders`,
+not from the peer routing table.
 
-[ipfs-cluster replication factors](https://ipfscluster.io/documentation/guides/pinning/#replication-factors)
-assign pins among known peers; this feature only watches the DHT and decides
-locally.
+It is a decentralized and uncoordinated sibling of
+[ipfs-cluster replication factors](https://ipfscluster.io/documentation/guides/pinning/#replication-factors):
+cluster allocates pins across a known set of peers under central coordination,
+while this feature is single-node, watches the DHT, and decides locally. Use
+ipfs-cluster when you operate a fleet of nodes and want a managed pinset; use
+on-demand pinning to lend one node's spare storage to keep rare content alive.
 
 The feature consists of:
 
@@ -657,11 +661,13 @@ ipfs config --json Experimental.OnDemandPinningEnabled true
 
 See [`OnDemandPinning`](https://github.com/ipfs/kubo/blob/master/docs/config.md#ondemandpinning)
 for tunable parameters: `ReplicationTargetMin`, `ReplicationTargetMax`,
-`CheckInterval`, `UnpinGracePeriod`, and `DryRun`.
+`CheckInterval`, `UnpinGracePeriod`, `UnpinEnabled`, and `DryRun`.
 
 `ipfs pin ondemand ls` shows the last check time, provider count, result, and
 computed unpin time. Set `OnDemandPinning.DryRun` to observe decisions without
-changing the pinset.
+changing the pinset. Set `OnDemandPinning.UnpinEnabled` to `false` for a
+pin-only mode in which the checker never unpins on its own (`ipfs pin ondemand
+rm` still removes checker-owned pins).
 
 ### Basic usage
 

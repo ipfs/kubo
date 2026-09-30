@@ -68,6 +68,7 @@ type Checker struct {
 	checkInterval    time.Duration
 	unpinGracePeriod time.Duration
 	maxBackoff       time.Duration
+	unpinEnabled     bool
 	dryRun           bool
 
 	now         func() time.Time
@@ -100,6 +101,7 @@ func NewChecker(
 		checkInterval:    cfg.CheckInterval.WithDefault(config.DefaultOnDemandPinCheckInterval),
 		unpinGracePeriod: cfg.UnpinGracePeriod.WithDefault(config.DefaultOnDemandPinUnpinGracePeriod),
 		maxBackoff:       config.DefaultOnDemandPinCheckBackoffMax,
+		unpinEnabled:     cfg.UnpinEnabled.WithDefault(true),
 		dryRun:           cfg.DryRun.WithDefault(false),
 
 		now:    time.Now,
@@ -299,6 +301,15 @@ func (c *Checker) handleUnderReplicated(runCtx, lookupCtx context.Context, rec *
 func (c *Checker) handleWellReplicated(runCtx, lookupCtx context.Context, rec *Record, count int, own PinOwnership) error {
 	if !own.HasOnDemandPin {
 		rec.LastResult = "above-max"
+		return nil
+	}
+
+	// Pin-only mode: never unpin, and do not run the grace timer, so
+	// re-enabling unpin later starts a fresh grace period.
+	if !c.unpinEnabled {
+		rec.LastAboveTarget = time.Time{}
+		rec.UnpinAt = time.Time{}
+		rec.LastResult = "unpin-disabled"
 		return nil
 	}
 

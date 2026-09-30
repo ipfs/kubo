@@ -33,6 +33,10 @@ type OnDemandPinning struct {
 	// How long replication must stay above max before unpinning; checker adds up to 2*CheckInterval of jitter.
 	UnpinGracePeriod OptionalDuration
 
+	// When false, the checker pins under-replicated CIDs but never unpins them.
+	// `ipfs pin ondemand rm` still removes checker-owned pins.
+	UnpinEnabled Flag `json:",omitempty"`
+
 	// When true, the checker logs pin/unpin decisions but does not change the pinset.
 	DryRun Flag `json:",omitempty"`
 }
