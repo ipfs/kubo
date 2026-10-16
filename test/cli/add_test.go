@@ -154,6 +154,26 @@ func TestAdd(t *testing.T) {
 		require.Contains(t, result.Stderr.String(), "missing argument for option \"pin-name\"")
 	})
 
+	t.Run("ipfs add --nocopy errors until the daemon is restarted after enabling the filestore", func(t *testing.T) {
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
+
+		filePath := filepath.Join(node.Dir, "nocopy.txt")
+		require.NoError(t, os.WriteFile(filePath, []byte(shortString), 0o644))
+
+		node.SetIPFSConfig("Experimental.FilestoreEnabled", true)
+		result := node.RunIPFS("add", "--nocopy", filePath)
+		require.Error(t, result.Err)
+		require.Contains(t, result.Stderr.String(), "restart the daemon")
+
+		node.StopDaemon().StartDaemon()
+		cidStr := node.IPFS("add", "-q", "--nocopy", filePath).Stdout.Trimmed()
+		require.NotEmpty(t, cidStr)
+		require.Contains(t, node.IPFS("filestore", "ls").Stdout.String(), cidStr)
+	})
+
 	t.Run("produced unixfs max file links: command flag --max-file-links overrides configuration in Import.UnixFSFileMaxLinks", func(t *testing.T) {
 		t.Parallel()
 
