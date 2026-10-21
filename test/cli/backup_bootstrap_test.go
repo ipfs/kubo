@@ -23,6 +23,9 @@ func TestBackupBootstrapPeers(t *testing.T) {
 			cfg.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", harness.NewRandPort())}
 			cfg.Discovery.MDNS.Enabled = false
 			cfg.Internal.BackupBootstrapInterval = config.NewOptionalDuration(250 * time.Millisecond)
+			// Backup bootstrap peers are only saved while the routing table
+			// isn't.
+			cfg.Routing.PersistRoutingTable = config.False
 		})
 	})
 

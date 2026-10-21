@@ -30,6 +30,7 @@ type RoutingOptionArgs struct {
 	OptimisticProvide             bool
 	OptimisticProvideJobsPoolSize int
 	LoopbackAddressesOnLanDHT     bool
+	PersistRoutingTable           bool
 }
 
 type RoutingOption func(args RoutingOptionArgs) (routing.Routing, error)
@@ -258,6 +259,13 @@ func constructDHTRouting(mode dht.ModeOpt) RoutingOption {
 		}
 		wanOptions := []dht.Option{
 			dht.BootstrapPeers(args.BootstrapPeers...),
+		}
+		// An empty Bootstrap list turns off all automatic dialing, saved
+		// peers included.
+		if args.PersistRoutingTable && len(args.BootstrapPeers) > 0 {
+			wanOptions = append(wanOptions, dht.BootstrapOrder(dht.PersistedFirst))
+		} else {
+			wanOptions = append(wanOptions, dht.RoutingTablePersistence(0))
 		}
 		// In stub mode, allow loopback peers in the WAN routing
 		// table so Provide/PutValue work with ephemeral test peers.
