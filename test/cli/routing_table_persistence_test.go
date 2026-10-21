@@ -16,7 +16,7 @@ import (
 const routingTableSnapshotKey = "/kad-dht/routing-table/ipfs/kad/1.0.0"
 
 // backupBootstrapPeersKey is where Kubo saves backup bootstrap peers while
-// Routing.PersistRoutingTable is off.
+// Routing.PersistDHTRoutingTable is off.
 const backupBootstrapPeersKey = "/local/temp_bootstrap_peers"
 
 // unreachableBootstrapPeer is a bootstrap peer nobody listens for, so every
@@ -43,7 +43,7 @@ func TestRoutingTablePersistence(t *testing.T) {
 		t.Parallel()
 		h := harness.NewT(t)
 		node := h.NewNode().Init()
-		node.SetIPFSConfig("Routing.PersistRoutingTable", true)
+		node.SetIPFSConfig("Routing.PersistDHTRoutingTable", true)
 		h.BootstrapWithStubDHT(harness.Nodes{node})
 		node.StartDaemon()
 
@@ -73,7 +73,7 @@ func TestRoutingTablePersistence(t *testing.T) {
 		h := harness.NewT(t)
 		node := h.NewNode().Init()
 		saved := saveStubPeersAsSnapshot(t, h, node)
-		node.SetIPFSConfig("Routing.PersistRoutingTable", false)
+		node.SetIPFSConfig("Routing.PersistDHTRoutingTable", false)
 
 		node.StartDaemon()
 		defer node.StopDaemon()
@@ -95,7 +95,7 @@ func TestRoutingTablePersistence(t *testing.T) {
 	t.Run("backup bootstrap peers are dropped", func(t *testing.T) {
 		t.Parallel()
 		node := harness.NewT(t).NewNode().Init()
-		node.SetIPFSConfig("Routing.PersistRoutingTable", true)
+		node.SetIPFSConfig("Routing.PersistDHTRoutingTable", true)
 		node.SetIPFSConfig("Bootstrap", []string{unreachableBootstrapPeer})
 		node.IPFS("diag", "datastore", "put", backupBootstrapPeersKey, `["`+unreachableBootstrapPeer+`"]`)
 
@@ -118,7 +118,7 @@ func requireNeverConnected(t *testing.T, node *harness.Node, ids map[peer.ID]boo
 }
 
 // saveStubPeersAsSnapshot writes the harness's stub DHT peers to node's repo
-// as a routing table snapshot, turns Routing.PersistRoutingTable on, and
+// as a routing table snapshot, turns Routing.PersistDHTRoutingTable on, and
 // leaves node with a single, unreachable bootstrap peer. It returns the IDs of
 // the saved peers.
 func saveStubPeersAsSnapshot(t *testing.T, h *harness.Harness, node *harness.Node) map[peer.ID]bool {
@@ -144,7 +144,7 @@ func saveStubPeersAsSnapshot(t *testing.T, h *harness.Harness, node *harness.Nod
 	require.NoError(t, err)
 	node.IPFS("diag", "datastore", "put", routingTableSnapshotKey, string(b))
 	node.SetIPFSConfig("Bootstrap", []string{unreachableBootstrapPeer})
-	node.SetIPFSConfig("Routing.PersistRoutingTable", true)
+	node.SetIPFSConfig("Routing.PersistDHTRoutingTable", true)
 
 	saved := make(map[peer.ID]bool, len(index))
 	for id := range index {

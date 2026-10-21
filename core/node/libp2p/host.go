@@ -74,7 +74,7 @@ func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHo
 		OptimisticProvide:             optimisticProvide,
 		OptimisticProvideJobsPoolSize: cfg.Experimental.OptimisticProvideJobsPoolSize,
 		LoopbackAddressesOnLanDHT:     cfg.Routing.LoopbackAddressesOnLanDHT.WithDefault(config.DefaultLoopbackAddressesOnLanDHT),
-		PersistRoutingTable:           cfg.Routing.PersistRoutingTable.WithDefault(config.DefaultPersistRoutingTable),
+		PersistDHTRoutingTable:        cfg.Routing.PersistDHTRoutingTable.WithDefault(config.DefaultPersistDHTRoutingTable),
 	}
 	opts = append(opts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 		args := routingOptArgs

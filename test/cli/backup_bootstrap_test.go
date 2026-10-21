@@ -25,7 +25,7 @@ func TestBackupBootstrapPeers(t *testing.T) {
 			cfg.Internal.BackupBootstrapInterval = config.NewOptionalDuration(250 * time.Millisecond)
 			// Backup bootstrap peers are only saved while the routing table
 			// isn't.
-			cfg.Routing.PersistRoutingTable = config.False
+			cfg.Routing.PersistDHTRoutingTable = config.False
 		})
 	})
 

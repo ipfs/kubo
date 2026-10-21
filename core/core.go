@@ -265,7 +265,7 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 	}
 	if n.persistsRoutingTable(repoConf) {
 		// The DHT routing table snapshot replaces the backup bootstrap peers
-		// saved while Routing.PersistRoutingTable was off, so drop them.
+		// saved while Routing.PersistDHTRoutingTable was off, so drop them.
 		if err := n.Repo.Datastore().Delete(n.Context(), TempBootstrapPeersKey); err != nil {
 			log.Warnf("failed to remove the backup bootstrap peers: %s", err)
 		}
@@ -297,10 +297,10 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 }
 
 // persistsRoutingTable reports whether the WAN DHT saves its routing table
-// and reconnects to the saved peers on its own (Routing.PersistRoutingTable).
+// and reconnects to the saved peers on its own (Routing.PersistDHTRoutingTable).
 // Like the DHT, it treats an empty Bootstrap list as turning that off.
 func (n *IpfsNode) persistsRoutingTable(cfg *config.Config) bool {
-	if n.DHT == nil || !cfg.Routing.PersistRoutingTable.WithDefault(config.DefaultPersistRoutingTable) {
+	if n.DHT == nil || !cfg.Routing.PersistDHTRoutingTable.WithDefault(config.DefaultPersistDHTRoutingTable) {
 		return false
 	}
 	peers, err := cfg.BootstrapPeersWithAutoConf()

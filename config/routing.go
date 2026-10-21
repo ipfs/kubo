@@ -12,7 +12,7 @@ import (
 const (
 	DefaultAcceleratedDHTClient      = false
 	DefaultLoopbackAddressesOnLanDHT = false
-	DefaultPersistRoutingTable       = true
+	DefaultPersistDHTRoutingTable    = true
 	DefaultRoutingType               = "auto"
 	CidContactRoutingURL             = "https://cid.contact"
 	PublicGoodDelegatedRoutingURL    = "https://delegated-ipfs.dev" // cid.contact + amino dht (incl. IPNS PUTs)
@@ -45,10 +45,10 @@ type Routing struct {
 
 	LoopbackAddressesOnLanDHT Flag `json:",omitempty"`
 
-	// PersistRoutingTable saves the Amino DHT routing table to the repo and,
+	// PersistDHTRoutingTable saves the Amino DHT routing table to the repo and,
 	// on the next start, reconnects to those peers before contacting the
 	// bootstrap peers. It has no effect with an empty Bootstrap list.
-	PersistRoutingTable Flag `json:",omitempty"`
+	PersistDHTRoutingTable Flag `json:",omitempty"`
 
 	IgnoreProviders []string `json:",omitempty"`
 

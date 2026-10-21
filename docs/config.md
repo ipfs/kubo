@@ -173,7 +173,7 @@ config file at runtime.
     - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
-    - [`Routing.PersistRoutingTable`](#routingpersistroutingtable)
+    - [`Routing.PersistDHTRoutingTable`](#routingpersistdhtroutingtable)
     - [`Routing.IgnoreProviders`](#routingignoreproviders)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers.[name].Type`](#routingroutersnametype)
@@ -924,7 +924,7 @@ The special value `"auto"` automatically uses curated, up-to-date bootstrap peer
 - **Automatic updates**: New bootstrap peers are added as the network evolves
 - **Custom control**: Add your own trusted peers alongside or instead of the defaults
 
-An empty list turns off all bootstrap dialing, including backup peers saved from earlier runs and the peers saved by [`Routing.PersistRoutingTable`](#routingpersistroutingtable). The node then connects only to `Peering.Peers`, peers found through mDNS, and peers you connect manually. Backup peers are dialed only after the configured peers, when those leave the node below the minimum peer count.
+An empty list turns off all bootstrap dialing, including backup peers saved from earlier runs and the peers saved by [`Routing.PersistDHTRoutingTable`](#routingpersistdhtroutingtable). The node then connects only to `Peering.Peers`, peers found through mDNS, and peers you connect manually. Backup peers are dialed only after the configured peers, when those leave the node below the minimum peer count.
 
 Default: `["auto"]`
 
@@ -3152,7 +3152,7 @@ Default: `false`
 
 Type: `bool` (missing means `false`)
 
-### `Routing.PersistRoutingTable`
+### `Routing.PersistDHTRoutingTable`
 
 Whether the node saves its Amino DHT routing table, and reconnects to those
 peers when it starts instead of going through the [`Bootstrap`](#bootstrap)
