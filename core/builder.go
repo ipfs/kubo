@@ -143,7 +143,17 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		return n, nil
 	}
 
-	return n, n.Bootstrap(bootstrap.DefaultBootstrapConfig)
+	repoCfg, err := n.Repo.Config()
+	if err != nil {
+		return n, err
+	}
+	bootstrapCfg := bootstrap.DefaultBootstrapConfig
+	// A WAN DHT that persists its routing table reconnects to its saved peers
+	// first, and dials the bootstrap peers itself if they fall short. The
+	// first round here waits one Period as a backstop, instead of dialing the
+	// bootstrap peers right away.
+	bootstrapCfg.DeferFirstRound = n.persistsRoutingTable(repoCfg)
+	return n, n.Bootstrap(bootstrapCfg)
 }
 
 // Log the entire `app.Err()` but return only the innermost one to the user
