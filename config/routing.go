@@ -12,7 +12,7 @@ import (
 const (
 	DefaultAcceleratedDHTClient      = false
 	DefaultLoopbackAddressesOnLanDHT = false
-	DefaultPersistDHTRoutingTable    = true
+	DefaultPersistDHTRoutingTable    = false
 	DefaultRoutingType               = "auto"
 	CidContactRoutingURL             = "https://cid.contact"
 	PublicGoodDelegatedRoutingURL    = "https://delegated-ipfs.dev" // cid.contact + amino dht (incl. IPNS PUTs)
@@ -20,16 +20,14 @@ const (
 	EnvHTTPRoutersFilterProtocols    = "IPFS_HTTP_ROUTERS_FILTER_PROTOCOLS"
 )
 
-var (
-	// Default filter-protocols to pass along with delegated routing requests (as defined in IPIP-484)
-	// and also filter out locally
-	DefaultHTTPRoutersFilterProtocols = getEnvOrDefault(EnvHTTPRoutersFilterProtocols, []string{
-		"unknown", // allow results without protocol list, we can do libp2p identify to test them
-		"transport-bitswap",
-		// http is added dynamically in routing/delegated.go.
-		// 'transport-ipfs-gateway-http'
-	})
-)
+// Default filter-protocols to pass along with delegated routing requests (as defined in IPIP-484)
+// and also filter out locally
+var DefaultHTTPRoutersFilterProtocols = getEnvOrDefault(EnvHTTPRoutersFilterProtocols, []string{
+	"unknown", // allow results without protocol list, we can do libp2p identify to test them
+	"transport-bitswap",
+	// http is added dynamically in routing/delegated.go.
+	// 'transport-ipfs-gateway-http'
+})
 
 // Routing defines configuration options for libp2p routing.
 type Routing struct {
