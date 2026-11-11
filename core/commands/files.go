@@ -1416,13 +1416,12 @@ Remove files or directories.
 			}
 		}
 		if len(errs) > 0 {
-			for _, err = range errs {
-				e := res.Emit(err.Error())
-				if e != nil {
-					return e
-				}
-			}
-			return fmt.Errorf("can't remove some files")
+			// Return the errors instead of emitting them as stream values.
+			// Emitting made the RPC API respond with HTTP 200 and a plain
+			// string body on failure, which is not valid JSON and broke
+			// clients that decode the error response.
+			// See https://github.com/ipfs/kubo/issues/8606
+			return errors.Join(errs...)
 		}
 		return nil
 	},
