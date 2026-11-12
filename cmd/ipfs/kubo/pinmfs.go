@@ -24,6 +24,10 @@ type lastPin struct {
 	ServiceName   string
 	ServiceConfig config.RemotePinningService
 	CID           cid.Cid
+	// Status is the pin status the service last reported for CID.
+	Status pinclient.Status
+	// Checked is when that status was read.
+	Checked time.Time
 }
 
 func (x lastPin) IsValid() bool {
@@ -152,14 +156,21 @@ func pinAllMFS(ctx context.Context, node pinMFSNode, cfg *config.Config, lastPin
 			}
 		}
 
-		// do nothing, if MFS has not changed since last pin on the exact same service or waiting for MFS.RepinInterval
-		if last, ok := lastPins[svcName]; ok {
-			if last.ServiceConfig == svcConfig && (last.CID == rootCid || time.Since(last.Time) < repinInterval) {
-				if last.CID == rootCid {
+		// do nothing, if MFS has not changed since last pin on the exact same service or waiting for MFS.RepinInterval.
+		// A pin the service has not reported as pinned yet is checked again every MFS.RepinInterval,
+		// so a pin that ends up failed is logged as an error and requested again.
+		if last, ok := lastPins[svcName]; ok && last.ServiceConfig == svcConfig {
+			if last.CID == rootCid {
+				if last.Status == pinclient.StatusPinned {
 					mfslog.Debugf("pinning MFS root to %q: pin for %q exists since %s, skipping", svcName, rootCid, last.Time.String())
-				} else {
-					mfslog.Debugf("pinning MFS root to %q: skipped due to MFS.RepinInterval=%s (remaining: %s)", svcName, repinInterval.String(), (repinInterval - time.Since(last.Time)).String())
+					continue
 				}
+				if time.Since(last.Checked) < repinInterval {
+					mfslog.Debugf("pinning MFS root to %q: pin for %q is %q, checking again after MFS.RepinInterval=%s (remaining: %s)", svcName, rootCid, last.Status, repinInterval.String(), (repinInterval - time.Since(last.Checked)).String())
+					continue
+				}
+			} else if time.Since(last.Time) < repinInterval {
+				mfslog.Debugf("pinning MFS root to %q: skipped due to MFS.RepinInterval=%s (remaining: %s)", svcName, repinInterval.String(), (repinInterval - time.Since(last.Time)).String())
 				continue
 			}
 		}
@@ -197,6 +208,8 @@ func pinMFS(ctx context.Context, node pinMFSNode, cid cid.Cid, svcName string, s
 	existingRequestID := "" // is there any pre-existing MFS pin with pinName (for any CID)?
 	pinning := false        // is CID for current MFS already being pinned?
 	pinTime := time.Now().UTC()
+	checked := pinTime
+	var status pinclient.Status
 	pinStatusMsg := "pinning to %q: received pre-existing %q status for %q (requestid=%q)"
 	for ps := range lsPinCh {
 		existingRequestID = ps.GetRequestId()
@@ -208,6 +221,7 @@ func pinMFS(ctx context.Context, node pinMFSNode, cid cid.Cid, svcName string, s
 		if ps.GetPin().GetCid() == cid && ps.GetStatus() != pinclient.StatusFailed {
 			pinning = true
 			pinTime = ps.GetCreated().UTC()
+			status = ps.GetStatus()
 			break
 		}
 	}
@@ -234,17 +248,19 @@ func pinMFS(ctx context.Context, node pinMFSNode, cid cid.Cid, svcName string, s
 		}
 
 		// Create or replace pin for MFS root
+		var ps pinclient.PinStatusGetter
 		if existingRequestID != "" {
 			mfslog.Debugf("pinning to %q: replacing existing MFS root pin with %q", svcName, cid)
-			if _, err = c.Replace(ctx, existingRequestID, cid, addOpts...); err != nil {
+			if ps, err = c.Replace(ctx, existingRequestID, cid, addOpts...); err != nil {
 				return lastPin{}, err
 			}
 		} else {
 			mfslog.Debugf("pinning to %q: creating a new MFS root pin for %q", svcName, cid)
-			if _, err = c.Add(ctx, cid, addOpts...); err != nil {
+			if ps, err = c.Add(ctx, cid, addOpts...); err != nil {
 				return lastPin{}, err
 			}
 		}
+		status = ps.GetStatus()
 	} else {
 		mfslog.Debugf("pinning MFS to %q: pin for %q exists since %s, skipping", svcName, cid, pinTime.String())
 	}
@@ -254,5 +270,7 @@ func pinMFS(ctx context.Context, node pinMFSNode, cid cid.Cid, svcName string, s
 		ServiceName:   svcName,
 		ServiceConfig: svcConfig,
 		CID:           cid,
+		Status:        status,
+		Checked:       checked,
 	}, nil
 }
