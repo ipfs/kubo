@@ -719,6 +719,26 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// NewResettableKeystore eagerly opens the active namespace datastore
+		// under <repo>/provider-keystore/ (factory mode). If no provider takes
+		// ownership of the keystore below, nothing closes that datastore:
+		// Routing.Type=none yields a NoopProvider with a nil keystore, and
+		// provider construction can also fail after this point. A leaked open
+		// datastore keeps its file lock, so reopening the same repo in the same
+		// process fails (Windows: "being used by another process"; Linux:
+		// "resource temporarily unavailable"). Close it on every path that does
+		// not hand it off to a provider.
+		keystoreHandedOff := false
+		defer func() {
+			if keystoreHandedOff {
+				return
+			}
+			if cerr := ks.Close(); cerr != nil {
+				providerLog.Warnw("closing unused provider keystore", "err", cerr)
+			}
+		}()
+
 		// Constants for buffered provider configuration
 		// These values match the upstream defaults from go-libp2p-kad-dht and have been battle-tested
 		const (
@@ -778,6 +798,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 				if err != nil {
 					return nil, nil, err
 				}
+				keystoreHandedOff = true
 				return buffered.New(prov, ds, bufferedProviderOpts...), ks, nil
 			}
 		case *fullrt.FullRT:
@@ -826,6 +847,7 @@ func SweepingProviderOpt(cfg *config.Config) fx.Option {
 		if err != nil {
 			return nil, nil, err
 		}
+		keystoreHandedOff = true
 		return buffered.New(prov, ds, bufferedProviderOpts...), ks, nil
 	})
 
