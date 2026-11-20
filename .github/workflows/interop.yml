@@ -155,7 +155,10 @@ jobs:
         working-directory: node_modules/@helia/interop
   ipfs-webui:
     needs: [interop-prep]
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, which Playwright does not support
+    # yet ("Playwright does not support chromium on ubuntu26.04-x64").
+    # Switch back to ubuntu-latest once Playwright adds 26.04 support.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       NO_SANDBOX: true
