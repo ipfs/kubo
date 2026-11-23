@@ -612,6 +612,7 @@ func TestOptionalBytes(t *testing.T) {
 	t.Run("invalid values", func(t *testing.T) {
 		invalidInputs := []string{
 			"\"5XiB\"", "\"invalid\"", "\"\"", "[]", "{}",
+			"-1", "-5", "-1024", "\"-5\"", "\"-1\"",
 		}
 
 		for _, invalid := range invalidInputs {
@@ -619,6 +620,37 @@ func TestOptionalBytes(t *testing.T) {
 				var b OptionalBytes
 				err := json.Unmarshal([]byte(invalid), &b)
 				assert.Error(t, err)
+			})
+		}
+	})
+
+	t.Run("numeric values reject unrepresentable sizes", func(t *testing.T) {
+		// UnmarshalJSON must reject every value that WithDefault could not
+		// parse, otherwise the value is accepted at load time and panics later
+		// when the consumer calls WithDefault.
+		for _, invalid := range []string{"-1", "-5", "1e20"} {
+			t.Run(invalid, func(t *testing.T) {
+				var b OptionalBytes
+				err := json.Unmarshal([]byte(invalid), &b)
+				assert.Error(t, err)
+			})
+		}
+	})
+
+	t.Run("accepted values always survive WithDefault", func(t *testing.T) {
+		// Values that parse are exactly the values that round-trip. A value
+		// UnmarshalJSON accepts must never panic in a later WithDefault call.
+		for _, input := range []string{
+			`"1B"`, `"0"`, `"256KiB"`, `"1MiB"`, `"5GiB"`, `"256KB"`,
+			`0`, `1`, `1024`, `268435456`, `1.5`, `1e6`,
+		} {
+			t.Run(input, func(t *testing.T) {
+				var b OptionalBytes
+				require.NoError(t, json.Unmarshal([]byte(input), &b))
+				if b.IsDefault() {
+					return
+				}
+				assert.NotPanics(t, func() { b.WithDefault(0) })
 			})
 		}
 	})
