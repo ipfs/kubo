@@ -8,9 +8,14 @@ package migrations
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	ipfs "github.com/ipfs/kubo"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,6 +55,16 @@ func testConcurrentDaemonMigrations(t *testing.T) {
 	// Should fail with lock error
 	require.Error(t, err, "second daemon should fail when first daemon holds lock")
 	require.Contains(t, string(output), "lock", "error should mention lock")
+
+	// The first daemon may still be migrating, and a temporary file it is
+	// writing would fail the check below. Wait until it has finished, so
+	// the check catches only files left behind by either daemon.
+	versionPath := filepath.Join(node.Dir, "version")
+	latestVersion := fmt.Sprint(ipfs.RepoVersion)
+	require.Eventually(t, func() bool {
+		data, err := os.ReadFile(versionPath)
+		return err == nil && strings.TrimSpace(string(data)) == latestVersion
+	}, 20*time.Second, 100*time.Millisecond, "first daemon should finish the migration")
 
 	assertNoTempFiles(t, node.Dir, "no temp files should be created when lock fails")
 }
