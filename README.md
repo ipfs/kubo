@@ -213,12 +213,12 @@ This repository follows the IPFS [Code of Conduct](https://github.com/ipfs/commu
 
 ## Maintainer Info
 
-<a href="https://ipshipyard.com/"><img align="right" src="https://github.com/user-attachments/assets/39ed3504-bb71-47f6-9bf8-cb9a1698f272" /></a>
-
-> [!NOTE]
-> Kubo is maintained by the [Shipyard](https://ipshipyard.com/) team.
+> [!IMPORTANT]
+> There is no dedicated maintainer at the moment.
 >
-> [Release Process](https://ipshipyard.notion.site/Kubo-Release-Process-6dba4f5755c9458ab5685eeb28173778)
+> After Protocol Labs nucleation, the [Shipyard](https://ipshipyard.com/) team maintained this project in 2024, 2025 and 2026. Shipyard's IPFS maintenance work [ended on September 30, 2026](https://ipshipyard.com/blog/2026-the-end-of-ipfs-at-shipyard/).
+>
+> Bring support and transition questions to the [community forum](https://discuss.ipfs.tech/).
 
 ## License
 
