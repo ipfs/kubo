@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/ipfs/go-test/random"
 	"github.com/ipfs/kubo/test/cli/harness"
 	"github.com/stretchr/testify/require"
 )
@@ -15,8 +17,11 @@ import (
 // It returns the MFS path; the daemon is running again on return.
 func lazyFileWithMissingBlocks(t *testing.T, node *harness.Node) string {
 	t.Helper()
-	content := strings.Repeat("z", 1<<20) // 1 MiB spans several blocks
-	cid := node.PipeStrToIPFS(content, "add", "-q", "--pin=false").Stdout.Trimmed()
+	// Random content, so no other node on the network can provide the blocks.
+	// Repeated bytes such as "zzz..." give well-known leaf CIDs that public
+	// providers serve, and the daemon would fetch them through delegated routing.
+	content := random.Bytes(1 << 20) // 1 MiB spans several blocks
+	cid := node.PipeToIPFS(bytes.NewReader(content), "add", "-q", "--pin=false").Stdout.Trimmed()
 	leaves := strings.Fields(node.IPFS("refs", cid).Stdout.String())
 	require.NotEmpty(t, leaves, "the test file must have leaf blocks to remove")
 	node.IPFS("files", "cp", "/ipfs/"+cid, "/lazy")
