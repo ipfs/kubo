@@ -44,8 +44,9 @@ func main() {
 	log.Debugf("starting at %s, tries: %d, timeout: %s, addr: %s", start, *tries, *timeout, addr)
 
 	connTries := *tries
+	var c manet.Conn
 	for connTries > 0 {
-		c, err := manet.Dial(addr)
+		c, err = manet.Dial(addr)
 		if err == nil {
 			log.Debugf("ok -  endpoint reachable with %d tries remaining, took %s", *tries, time.Since(start))
 			c.Close()

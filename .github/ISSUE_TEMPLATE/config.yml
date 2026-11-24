@@ -1,7 +1,10 @@
 blank_issues_enabled: false
 contact_links:
+ - name: Report a security vulnerability
+   url: https://github.com/ipfs/kubo/security/policy
+   about: Do not open a public issue. Email security@ipfs.io instead.
  - name: Getting Help on IPFS
-   url: https://ipfs.tech/help
+   url: https://docs.ipfs.tech/community/#get-technical-support-and-help
    about: All information about how and where to get help on IPFS.
  - name: Kubo configuration reference
    url: https://github.com/ipfs/kubo/blob/master/docs/config.md#readme
