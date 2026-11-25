@@ -189,6 +189,43 @@ func TestFilesRm(t *testing.T) {
 		lsRes := node.IPFS("files", "ls", "/")
 		assert.NotContains(t, lsRes.Stdout.String(), "test-dir")
 	})
+
+	t.Run("files rm of missing path returns a JSON error over RPC", func(t *testing.T) {
+		// Removing a path that does not exist must return a proper error
+		// response: HTTP 500 with a JSON body. A past regression emitted the
+		// error as a stream value, so the RPC API answered with HTTP 200 and a
+		// plain (non-JSON) string, breaking clients that decode the response.
+		// See https://github.com/ipfs/kubo/issues/8606
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init().StartDaemon()
+		defer node.StopDaemon()
+
+		resp := node.APIClient().Post("/api/v0/files/rm?arg=/does-not-exist", nil)
+		assert.Equal(t, 500, resp.StatusCode)
+
+		var errResp struct {
+			Message string
+			Code    int
+			Type    string
+		}
+		require.NoError(t, json.Unmarshal([]byte(resp.Body), &errResp), "response body must be valid JSON, got: %s", resp.Body)
+		assert.Equal(t, "error", errResp.Type)
+		assert.Contains(t, errResp.Message, "file does not exist")
+	})
+
+	t.Run("files rm reports all errors when several paths are missing", func(t *testing.T) {
+		// When multiple paths fail, every failure must be reported, not just a
+		// generic "can't remove some files" message.
+		t.Parallel()
+
+		node := harness.NewT(t).NewNode().Init()
+
+		res := node.RunIPFS("files", "rm", "/missing-a", "/missing-b")
+		assert.NotEqual(t, 0, res.ExitErr.ExitCode())
+		assert.Contains(t, res.Stderr.String(), "/missing-a")
+		assert.Contains(t, res.Stderr.String(), "/missing-b")
+	})
 }
 
 func TestFilesNoFlushLimit(t *testing.T) {
