@@ -252,6 +252,9 @@ func parseIpfsAddr(addr string) (*peer.AddrInfo, error) {
 		}
 		info.Addrs = append(info.Addrs, taddr)
 	}
+	if info.ID == "" {
+		return nil, fmt.Errorf("target %s has no peer ID: expected an address ending in /p2p/<peer-id>", multiaddr)
+	}
 	return &info, nil
 }
 
