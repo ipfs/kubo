@@ -74,14 +74,12 @@ Kubo has two types of tests:
 
 Note that `go test ./...` runs both unit and end-to-end tests. Use `make test` to run all tests. CI runs unit and end-to-end tests in separate jobs for faster feedback.
 
-<!-- TODO: uncomment when https://github.com/ipfs/kubo/pull/11113 is merged
 | Command | What it runs |
 |---------|--------------|
-| `make test_unit` | unit tests only (excludes `test/cli`) |
+| `make test_unit` | unit tests only (excludes integration packages) |
 | `make test_cli` | CLI end-to-end tests only (requires `make build` first) |
 | `make test_sharness` | sharness end-to-end tests only |
 | `make test` | all tests (unit + CLI + sharness) |
--->
 
 For end-to-end tests, Kubo has two suites:
 
@@ -108,8 +106,11 @@ export IPFS_PATH="$(mktemp -d)"
 ### Unit Tests
 
 ```bash
-go test ./...
+make test_unit
 ```
+
+This target excludes `test/`, `docs/examples/`, and `client/rpc`. A plain
+`go test ./...` also selects those packages and is not a unit-only run.
 
 ### CLI Integration Tests (`test/cli`)
 
