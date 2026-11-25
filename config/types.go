@@ -490,19 +490,23 @@ func (p *OptionalBytes) UnmarshalJSON(input []byte) error {
 		if err != nil {
 			return err
 		}
+		var str string
 		switch v := value.(type) {
 		case float64:
-			str := fmt.Sprintf("%.0f", v)
-			p.value = &str
+			str = fmt.Sprintf("%.0f", v)
 		case string:
-			_, err := humanize.ParseBytes(v)
-			if err != nil {
-				return err
-			}
-			p.value = &v
+			str = v
 		default:
 			return fmt.Errorf("unable to parse byte size, expected a size string (e.g., \"5GiB\") or a number, but got %T", v)
 		}
+		// Validate the stored representation, which is exactly what
+		// WithDefault parses later. Validating the original JSON value
+		// instead would let representations like a negative number through
+		// and turn the later parse into a panic.
+		if _, err := humanize.ParseBytes(str); err != nil {
+			return err
+		}
+		p.value = &str
 	}
 	return nil
 }
