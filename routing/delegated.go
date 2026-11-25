@@ -353,7 +353,11 @@ func createDHT(params *ExtraDHTParams, public bool, mode dht.ModeOpt) (routing.R
 		dht.Datastore(params.Datastore),
 		dht.ValueDatastore(DHTValueDatastore(params.Datastore)),
 		dht.Validator(params.Validator),
-		dht.BootstrapPeers(params.BootstrapPeers...))
+		dht.BootstrapPeers(params.BootstrapPeers...),
+		// Custom routers are never closed, so they would only save on a
+		// timer, and their address filtering differs from the default DHT.
+		// Keep them out of routing table persistence for now.
+		dht.RoutingTablePersistence(0))
 
 	return dht.New(params.Host, opts...)
 }

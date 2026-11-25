@@ -173,6 +173,7 @@ config file at runtime.
     - [`Routing.DelegatedRouters`](#routingdelegatedrouters)
     - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.LoopbackAddressesOnLanDHT`](#routingloopbackaddressesonlandht)
+    - [`Routing.PersistDHTRoutingTable`](#routingpersistdhtroutingtable)
     - [`Routing.IgnoreProviders`](#routingignoreproviders)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers.[name].Type`](#routingroutersnametype)
@@ -923,7 +924,7 @@ The special value `"auto"` automatically uses curated, up-to-date bootstrap peer
 - **Automatic updates**: New bootstrap peers are added as the network evolves
 - **Custom control**: Add your own trusted peers alongside or instead of the defaults
 
-An empty list turns off all bootstrap dialing, including backup peers saved from earlier runs. The node then connects only to `Peering.Peers`, peers found through mDNS, and peers you connect manually. Backup peers are dialed only after the configured peers, when those leave the node below the minimum peer count.
+An empty list turns off all bootstrap dialing, including backup peers saved from earlier runs and the peers saved by [`Routing.PersistDHTRoutingTable`](#routingpersistdhtroutingtable). The node then connects only to `Peering.Peers`, peers found through mDNS, and peers you connect manually. Backup peers are dialed only after the configured peers, when those leave the node below the minimum peer count.
 
 Default: `["auto"]`
 
@@ -3150,6 +3151,39 @@ Most users do not need this setting. It can be useful during testing, when multi
 Default: `false`
 
 Type: `bool` (missing means `false`)
+
+### `Routing.PersistDHTRoutingTable`
+
+Whether the node saves its Amino DHT routing table, and reconnects to those
+peers when it starts instead of going through the [`Bootstrap`](#bootstrap)
+peers first.
+
+When enabled, the peers in the routing table and their addresses are saved to
+the repo after 10 minutes, then every hour, and on shutdown. On the next start,
+the node dials them first. The bootstrap peers are contacted only if fewer than
+10 saved peers answer within 20 seconds, for example after a long time offline.
+Restarts then depend less on a small set of bootstrap peers, and keep working
+when those are unreachable.
+
+Saved peers are checked like any other peer before they enter the routing
+table. A node with an empty [`Bootstrap`](#bootstrap) list neither saves its
+routing table nor dials saved peers. The setting applies to the Amino DHT used
+when [`Routing.Type`](#routingtype) is `auto`, `autoclient`, `dht`, `dhtclient`
+or `dhtserver`. With
+[`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient), the network
+crawls still start from the bootstrap peers.
+
+When enabled for one of these routing types, this replaces the backup bootstrap
+peers that the node otherwise saves from its connected peers every hour: that
+list is deleted on startup, and `Internal.BackupBootstrapInterval` has no
+effect.
+
+When disabled, the routing table isn't saved, and every start goes through the
+bootstrap peers, with the backup bootstrap peers as a fallback.
+
+Default: `false`
+
+Type: `flag`
 
 ### `Routing.IgnoreProviders`
 
