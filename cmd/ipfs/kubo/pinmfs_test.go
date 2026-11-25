@@ -7,11 +7,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	merkledag "github.com/ipfs/boxo/ipld/merkledag"
+	pinclient "github.com/ipfs/boxo/pinning/remote/client"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	config "github.com/ipfs/kubo/config"
@@ -231,4 +235,156 @@ func readLogLine(t *testing.T, logReader io.Reader) (string, string) {
 		t.Fatal(err)
 	}
 	return logInfo.Level, logInfo.Msg
+}
+
+// fakePinningService is a remote pinning service that holds at most one pin
+// and reports it with whatever status the test sets.
+type fakePinningService struct {
+	mu       sync.Mutex
+	cid      string
+	status   string // "" means there is no pin
+	lists    int
+	adds     int
+	replaces int
+}
+
+func (s *fakePinningService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	pin := func() map[string]any {
+		return map[string]any{
+			"requestid": "req-1",
+			"status":    s.status,
+			"created":   "2021-01-01T00:00:00Z",
+			"pin":       map[string]any{"cid": s.cid},
+			"delegates": []string{"/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWHDDGfNebz3WBtmBA5ZoEiy56xFRw43kV3tDpkfR3kkGa"},
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	switch {
+	case r.Method == http.MethodGet && r.URL.Path == "/pins":
+		s.lists++
+		results := []any{}
+		if s.status != "" {
+			results = append(results, pin())
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"count": len(results), "results": results})
+	case r.Method == http.MethodPost && r.URL.Path == "/pins":
+		s.adds++
+		s.status = "queued"
+		w.WriteHeader(http.StatusAccepted)
+		_ = json.NewEncoder(w).Encode(pin())
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/pins/"):
+		s.replaces++
+		s.status = "queued"
+		w.WriteHeader(http.StatusAccepted)
+		_ = json.NewEncoder(w).Encode(pin())
+	default:
+		http.NotFound(w, r)
+	}
+}
+
+func (s *fakePinningService) set(status string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.status = status
+}
+
+func (s *fakePinningService) counts() (lists, adds, replaces int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.lists, s.adds, s.replaces
+}
+
+func TestPinMFSRechecksPinUntilPinned(t *testing.T) {
+	node := &testPinMFSNode{}
+	root, err := node.RootNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := &fakePinningService{cid: root.Cid().String()}
+	srv := httptest.NewServer(svc)
+	defer srv.Close()
+
+	const repinInterval = 50 * time.Millisecond
+	cfg := &config.Config{
+		Pinning: config.Pinning{
+			RemoteServices: map[string]config.RemotePinningService{
+				"svc": {
+					API: config.RemotePinningServiceAPI{Endpoint: srv.URL, Key: "key"},
+					Policies: config.RemotePinningServicePolicies{
+						MFS: config.RemotePinningServiceMFSPolicy{
+							Enable:        true,
+							RepinInterval: repinInterval.String(),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	logReader := logging.NewPipeReader()
+	defer logReader.Close()
+	errorLogs := make(chan string, 16)
+	go func() {
+		r := bufio.NewReader(logReader)
+		for {
+			data, err := r.ReadBytes('\n')
+			if err != nil {
+				return
+			}
+			var line struct {
+				Level string `json:"level"`
+				Msg   string `json:"msg"`
+			}
+			if json.Unmarshal(data, &line) == nil && line.Level == "error" {
+				errorLogs <- line.Msg
+			}
+		}
+	}()
+
+	ctx := context.Background()
+	lastPins := map[string]lastPin{}
+	expect := func(step string, wantLists, wantAdds, wantReplaces int, wantStatus pinclient.Status) {
+		t.Helper()
+		lists, adds, replaces := svc.counts()
+		if lists != wantLists || adds != wantAdds || replaces != wantReplaces {
+			t.Fatalf("%s: got lists=%d adds=%d replaces=%d, want %d %d %d", step, lists, adds, replaces, wantLists, wantAdds, wantReplaces)
+		}
+		if got := lastPins["svc"].Status; got != wantStatus {
+			t.Fatalf("%s: got last status %q, want %q", step, got, wantStatus)
+		}
+	}
+
+	pinAllMFS(ctx, node, cfg, lastPins)
+	expect("first pin", 1, 1, 0, pinclient.StatusQueued)
+
+	// The pin is not confirmed yet, but MFS.RepinInterval has not passed.
+	pinAllMFS(ctx, node, cfg, lastPins)
+	expect("within interval", 1, 1, 0, pinclient.StatusQueued)
+
+	// The service failed the pin: it is logged as an error and requested again.
+	svc.set("failed")
+	time.Sleep(repinInterval + 10*time.Millisecond)
+	pinAllMFS(ctx, node, cfg, lastPins)
+	expect("after failure", 2, 1, 1, pinclient.StatusQueued)
+	select {
+	case msg := <-errorLogs:
+		if !strings.Contains(msg, `"failed"`) || !strings.Contains(msg, svc.cid) {
+			t.Fatalf("unexpected error log: %s", msg)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected the failed pin to be logged as an error")
+	}
+
+	// Once the service reports the pin as pinned, it is no longer checked.
+	svc.set("pinned")
+	time.Sleep(repinInterval + 10*time.Millisecond)
+	pinAllMFS(ctx, node, cfg, lastPins)
+	expect("pinned", 3, 1, 1, pinclient.StatusPinned)
+
+	time.Sleep(repinInterval + 10*time.Millisecond)
+	pinAllMFS(ctx, node, cfg, lastPins)
+	expect("after pinned", 3, 1, 1, pinclient.StatusPinned)
 }
